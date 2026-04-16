@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+body, html, #root {
+  background-color: #FAF9F6; /* Alabaster / Warm Off-white */
+  color: #171717;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Affiliate specific utilities */
+.amazon-btn {
+  background: linear-gradient(180deg, #f8e3ad 0%, #eeba37 100%);
+  color: #111;
+  border: 1px solid #a88734;
+  text-shadow: 0 1px 0 rgba(255,255,255,.4);
+  transition: all 0.2s ease;
+}
+
+.amazon-btn:hover {
+  background: linear-gradient(180deg, #f5d78e 0%, #eeb933 100%);
+  border-color: #9c7e31;
+}
+
+/* Premium Prose Styling for Light Theme */
+.prose-premium img {
+  border-radius: 12px;
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.prose-premium h2, .prose-premium h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-top: 3.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+  color: #171717;
+  line-height: 1.3;
+}
+.prose-premium h2 { font-size: 2.5rem; }
+.prose-premium h3 { font-size: 1.75rem; }
+
+.prose-premium p {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+  color: #52525B; /* zinc-500 */
+  font-size: 1.125rem;
+}
+
+.prose-premium a {
+  color: #D97706; /* amber-600 */
+  text-decoration: none;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.4);
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.prose-premium a:hover {
+  border-bottom-color: #D97706;
+  color: #171717;
+}
+
+.prose-premium strong {
+  color: #171717;
+  font-weight: 600;
+}
+
+.prose-premium ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  color: #52525B;
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+.prose-premium li {
+  margin-bottom: 0.5rem;
+}
+
+/* Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF9F6;
+}
+::-webkit-scrollbar-thumb {
+  background: #E4E4E7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D4D4D8;
+}
