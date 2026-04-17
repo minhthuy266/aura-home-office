@@ -1,7 +1,12 @@
 import { WPPost, WPCategory } from '../types';
 
-// revalidation time in seconds (0 = instant updates)
-const REVALIDATE_TIME = 0;
+// revalidation time in seconds (60 = 1 minute balance for speed and freshness)
+const REVALIDATE_TIME = 60;
+
+// Force allow self-signed certs during migration
+if (process.env.NODE_ENV !== 'production' || process.env.BYPASS_SSL === 'true') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_WP_API_URL || process.env.VITE_WP_API_URL || '';
 const API_URL = RAW_API_URL.replace(/\/$/, ''); // Remove trailing slash if exists
