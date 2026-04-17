@@ -205,36 +205,36 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
         />
 
         {/* ── Post Hero Header ── */}
-        <header className="container mx-auto px-4 md:px-8 max-w-5xl mt-10 md:mt-16 mb-10 text-center">
-          {/* Category Badges */}
+        <header className="container mx-auto px-4 md:px-8 max-w-5xl mt-28 md:mt-36 mb-12 text-center">
+          {/* Category Badges — Refined for Editorial */}
           {categories.length > 0 && (
-            <div className="flex justify-center gap-2 mb-6 flex-wrap">
+            <div className="flex justify-center gap-4 mb-8 flex-wrap">
               {categories.map((cat: { id: number; name: string; slug: string }) => (
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
-                  className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-gold)] border border-[var(--accent-gold)]/30 px-3 py-1 rounded-full hover:bg-[var(--accent-gold)] hover:text-white transition-all duration-300"
+                  className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--accent-gold)] hover:text-[var(--accent-gold-dark)] transition-colors relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-[var(--accent-gold)] hover:after:w-full after:transition-all"
                 >
                   {cat.name}
                 </Link>
               ))}
             </div>
           )}
-
-          {/* Title */}
+ 
+          {/* Title — Using refined Heading Hero */}
           <h1
-            className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-[var(--text-primary)] leading-tight mb-6"
+            className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-[var(--text-primary)] leading-[1.1] mb-8 tracking-[-0.03em]"
             dangerouslySetInnerHTML={{ 
               __html: post.title.rendered
                 .replace(/%keyword%/gi, post.title.rendered.replace(/<[^>]*>/g, '').replace(/The \d+ Best | of \d{4}/gi, '').trim())
                 .replace(/%year%/gi, new Date().getFullYear().toString()) 
             }}
           />
-
-          {/* Excerpt */}
+ 
+          {/* Excerpt — Better spacing and font weight */}
           {post.excerpt?.rendered && (
             <div
-              className="text-lg md:text-xl text-gray-500 font-serif italic max-w-3xl mx-auto mb-8 line-clamp-3 [&>p]:m-0"
+              className="text-lg md:text-2xl text-gray-400 font-serif italic max-w-3xl mx-auto mb-10 leading-relaxed [&>p]:m-0"
               dangerouslySetInnerHTML={{ 
                 __html: post.excerpt.rendered
                   .replace(/%keyword%/gi, post.title.rendered.replace(/<[^>]*>/g, '').replace(/The \d+ Best | of \d{4}/gi, '').trim())
@@ -242,21 +242,18 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
               }}
             />
           )}
-
-          {/* Author & Date */}
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+ 
+          {/* Author & Date — Elegant Metadata Block */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 pt-4 border-t border-[var(--border-light)] max-w-xs mx-auto">
             {author && (
               <div className="flex items-center gap-3">
-                <img
-                  src={author.avatar_urls?.['96'] || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=C4A265&color=fff`}
-                  alt={author.name}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-[var(--accent-gold)]/20"
-                />
-                <span className="font-semibold text-[var(--text-primary)]">{author.name}</span>
+                <span className="text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold">By</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-primary)] hover:text-[var(--accent-gold)] transition-colors cursor-pointer">
+                  {author.name}
+                </span>
               </div>
             )}
-            {author && <span className="text-gray-300">|</span>}
-            <time dateTime={post.date} className="text-xs tracking-wide uppercase">
+            <time dateTime={post.date} className="text-[9px] tracking-[0.2em] uppercase text-gray-400 font-bold">
               {format(new Date(post.date), 'MMMM d, yyyy')}
             </time>
           </div>

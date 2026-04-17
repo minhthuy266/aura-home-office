@@ -1,9 +1,28 @@
-import React from 'react';
-import { getPostsByCategorySlug, getPostsByTagSlug } from '../../../src/services/wpService';
+import { getPostsByCategorySlug, getPostsByTagSlug, getCategories, getCategoryBySlug } from '../../../src/services/wpService';
 import PostCard from '../../../src/components/PostCard';
+import { Metadata } from 'next';
 
 interface CategoryPageProps {
   params: Promise<{ categorySlug: string }>;
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { categorySlug } = await params;
+  const category = await getCategoryBySlug(categorySlug);
+  const name = category?.name || categorySlug.replace(/-/g, ' ');
+  
+  return {
+    title: `${name} | Curated Collection`,
+    description: `Discover our definitive archive of ${name} reviews, field reports, and editorial verdicts for the modern workspace.`,
+  };
+}
+
+export async function generateStaticParams() {
+  // Fetch all categories from WordPress to pre-render ALL category pages
+  const allCategories = await getCategories();
+  return allCategories.map((cat) => ({
+    categorySlug: cat.slug,
+  }));
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
@@ -14,7 +33,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   
   // If no posts and no category found, try to fetch as a Tag
   if (posts.length === 0) {
-    console.log(`No posts found for category ${categorySlug}, trying tag...`);
     const tagPosts = await getPostsByTagSlug(categorySlug);
     if (tagPosts.length > 0) {
       posts = tagPosts;
@@ -22,21 +40,28 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   }
 
   return (
-    <main className="min-h-screen pt-32 pb-20 px-4 md:px-8 bg-[#FAFAF7]">
+    <main className="min-h-screen pt-32 pb-20 px-4 md:px-8 bg-[var(--bg-primary)]">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-16 animate-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#C4A265]/10 rounded-full mb-4">
-             <span className="text-[10px] uppercase tracking-[0.2em] font-black text-[#C4A265]">Classification</span>
+        <header className="mb-20 animate-in text-center md:text-left">
+          <div className="inline-flex items-center gap-3 mb-6">
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--accent-gold)]">
+              Curated Collection
+            </span>
+            <div className="h-px w-12 bg-[var(--accent-gold)]/30"></div>
           </div>
-          <h1 className="text-5xl md:text-7xl font-display font-black text-[#1A1A1A] mb-6 capitalize leading-[0.95] tracking-tight">
+          
+          <h1 className="font-serif text-5xl md:text-8xl font-bold text-[var(--text-primary)] mb-8 leading-[0.9] tracking-[-0.04em] capitalize">
             {category?.name || categorySlug.replace(/-/g, ' ')}
           </h1>
-          <p className="text-xl text-[#6B6B6B] font-light leading-relaxed max-w-2xl">
-            {posts.length > 0 
-              ? `Exploring ${posts.length} definitive guides and reviews meticulously curated for the modern professional.`
-              : `We are currently curating the definitive archive for ${categorySlug.replace(/-/g, ' ')}. Check back soon for our first verdict.`
-            }
-          </p>
+          
+          <div className="max-w-2xl border-l-2 border-[var(--border-light)] pl-6 md:pl-8">
+            <p className="text-xl md:text-2xl text-gray-400 font-serif italic leading-relaxed">
+              {posts.length > 0 
+                ? `A definitive archive of ${posts.length} field reports and editorial verdicts curated for the distinct workspace.`
+                : `We are currently curating the definitive archive for ${categorySlug.replace(/-/g, ' ')}. Check back soon for our first verdict.`
+              }
+            </p>
+          </div>
         </header>
 
         {posts.length > 0 ? (

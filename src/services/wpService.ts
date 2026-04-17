@@ -167,12 +167,12 @@ const MOCK_CATEGORIES: WPCategory[] = [
   { id: 163, name: "Peripherals", slug: "peripherals", count: 3 },
   { id: 1, name: "Blog", slug: "blog", count: 12 },
 ];
-
 const MOCK_POSTS: WPPost[] = [
   {
     id: 229,
     slug: 'portable-power-station',
     date: "2026-03-05T00:20:09",
+    modified: "2026-03-05T00:20:09",
     title: { rendered: "The 30 Best Portable Power Station of 2026" },
     excerpt: { rendered: "Whether you are gearing up for a weekend camping trip, preparing for unexpected power outages, or needing reliable backup power for RV adventures..." },
     content: { rendered: "<p>Whether you are gearing up for a weekend camping trip, preparing for unexpected power outages...</p>" },
@@ -190,6 +190,7 @@ const MOCK_POSTS: WPPost[] = [
     id: 101,
     slug: 'best-gaming-pcs-2026',
     date: "2026-04-01T10:00:00",
+    modified: "2026-04-01T10:00:00",
     title: { rendered: "Best Gaming PCs for Your Home Office in 2026" },
     excerpt: { rendered: "We rank the top pre-built gaming rigs that balance raw power with aesthetic design for a professional workspace." },
     content: { rendered: "<p>Full review of top gaming PCs...</p>" },
@@ -207,6 +208,7 @@ const MOCK_POSTS: WPPost[] = [
     id: 102,
     slug: 'ergonomic-keyboard-roundup',
     date: "2026-04-10T15:30:00",
+    modified: "2026-04-10T15:30:00",
     title: { rendered: "2026 Ergonomic Keyboard Roundup: Efficiency Meets Comfort" },
     excerpt: { rendered: "If you spend 8+ hours a day typing, these keyboards are the single best investment you can make for your wrists." },
     content: { rendered: "<p>The best keyboards we tested this year...</p>" },
