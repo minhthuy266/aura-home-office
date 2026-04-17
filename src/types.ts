@@ -7,7 +7,7 @@ export interface WPPost {
   date: string;
   _embedded?: {
     'wp:featuredmedia'?: Array<{ source_url: string; alt_text: string }>;
-    author?: Array<{ name: string; avatar_urls: Record<string, string> }>;
+    author?: Array<{ name: string; avatar_urls: Record<string, string>; description?: string }>;
     'wp:term'?: Array<Array<{ id: number; name: string; slug: string }>>;
   };
   acf?: {

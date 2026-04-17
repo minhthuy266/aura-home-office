@@ -1,39 +1,36 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, Menu, X, ArrowRight, ChevronDown } from 'lucide-react';
 import Logo from './Logo';
 
 const navItems = [
   {
-    label: 'Furniture',
-    href: '/category/furniture',
+    label: 'Reviews',
+    href: '/category/reviews',
     children: [
-      { label: 'Standing Desks', href: '/category/standing-desks', desc: 'Adjustable electric & manual desks' },
-      { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs', desc: 'Superior posture & mesh comfort' },
-      { label: 'Desk Converters', href: '/category/desk-converters', desc: 'Turn any desk into a standing one' },
-      { label: 'Desk Storage', href: '/category/desk-storage', desc: 'Minimalist filing & organization' },
-      { label: 'Footrests & Mats', href: '/category/footrests-mats', desc: 'Anti-fatigue standing solutions' },
+      { label: 'All Reviews', href: '/category/reviews', desc: 'Expert gear analysis & verdicts' },
+      { label: 'Gaming PCs', href: '/category/gaming-pcs', desc: 'High-performance rigs & setups' },
+      { label: 'Components', href: '/category/components', desc: 'Internal hardware & upgrades' },
+      { label: 'Peripherals', href: '/category/peripherals', desc: 'Keyboards, mice & monitors' },
     ]
   },
   {
-    label: 'Setup',
-    href: '/category/setup',
+    label: 'Gear by Tag',
+    href: '#',
     children: [
-      { label: 'Monitor Arms', href: '/category/monitor-arms', desc: 'Single & dual display elevation' },
-      { label: 'Desk Lighting', href: '/category/desk-lighting', desc: 'Screenbars & bias lighting setup' },
-      { label: 'Cable Management', href: '/category/cable-management', desc: 'Clean, wire-free workspace kits' },
-      { label: 'Keyboards & Mice', href: '/category/keyboards-mice', desc: 'Mechanical & ergonomic peripherals' },
-      { label: 'Desk Accessories', href: '/category/desk-accessories', desc: 'Pads, stands, & essentials' },
+      { label: 'Standing Desks', href: '/category/standing-desks', desc: 'Ergonomic height-adjustable desks' },
+      { label: 'Air Purifiers', href: '/category/air-purifiers', desc: 'Cleaner air for your office' },
+      { label: 'Amazon News', href: '/category/amazon-news', desc: 'Latest from the world of e-commerce' },
     ]
   },
   {
-    label: 'Guides',
-    href: '/category/guides',
+    label: 'Editorial',
+    href: '/category/blog',
     children: [
-      { label: 'Ergonomics & Health', href: '/category/ergonomics-health', desc: 'Setup rules & pain relief' },
-      { label: 'Workspace Ideas', href: '/category/workspace-ideas', desc: 'Visual inspiration & aesthetics' },
-      { label: 'Productivity', href: '/category/productivity', desc: 'Flow state & WFH techniques' },
+      { label: 'Latest Blog', href: '/category/blog', desc: 'Office trends & productivity tips' },
+      { label: 'Lifestyle', href: '/category/blog', desc: 'Balancing work and wellness' },
     ]
   }
 ];
@@ -42,7 +39,26 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -61,19 +77,28 @@ export default function Navbar() {
     }, 150);
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 ${
         isScrolled ? 'py-2' : 'py-3'
       }`}
     >
       {/* Background layer */}
-      <div className={`absolute inset-0 transition-all duration-500 bg-white/95 backdrop-blur-md border-b border-black/[0.06] ${
-        isScrolled ? 'shadow-sm' : ''
-      }`}></div>
+      <div className={`absolute inset-0 transition-all duration-500 bg-[#FAFAF7]/95 backdrop-blur-md border-b border-black/[0.06] ${
+        isScrolled || mobileMenuOpen ? 'shadow-sm opacity-100' : ''
+      } ${mobileMenuOpen ? 'z-[105]' : 'z-0'}`}></div>
 
-      <div className="max-w-[1100px] mx-auto px-5 flex justify-between items-center relative z-10">
-        <Link href="/" className="relative z-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center relative z-[110]">
+        <Link href="/" className="relative z-10" onClick={() => setMobileMenuOpen(false)}>
           <Logo />
         </Link>
 
@@ -130,56 +155,157 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2.5">
-          <button className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-black/[0.04] transition-all duration-300">
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center justify-center w-8 h-8 rounded-full text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-black/[0.04] transition-all duration-300"
+          >
             <Search size={15} strokeWidth={2} />
           </button>
           
-          <Link href="/subscribe" className="hidden sm:inline-flex btn-premium btn-dark text-[9px] py-2 px-5">
+          <Link href="/about" className="hidden lg:block text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6B6B] hover:text-[#1A1A1A] px-4 py-2 transition-colors">
+            About
+          </Link>
+
+          <Link href="/subscribe" className="hidden sm:inline-flex btn-premium btn-dark text-[9px] py-1.5 px-5">
             Subscribe
             <ArrowRight size={10} />
           </Link>
 
           <button 
-            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-full hover:bg-black/[0.04] transition-all text-[#1A1A1A]"
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] transition-all text-[#1A1A1A]"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <div className={`lg:hidden fixed inset-0 z-40 transition-all duration-500 overflow-y-auto ${
-        mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      }`}>
-        <div className="absolute inset-0 bg-white/98 backdrop-blur-2xl"></div>
-        <div className="relative z-10 flex flex-col pt-24 pb-12 px-8 min-h-screen">
+      {/* Mobile Menu Overlay */}
+      <div 
+        className={`lg:hidden fixed inset-0 z-[100] transition-all duration-500 ${
+          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="absolute inset-0 bg-[#FAFAF7] backdrop-blur-xl"></div>
+        
+        {/* Mobile Content */}
+        <div className="relative z-10 flex flex-col px-8 pt-24 pb-10 overflow-y-auto h-full">
+          {/* Mobile Search */}
+          <form onSubmit={handleSearch} className="mb-10 relative">
+            <input
+              type="text"
+              placeholder="Search gear, reviews, guides..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#F5F4F0] border border-black/[0.05] rounded-xl py-3.5 pl-4 pr-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C4A265]/20 focus:border-[#C4A265]/30 transition-all"
+            />
+            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9A9A9A]">
+              <Search size={18} />
+            </button>
+          </form>
+
           {navItems.map((item) => (
-            <div key={item.label} className="mb-8">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-4">{item.label}</h3>
-              <div className="space-y-4">
+            <div key={item.label} className="mb-10">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">{item.label}</h3>
+              <div className="flex flex-col gap-5">
                 {item.children.map((child) => (
                   <Link 
                     key={child.label} 
                     href={child.href}
-                    className="block text-2xl font-display font-bold text-[#1A1A1A] hover:text-[#C4A265] transition-colors"
+                    className="group flex flex-col"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {child.label}
+                    <span className="text-xl font-display font-extrabold text-[#1A1A1A] group-hover:text-[#C4A265] transition-colors">
+                      {child.label}
+                    </span>
+                    <span className="text-[10px] text-[#9A9A9A] font-medium leading-tight mt-1">
+                      {child.desc}
+                    </span>
                   </Link>
                 ))}
               </div>
             </div>
           ))}
-          <div className="mt-4 gold-line w-12"></div>
-          <Link 
-            href="/subscribe"
-            className="btn-premium btn-gold mt-8 text-[10px] w-full justify-center"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Subscribe To The Aura Edit
-            <ArrowRight size={12} />
-          </Link>
+          
+          <div className="pt-8 border-t border-black/[0.06] mt-auto">
+            <div className="flex flex-col gap-4 mb-8">
+              <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-lg font-display font-bold text-[#1A1A1A]">About Our Process</Link>
+              <Link href="/disclosure" onClick={() => setMobileMenuOpen(false)} className="text-lg font-display font-bold text-[#1A1A1A]">Affiliate Disclosure</Link>
+            </div>
+            <Link 
+              href="/subscribe"
+              className="btn-premium btn-dark w-full justify-center py-4 text-[11px]"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Subscribe To The Aura Edit
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Search Overlay */}
+      <div 
+        className={`fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] px-4 transition-all duration-500 ${
+          isSearchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div 
+          className="absolute inset-0 bg-[#0A0A0A]/40 backdrop-blur-md"
+          onClick={() => setIsSearchOpen(false)}
+        ></div>
+        
+        <div className={`relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 delay-75 transform ${
+          isSearchOpen ? 'translate-y-0 scale-100' : '-translate-y-8 scale-95'
+        }`}>
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C4A265]">Search The Aura Archive</h2>
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] text-[#9A9A9A] hover:text-[#1A1A1A] transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search ergonomic chairs, mechanical keyboards, desk setups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#F5F4F0] border-none rounded-2xl py-6 pl-8 pr-16 text-xl font-display font-medium focus:ring-2 focus:ring-[#C4A265]/20 transition-all placeholder:text-[#9A9A9A]"
+              />
+              <button 
+                type="submit"
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-[#1A1A1A] text-white rounded-xl hover:bg-[#C4A265] transition-all shadow-lg"
+              >
+                <Search size={20} />
+              </button>
+            </form>
+            
+            <div className="mt-10">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#9A9A9A] mb-4">Popular Searches</p>
+              <div className="flex flex-wrap gap-2">
+                {['Herman Miller', 'Mechanical Keyboards', 'OLED Monitors', 'Standing Desks', 'Cable Management'].map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => {
+                      setSearchQuery(term);
+                      router.push(`/search?q=${encodeURIComponent(term)}`);
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                    }}
+                    className="px-4 py-2 bg-[#F5F4F0] hover:bg-[#C4A265] hover:text-white rounded-full text-[11px] font-bold text-[#6B6B6B] transition-all"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>

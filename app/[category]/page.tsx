@@ -11,8 +11,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const { posts, category } = await getPostsByCategorySlug(categorySlug);
 
   return (
-    <main className="min-h-screen pt-32 pb-20 px-6">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen pt-32 pb-20 px-4 md:px-8">
+      <div className="max-w-7xl mx-auto">
         <header className="mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-100 rounded-full mb-4">
              <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">Classification</span>

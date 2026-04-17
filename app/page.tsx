@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { getFeaturedPost, getLatestPosts } from '@/src/services/wpService';
+import { getFeaturedPost, getLatestPosts, getPostsByTagSlug } from '@/src/services/wpService';
 import PostCard from '@/src/components/PostCard';
 import CategoryGrid from '@/src/components/CategoryGrid';
 import { ArrowRight, ArrowUpRight, Star, Zap, Shield, Award } from 'lucide-react';
@@ -11,21 +11,22 @@ export default async function HomePage() {
   const featuredPost = await getFeaturedPost();
   
   const trendingPosts = allPosts.slice(1, 4); 
-  const furniturePosts = allPosts.slice(4, 7);
+  const standingDesks = await getPostsByTagSlug('standing-desks', 1, 3);
+  const furniturePosts = standingDesks.length > 0 ? standingDesks : allPosts.slice(4, 7);
   const latestReviews = allPosts.slice(7, 10);
 
   return (
     <main className="min-h-screen relative overflow-hidden font-sans">
 
       {/* ═══════════════════════════════════════════
-          HERO SECTION — Cinematic Split Layout
+          HERO SECTION — Refined Cinematic Layout
           ═══════════════════════════════════════════ */}
-      <section className="relative pt-32 pb-16">
+      <section className="relative pt-32 pb-24 bg-[#F5F4F0] border-b border-black/[0.04]">
         {/* Decorative blobs */}
         <div className="aura-blob w-[600px] h-[600px] bg-[#C4A265]/15 -top-32 -right-32"></div>
         <div className="aura-blob w-[400px] h-[400px] bg-[#C4A265]/10 bottom-0 -left-32"></div>
 
-        <div className="max-w-[1100px] mx-auto px-5 relative z-10 w-full">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-stretch">
             
             {/* Left: Editorial Copy */}
@@ -56,7 +57,7 @@ export default async function HomePage() {
 
               {/* CTA Row */}
               <div className="flex flex-wrap items-center gap-3">
-                <Link href="/category/standing-desks" className="btn-premium btn-dark text-[10px] py-3 px-6">
+                <Link href="/category/reviews" className="btn-premium btn-dark text-[10px] py-3 px-6">
                   Explore Reviews
                   <ArrowRight size={12} />
                 </Link>
@@ -104,8 +105,8 @@ export default async function HomePage() {
               {/* Featured Card Overlay */}
               {featuredPost && (
                 <Link 
-                  href={`/${featuredPost.slug}`} 
-                  className="absolute -bottom-5 -left-5 lg:-left-10 z-20 block group"
+                  href={`/category/${featuredPost._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${featuredPost.slug}`} 
+                  className="absolute -bottom-5 -left-2 sm:-left-5 lg:-left-10 z-20 block group"
                 >
                   <div className="p-4 bg-white rounded-xl shadow-[var(--shadow-card)] max-w-[240px] border border-black/[0.04] hover:shadow-[var(--shadow-card-hover)] transition-all duration-500 hover:-translate-y-1">
                     <div className="flex items-center justify-between mb-2">
@@ -127,7 +128,7 @@ export default async function HomePage() {
               )}
 
               {/* Floating Stat Badge */}
-              <div className="absolute -top-3 -right-3 lg:-right-6 z-20 animate-float">
+              <div className="absolute -top-3 -right-2 sm:-right-3 lg:-right-6 z-20 animate-float">
                 <div className="glass-card p-3 rounded-xl shadow-lg text-center">
                   <div className="text-lg font-display font-bold text-[#C4A265]">4.9</div>
                   <div className="text-[8px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-0.5">Avg Rating</div>
@@ -143,40 +144,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          EDITORIAL MARQUEE — Trust Signal
-          ═══════════════════════════════════════════ */}
-      <section className="py-4 border-y border-black/[0.04] bg-white/50 overflow-hidden">
-        <div className="marquee-track">
-          {[...Array(2)].map((_, setIdx) => (
-            <div key={setIdx} className="flex items-center gap-10 px-5 shrink-0">
-              {[
-                'Independently Reviewed',
-                'No Sponsored Content',
-                'Real-World Testing',
-                'Ergonomic Certified',
-                'Amazon Affiliate Partner',
-                'Updated Weekly',
-                'Expert Analysis',
-                '200+ Products Tested',
-              ].map((item, i) => (
-                <div key={`${setIdx}-${i}`} className="flex items-center gap-3 shrink-0">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9A9A9A] whitespace-nowrap">{item}</span>
-                  <span className="w-1 h-1 rounded-full bg-[#C4A265]/40"></span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ═══════════════════════════════════════════
-          TRENDING NOW — 3-Column Strip
+          TRENDING NOW — Clean Grid
           ═══════════════════════════════════════════ */}
-      <section className="py-10 relative">
-        <div className="max-w-[1100px] mx-auto px-5">
+      <section className="py-20 relative bg-white">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
           {/* Section Header */}
-          <div className="flex items-center gap-4 mb-10">
+          <div className="flex items-center gap-4 mb-12">
             <div className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-md bg-[#C4A265]/10 flex items-center justify-center">
                 <Zap size={12} className="text-[#C4A265]" />
@@ -190,27 +165,52 @@ export default async function HomePage() {
           </div>
 
           {/* 3-Column Trending */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {trendingPosts.map((p, i) => (
-              <Link 
-                key={p.id} 
-                href={`/${p.slug}`} 
-                className="group flex gap-4 items-start p-4 rounded-xl bg-white border border-black/[0.04] hover:shadow-[var(--shadow-card)] transition-all duration-500 hover:-translate-y-0.5"
-              >
-                <div className="number-badge bg-[#F5F4F0] text-[#C4A265] shrink-0 font-display text-xs w-7 h-7 rounded-lg">
-                  {String(i + 1).padStart(2, '0')}
-                </div>
-                <div className="space-y-1.5 min-w-0">
-                  <h4 
-                    className="text-[13px] font-bold text-[#1A1A1A] leading-snug group-hover:text-[#C4A265] transition-colors line-clamp-2" 
-                    dangerouslySetInnerHTML={{ __html: p.title.rendered }} 
-                  />
-                  <p className="text-[10px] text-[#9A9A9A] font-semibold uppercase tracking-wider">
-                    {format(new Date(p.date), 'MMM yyyy')}
-                  </p>
-                </div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {trendingPosts.map((p, i) => {
+              const image = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=400";
+              const category = p._embedded?.['wp:term']?.[0]?.[0]?.name || 'Gear';
+              
+              return (
+                <Link 
+                  key={p.id} 
+                  href={`/category/${p._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${p.slug}`} 
+                  className="group flex flex-col bg-white rounded-2xl p-4 border border-black/[0.04] hover:shadow-luxury transition-all duration-500 hover:-translate-y-1 relative"
+                >
+                  {/* Rank Badge */}
+                  <div className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full bg-[#1A1A1A] text-[#C4A265] flex items-center justify-center font-display text-xs font-black shadow-lg border border-white/10 group-hover:bg-[#C4A265] group-hover:text-white transition-colors duration-500">
+                    {i + 1}
+                  </div>
+
+                  <div className="flex gap-4 items-center">
+                    {/* Thumbnail */}
+                    <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-[#F5F4F0] relative">
+                      <img 
+                        src={image} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        alt={p.title.rendered} 
+                      />
+                      <div className="absolute inset-0 bg-black/5 group-hover:opacity-0 transition-opacity"></div>
+                    </div>
+
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#C4A265]">{category}</span>
+                        <div className="w-1 h-1 rounded-full bg-black/[0.1]"></div>
+                        <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-[#9A9A9A]">5 min read</span>
+                      </div>
+                      <h4 
+                        className="text-[14px] font-display font-bold text-[#1A1A1A] leading-tight group-hover:text-[#C4A265] transition-colors line-clamp-2" 
+                        dangerouslySetInnerHTML={{ __html: p.title.rendered }} 
+                      />
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-1 group-hover:translate-y-0">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-[#C4A265]">Read verdict</span>
+                        <ArrowUpRight size={10} className="text-[#C4A265]" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -219,7 +219,7 @@ export default async function HomePage() {
           CATEGORY EXPLORATION — Visual Grid
           ═══════════════════════════════════════════ */}
       <section className="py-10 relative bg-white">
-        <div className="max-w-[1100px] mx-auto px-5 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
           <div className="mb-10 flex items-end justify-between">
             <div className="space-y-2">
               <span className="label-micro text-[#C4A265]">Browse by Category</span>
@@ -239,7 +239,7 @@ export default async function HomePage() {
           LATEST REVIEWS — Magazine Grid
           ═══════════════════════════════════════════ */}
       <section className="py-24 relative overflow-hidden bg-[#F0EDE5] border-t border-black/[0.08]">
-        <div className="max-w-[1100px] mx-auto px-5">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="mb-12 flex items-end justify-between">
             <div className="space-y-2">
               <span className="label-micro text-[#C4A265]">Latest Analysis</span>
@@ -260,7 +260,7 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-12 text-center">
-            <Link href="/category/standing-desks" className="btn-premium btn-dark text-[10px] py-3 px-6">
+            <Link href="/category/reviews" className="btn-premium btn-dark text-[10px] py-3 px-6">
               Browse All Reviews
               <ArrowRight size={12} />
             </Link>
@@ -274,7 +274,7 @@ export default async function HomePage() {
       <section className="relative py-16 bg-white overflow-hidden border-t border-black/[0.08]">
         <div className="aura-blob w-[500px] h-[500px] bg-[#C4A265]/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
 
-        <div className="max-w-[600px] mx-auto px-5 text-center relative z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-black/[0.08] bg-white/50 mb-6 font-medium shadow-sm">
             <Star size={10} fill="#C4A265" className="text-[#C4A265]" />
             <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#C4A265]">The Aura Edit</span>

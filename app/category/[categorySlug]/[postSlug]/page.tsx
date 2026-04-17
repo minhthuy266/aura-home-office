@@ -1,15 +1,15 @@
 import React from 'react';
-import { getPostBySlug, getLatestPosts } from '../../../src/services/wpService';
+import { getPostBySlug, getLatestPosts } from '../../../../src/services/wpService';
 import { notFound } from 'next/navigation';
-import PostClient from '../../../src/components/PostClient';
+import PostClient from '../../../../src/components/PostClient';
 
 interface PostPageProps {
-  params: Promise<{ category: string; slug: string }>;
+  params: Promise<{ categorySlug: string; postSlug: string }>;
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const { postSlug } = await params;
+  const post = await getPostBySlug(postSlug);
 
   if (!post) {
     notFound();

@@ -5,34 +5,28 @@ import Logo from './Logo';
 import { ArrowUpRight } from 'lucide-react';
 
 export default function Footer() {
-  const furniture = [
+  const categories = [
+    { label: 'Reviews', href: '/category/reviews' },
+    { label: 'Gaming PCs', href: '/category/gaming-pcs' },
+    { label: 'Components', href: '/category/components' },
+    { label: 'Peripherals', href: '/category/peripherals' },
     { label: 'Standing Desks', href: '/category/standing-desks' },
-    { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs' },
-    { label: 'Desk Converters', href: '/category/desk-converters' },
-    { label: 'Desk Storage', href: '/category/desk-storage' },
-    { label: 'Footrests & Mats', href: '/category/footrests-mats' },
-  ];
-
-  const setup = [
-    { label: 'Monitor Arms', href: '/category/monitor-arms' },
-    { label: 'Desk Lighting', href: '/category/desk-lighting' },
-    { label: 'Cable Management', href: '/category/cable-management' },
-    { label: 'Keyboards & Mice', href: '/category/keyboards-mice' },
-    { label: 'Desk Accessories', href: '/category/desk-accessories' },
+    { label: 'Air Purifiers', href: '/category/air-purifiers' },
+    { label: 'Blog', href: '/category/blog' },
   ];
 
   const legal = [
-    { label: 'About Us', href: '/about-us' },
-    { label: 'Contact', href: '/contact-us' },
-    { label: 'Privacy Policy', href: '/privacy-policy' },
-    { label: 'Affiliate Disclosure', href: '/affiliate-disclosure' },
+    { label: 'About Us', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Affiliate Disclosure', href: '/disclosure' },
   ];
 
   return (
     <footer className="bg-[#F5F4F0] text-[#1A1A1A] mt-auto relative overflow-hidden border-t border-black/[0.08]">
       <div className="gold-line"></div>
 
-      <div className="max-w-[1100px] mx-auto px-5 py-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
           
           {/* Brand Column */}
@@ -49,23 +43,11 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Furniture Column */}
-          <div className="md:col-span-2 md:col-start-6">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Furniture</h4>
-            <div className="space-y-3">
-              {furniture.map(link => (
-                <Link key={link.label} href={link.href} className="block text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium">
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Setup Column */}
-          <div className="md:col-span-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Setup</h4>
-            <div className="space-y-3">
-              {setup.map(link => (
+          {/* Categories Column */}
+          <div className="md:col-span-4 md:col-start-6">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Categories</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
+              {categories.map(link => (
                 <Link key={link.label} href={link.href} className="flex items-center gap-1.5 text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium group">
                   {link.label}
                   <ArrowUpRight size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -91,7 +73,7 @@ export default function Footer() {
         <div className="mt-12 p-5 rounded-2xl bg-white/50 border border-black/[0.04] shadow-sm">
           <p className="text-[11px] text-[#6B6B6B] leading-relaxed">
             <strong className="text-[#1A1A1A] font-bold">Affiliate Disclosure</strong> — Aura Home Office is reader-supported. We may earn a commission from Amazon and other partners when you purchase through links on our site, at no extra cost to you. 
-            <Link href="/affiliate-disclosure" className="text-[#C4A265] font-bold hover:underline ml-1">Learn more about our process →</Link>
+            <Link href="/disclosure" className="text-[#C4A265] font-bold hover:underline ml-1">Learn more about our process →</Link>
           </p>
         </div>
 
