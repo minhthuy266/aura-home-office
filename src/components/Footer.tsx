@@ -1,43 +1,110 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
-import { Monitor } from 'lucide-react';
+import Logo from './Logo';
+import { ArrowUpRight } from 'lucide-react';
 
 export default function Footer() {
+  const furniture = [
+    { label: 'Standing Desks', href: '/category/standing-desks' },
+    { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs' },
+    { label: 'Desk Converters', href: '/category/desk-converters' },
+    { label: 'Desk Storage', href: '/category/desk-storage' },
+    { label: 'Footrests & Mats', href: '/category/footrests-mats' },
+  ];
+
+  const setup = [
+    { label: 'Monitor Arms', href: '/category/monitor-arms' },
+    { label: 'Desk Lighting', href: '/category/desk-lighting' },
+    { label: 'Cable Management', href: '/category/cable-management' },
+    { label: 'Keyboards & Mice', href: '/category/keyboards-mice' },
+    { label: 'Desk Accessories', href: '/category/desk-accessories' },
+  ];
+
+  const legal = [
+    { label: 'About Us', href: '/about-us' },
+    { label: 'Contact', href: '/contact-us' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Affiliate Disclosure', href: '/affiliate-disclosure' },
+  ];
+
   return (
-    <footer className="bg-white border-t border-zinc-200 mt-auto text-zinc-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+    <footer className="bg-[#F5F4F0] text-[#1A1A1A] mt-auto relative overflow-hidden border-t border-black/[0.08]">
+      <div className="gold-line"></div>
+
+      <div className="max-w-[1100px] mx-auto px-5 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
           
-          <div className="space-y-6 text-center md:text-left">
-             <div className="flex items-center justify-center md:justify-start gap-2 text-zinc-900">
-                <Monitor size={24} className="text-amber-600 opacity-80" />
-                <span className="font-display font-bold tracking-tight text-xl">
-                  Aura<span className="font-sans text-amber-600 font-medium text-base ml-1.5 tracking-normal">Home Office</span>
-                </span>
-             </div>
-             <p className="text-sm font-light leading-relaxed max-w-sm mx-auto md:mx-0">
-               We meticulously test and evaluate workspace gear to bring you definitive recommendations for a more productive life.
-             </p>
+          {/* Brand Column */}
+          <div className="md:col-span-4 space-y-6">
+            <Logo isDark={true} />
+            <p className="text-[13px] text-[#6B6B6B] leading-relaxed max-w-sm font-light">
+              Elevating the home office through meticulous research and ergonomic obsession. Curating the best gear for a more productive life.
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#C4A265]/40 animate-pulse"></div>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9A9A9A]">
+                Independent & Reader Supported
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-6 text-center md:text-right">
-             <div className="flex gap-6 justify-center md:justify-end">
-                <Link href="/about-us" className="font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">About Us</Link>
-                <Link href="/contact-us" className="font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">Contact</Link>
-                <Link href="/privacy-policy" className="font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">Privacy Policy</Link>
-             </div>
-             
-             <div className="mt-4 p-5 rounded-2xl border border-zinc-200 bg-[#FAF9F6] text-xs leading-relaxed opacity-90 inline-block text-left max-w-md shadow-inner shadow-zinc-100">
-                <strong className="text-zinc-900 font-bold uppercase tracking-wide">⚠️ Affiliate Disclosure:</strong> Aura Home Office is reader-supported. When you buy through links on our site, we may earn an affiliate commission from Amazon and other partners. <Link href="/affiliate-disclosure" className="underline text-amber-700 hover:text-zinc-900">Learn more.</Link>
-             </div>
+          {/* Furniture Column */}
+          <div className="md:col-span-2 md:col-start-6">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Furniture</h4>
+            <div className="space-y-3">
+              {furniture.map(link => (
+                <Link key={link.label} href={link.href} className="block text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
-          
+
+          {/* Setup Column */}
+          <div className="md:col-span-2">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Setup</h4>
+            <div className="space-y-3">
+              {setup.map(link => (
+                <Link key={link.label} href={link.href} className="flex items-center gap-1.5 text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium group">
+                  {link.label}
+                  <ArrowUpRight size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Legal Column */}
+          <div className="md:col-span-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Company</h4>
+            <div className="space-y-3">
+              {legal.map(link => (
+                <Link key={link.label} href={link.href} className="block text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="mt-16 pt-8 border-t border-zinc-100 text-center flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-widest font-mono">
-           <p>&copy; {new Date().getFullYear()} AURA MEDIA. All rights reserved.</p>
-           <p className="opacity-50">DESIGNED IN CALIFORNIA • BUILT FOR THE WORLD</p>
+        {/* Affiliate Disclosure Box */}
+        <div className="mt-12 p-5 rounded-2xl bg-white/50 border border-black/[0.04] shadow-sm">
+          <p className="text-[11px] text-[#6B6B6B] leading-relaxed">
+            <strong className="text-[#1A1A1A] font-bold">Affiliate Disclosure</strong> — Aura Home Office is reader-supported. We may earn a commission from Amazon and other partners when you purchase through links on our site, at no extra cost to you. 
+            <Link href="/affiliate-disclosure" className="text-[#C4A265] font-bold hover:underline ml-1">Learn more about our process →</Link>
+          </p>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="mt-12 pt-6 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] uppercase tracking-[0.25em] font-bold text-[#9A9A9A]">
+          <p>&copy; {new Date().getFullYear()} Aura Media International. All Rights Reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/terms" className="hover:text-[#1A1A1A] transition-colors">Terms of Service</Link>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C4A265]/30"></span>
+              Designed with Intent
+            </div>
+          </div>
         </div>
       </div>
     </footer>
