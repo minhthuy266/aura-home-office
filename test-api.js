@@ -13,7 +13,7 @@ function get(url) {
 }
 
 async function test() {
-  const url = 'https://aurahomeoffice.com/wp-json/wp/v2/posts?slug=portable-power-station';
+  const url = 'https://cms.aurahomeoffice.com/wp-json/wp/v2/posts?slug=portable-power-station';
   try {
     const data = await get(url);
     if (data.length > 0) {

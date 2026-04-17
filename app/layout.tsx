@@ -1,5 +1,5 @@
 import './globals.css';
-import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import { Inter, Outfit, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
 import NextTopLoader from 'nextjs-toploader';
@@ -10,7 +10,7 @@ const inter = Inter({
   weight: ['300', '400', '500', '600', '700', '800', '900'],
 });
 
-const playfair = Playfair_Display({ 
+const outfit = Outfit({ 
   subsets: ['latin'],
   variable: '--font-display',
   weight: ['400', '500', '600', '700', '800', '900'],
@@ -63,7 +63,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${mono.variable} scroll-smooth`}>
+    <html lang="en" className={`${inter.variable} ${outfit.variable} ${mono.variable} scroll-smooth`}>
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       </head>

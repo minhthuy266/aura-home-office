@@ -50,12 +50,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             <div className="h-px w-12 bg-[var(--accent-gold)]/30"></div>
           </div>
           
-          <h1 className="font-serif text-5xl md:text-8xl font-bold text-[var(--text-primary)] mb-8 leading-[0.9] tracking-[-0.04em] capitalize">
+          <h1 className="font-display text-5xl md:text-6xl font-bold text-[var(--text-primary)] mb-6 leading-[1.05] tracking-tight capitalize">
             {category?.name || categorySlug.replace(/-/g, ' ')}
           </h1>
           
           <div className="max-w-2xl border-l-2 border-[var(--border-light)] pl-6 md:pl-8">
-            <p className="text-xl md:text-2xl text-gray-400 font-serif italic leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-400 font-display italic leading-relaxed">
               {posts.length > 0 
                 ? `A definitive archive of ${posts.length} field reports and editorial verdicts curated for the distinct workspace.`
                 : `We are currently curating the definitive archive for ${categorySlug.replace(/-/g, ' ')}. Check back soon for our first verdict.`

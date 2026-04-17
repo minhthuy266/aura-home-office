@@ -57,12 +57,12 @@ const CATEGORIES = [
 
 export default function CategoryGrid() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {CATEGORIES.map((cat) => (
         <Link 
           key={cat.slug}
           href={`/category/${cat.slug}`}
-          className={`${cat.span} group relative overflow-hidden rounded-2xl flex items-end min-h-[180px] md:min-h-[220px] cursor-pointer`}
+          className={`${cat.span} group relative overflow-hidden rounded-3xl flex items-end min-h-[220px] md:min-h-[260px] cursor-pointer`}
         >
           {/* Image */}
           <div className="absolute inset-0 z-0">
@@ -81,19 +81,19 @@ export default function CategoryGrid() {
           </div>
           
           {/* Content */}
-          <div className="relative z-10 p-5 w-full flex items-end justify-between">
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C4A265] group-hover:text-white transition-colors duration-500">
+          <div className="relative z-10 p-6 w-full flex items-end justify-between">
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C4A265] group-hover:text-white transition-colors duration-500">
                 {cat.desc}
               </p>
-              <h3 className="text-xl md:text-2xl font-display font-bold text-white tracking-tight leading-none italic">
+              <h3 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight leading-none italic">
                 {cat.name}
               </h3>
               <div className="h-0.5 w-0 bg-[#C4A265] rounded-full transition-all duration-700 group-hover:w-16"></div>
             </div>
             
-            <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0 border border-white/20">
-              <ArrowUpRight size={16} className="text-white" />
+            <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-3 group-hover:translate-y-0 border border-white/20 shadow-lg">
+              <ArrowUpRight size={20} className="text-white" />
             </div>
           </div>
         </Link>

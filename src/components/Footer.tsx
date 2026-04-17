@@ -37,7 +37,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3 pt-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[#C4A265]/40 animate-pulse"></div>
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#9A9A9A]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A9A9A]">
                 Independent & Reader Supported
               </span>
             </div>
@@ -45,7 +45,7 @@ export default function Footer() {
 
           {/* Categories Column */}
           <div className="md:col-span-4 md:col-start-6">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Categories</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Categories</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
               {categories.map(link => (
                 <Link key={link.label} href={link.href} className="flex items-center gap-1.5 text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium group">
@@ -58,7 +58,7 @@ export default function Footer() {
 
           {/* Legal Column */}
           <div className="md:col-span-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Company</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Company</h4>
             <div className="space-y-3">
               {legal.map(link => (
                 <Link key={link.label} href={link.href} className="block text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium">
@@ -78,7 +78,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-6 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] uppercase tracking-[0.25em] font-bold text-[#9A9A9A]">
+        <div className="mt-12 pt-6 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] uppercase tracking-[0.25em] font-bold text-[#9A9A9A]">
           <p>&copy; {new Date().getFullYear()} Aura Media International. All Rights Reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="hover:text-[#1A1A1A] transition-colors">Terms of Service</Link>
