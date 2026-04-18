@@ -2,8 +2,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Logo from './Logo';
-import { ArrowUpRight } from 'lucide-react';
 
+/**
+ * Footer — DESIGN.md §5 / §8
+ * Dark surface, inverse type, hairline rules
+ */
 export default function Footer() {
   const categories = [
     { label: 'Reviews', href: '/category/reviews' },
@@ -23,34 +26,64 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#F5F4F0] text-[#1A1A1A] mt-auto relative overflow-hidden border-t border-black/[0.08]">
-      <div className="gold-line"></div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
+    <footer style={{
+      background: 'var(--color-surface-dark)',
+      color: 'var(--color-text-inverse)',
+      marginTop: 'auto',
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 32px 40px' }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
           
           {/* Brand Column */}
-          <div className="md:col-span-4 space-y-6">
-            <Logo isDark={true} />
-            <p className="text-[13px] text-[#6B6B6B] leading-relaxed max-w-sm font-light">
-              Elevating the home office through meticulous research and ergonomic obsession. Curating the best gear for a more productive life.
+          <div className="md:col-span-4 space-y-5">
+            <Logo isDark={false} />
+            <p style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-base)',
+              color: 'rgba(245,243,240,0.65)',
+              lineHeight: 'var(--leading-relaxed)',
+              maxWidth: '320px',
+            }}>
+              Independent gear reviews for high-performance home offices. We research so you don't have to.
             </p>
-            <div className="flex items-center gap-3 pt-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#C4A265]/40 animate-pulse"></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A9A9A]">
-                Independent & Reader Supported
-              </span>
-            </div>
+            {/* Mono kicker */}
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 400,
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-mono)',
+              color: 'rgba(245,243,240,0.45)',
+            }}>
+              INDEPENDENT & READER SUPPORTED
+            </span>
           </div>
 
           {/* Categories Column */}
           <div className="md:col-span-4 md:col-start-6">
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Categories</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
+            {/* Section label — JetBrains Mono */}
+            <h4 style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-ribbon)',
+              color: 'var(--color-text-muted)',
+              marginBottom: '20px',
+            }}>Categories</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
               {categories.map(link => (
-                <Link key={link.label} href={link.href} className="flex items-center gap-1.5 text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium group">
+                <Link key={link.label} href={link.href} style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'rgba(245,243,240,0.7)',
+                  textDecoration: 'none',
+                  fontWeight: 400,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-inverse)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(245,243,240,0.7)')}
+                >
                   {link.label}
-                  <ArrowUpRight size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               ))}
             </div>
@@ -58,10 +91,27 @@ export default function Footer() {
 
           {/* Legal Column */}
           <div className="md:col-span-3">
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#C4A265] mb-5">Company</h4>
+            <h4 style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-ribbon)',
+              color: 'var(--color-text-muted)',
+              marginBottom: '20px',
+            }}>Company</h4>
             <div className="space-y-3">
               {legal.map(link => (
-                <Link key={link.label} href={link.href} className="block text-[12px] text-[#1A1A1A] hover:text-[#C4A265] transition-colors duration-300 font-medium">
+                <Link key={link.label} href={link.href} className="block" style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'rgba(245,243,240,0.7)',
+                  textDecoration: 'none',
+                  fontWeight: 400,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-inverse)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(245,243,240,0.7)')}
+                >
                   {link.label}
                 </Link>
               ))}
@@ -69,24 +119,64 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Affiliate Disclosure Box */}
-        <div className="mt-12 p-5 rounded-2xl bg-white/50 border border-black/[0.04] shadow-sm">
-          <p className="text-[11px] text-[#6B6B6B] leading-relaxed">
-            <strong className="text-[#1A1A1A] font-bold">Affiliate Disclosure</strong> — Aura Home Office is reader-supported. We may earn a commission from Amazon and other partners when you purchase through links on our site, at no extra cost to you. 
-            <Link href="/disclosure" className="text-[#C4A265] font-bold hover:underline ml-1">Learn more about our process →</Link>
+        {/* FTC Disclosure — border-left pattern */}
+        <div style={{
+          marginTop: '48px',
+          borderLeft: '3px solid var(--color-border-strong)',
+          padding: 'var(--space-3) var(--space-4)',
+          background: 'rgba(255,255,255,0.04)',
+        }}>
+          <p style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: 'var(--tracking-mono)',
+            color: 'rgba(245,243,240,0.5)',
+            lineHeight: 'var(--leading-normal)',
+          }}>
+            AFFILIATE DISCLOSURE — Aura Home Office is reader-supported. As an Amazon Associate we earn from qualifying purchases. We may also earn commissions from other partners when you purchase through our links, at no extra cost to you.{' '}
+            <Link href="/disclosure" style={{ color: 'var(--color-accent-light)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+              How we test →
+            </Link>
           </p>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-6 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] uppercase tracking-[0.25em] font-bold text-[#9A9A9A]">
-          <p>&copy; {new Date().getFullYear()} Aura Media International. All Rights Reserved.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/terms" className="hover:text-[#1A1A1A] transition-colors">Terms of Service</Link>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#C4A265]/30"></span>
-              Designed with Intent
-            </div>
-          </div>
+        {/* Bottom Bar — hairline rule */}
+        <div style={{
+          marginTop: '32px',
+          paddingTop: '24px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          flexDirection: 'column' as const,
+          gap: '12px',
+          alignItems: 'flex-start',
+        }}
+        className="md:flex-row md:justify-between md:items-center"
+        >
+          <p style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            color: 'rgba(245,243,240,0.35)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: 'var(--tracking-mono)',
+            fontWeight: 400,
+          }}>
+            © {new Date().getFullYear()} Aura Media International
+          </p>
+          <Link href="/terms" style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            color: 'rgba(245,243,240,0.35)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: 'var(--tracking-mono)',
+            fontWeight: 400,
+            textDecoration: 'none',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'rgba(245,243,240,0.6)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(245,243,240,0.35)')}
+          >
+            Terms of Service
+          </Link>
         </div>
       </div>
     </footer>

@@ -1,25 +1,31 @@
 import './globals.css';
-import { Inter, Outfit, JetBrains_Mono } from 'next/font/google';
+import { Playfair_Display, Source_Serif_4, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
 import NextTopLoader from 'nextjs-toploader';
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-sans',
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
-});
-
-const outfit = Outfit({ 
+const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['700', '800', '900'],
+});
+
+const sourceSerif = Source_Serif_4({
+  subsets: ['latin'],
+  variable: '--font-body',
+  weight: ['300', '400', '600', '700'],
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-ui',
+  weight: ['400', '500', '600'],
 });
 
 const mono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
-  weight: ['400', '500'],
+  weight: ['400', '700'],
 });
 
 export const metadata = {
@@ -48,12 +54,12 @@ export const metadata = {
     description: 'The definitive guide for your best workday.',
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icon.svg',
     apple: '/apple-touch-icon.png',
   },
   other: {
-    'msapplication-TileColor': '#1A1A1A',
-    'theme-color': '#1A1A1A',
+    'msapplication-TileColor': '#1F1E1C',
+    'theme-color': '#FAFAF8',
   },
   robots: {
     index: true,
@@ -63,13 +69,13 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} ${mono.variable} scroll-smooth`}>
+    <html lang="en" className={`${playfair.variable} ${sourceSerif.variable} ${dmSans.variable} ${mono.variable}`}>
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       </head>
-      <body className="font-sans antialiased bg-[#FAFAF7] text-[#1A1A1A] luxury-grain flex flex-col min-h-screen">
+      <body className="antialiased flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-ui)', background: 'var(--color-bg)', color: 'var(--color-text-body)' }}>
         <NextTopLoader 
-          color="#C4A265"
+          color="#1A6B5A"
           initialPosition={0.08}
           crawlSpeed={200}
           height={2}
@@ -77,10 +83,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           showSpinner={false}
           easing="ease"
           speed={200}
-          shadow="0 0 10px #C4A265,0 0 5px #C4A265"
+          shadow="false"
         />
         <Navbar />
-        <div className="animate-in">
+        <div>
           {children}
         </div>
         <Footer />

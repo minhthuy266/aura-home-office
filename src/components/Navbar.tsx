@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, ArrowRight, ChevronDown } from 'lucide-react';
+import { Search, Menu, X, ChevronDown } from 'lucide-react';
 import Logo from './Logo';
 
 const navItems = [
@@ -42,7 +42,7 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null!);
   const router = useRouter();
 
   useEffect(() => {
@@ -87,23 +87,31 @@ export default function Navbar() {
   };
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 flex items-center min-h-[72px] ${
-        isScrolled ? 'py-3' : 'py-4'
-      }`}
+    <>
+      <header
+        className="nav"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 120,
+        display: 'flex',
+        alignItems: 'center',
+        minHeight: '64px',
+        background: 'var(--color-bg)',
+        borderBottom: '1px solid var(--color-rule-hard)',
+        padding: isScrolled ? 'var(--space-2) 0' : 'var(--space-3) 0',
+        boxShadow: isScrolled ? 'var(--shadow-sm)' : 'none',
+      }}
     >
-      {/* Background layer */}
-      <div className={`absolute inset-0 transition-all duration-500 bg-[#FAFAF7]/95 backdrop-blur-md border-b border-black/[0.06] ${
-        isScrolled || mobileMenuOpen ? 'shadow-sm opacity-100' : ''
-      } ${mobileMenuOpen ? 'z-[105]' : 'z-0'}`}></div>
-
-      <div className="max-w-7xl w-full mx-auto px-4 md:px-8 flex justify-between items-center relative z-[110]">
+      <div className="max-w-[1200px] w-full mx-auto px-6 md:px-8 flex justify-between items-center relative z-[110]">
         <Link href="/" className="relative z-10" onClick={() => setMobileMenuOpen(false)}>
           <Logo />
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-2">
+        <nav className="hidden lg:flex items-center gap-1">
           {navItems.map((item) => (
             <div 
               key={item.label} 
@@ -112,39 +120,85 @@ export default function Navbar() {
               onMouseLeave={handleMouseLeave}
             >
               <button 
-                className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition-all duration-300 rounded-full hover:bg-black/[0.03] ${
-                  activeDropdown === item.label ? 'text-[#C4A265]' : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
-                }`}
+                className="flex items-center gap-1 px-4 py-2"
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  color: activeDropdown === item.label ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                  transition: 'color 0.12s ease',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 {item.label}
-                <ChevronDown size={12} className={`transition-transform duration-300 ${activeDropdown === item.label ? 'rotate-180' : ''}`} />
+                <ChevronDown size={13} style={{
+                  transform: activeDropdown === item.label ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.12s ease'
+                }} />
               </button>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown */}
               <div 
-                className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 transition-all duration-300 ${
-                  activeDropdown === item.label ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-                }`}
+                className="absolute top-full left-1/2 -translate-x-1/2 pt-3"
+                style={{
+                  opacity: activeDropdown === item.label ? 1 : 0,
+                  transform: `translateX(-50%) translateY(${activeDropdown === item.label ? '0' : '6px'})`,
+                  pointerEvents: activeDropdown === item.label ? 'auto' : 'none',
+                  transition: 'opacity 0.12s ease, transform 0.12s ease',
+                }}
               >
-                <div className="w-[300px] bg-white rounded-2xl shadow-luxury border border-black/[0.04] p-3 overflow-hidden">
-                  <div className="space-y-1">
-                    {item.children.map((child) => (
-                      <Link 
-                        key={child.label} 
-                        href={child.href}
-                        className="flex flex-col p-3 rounded-xl hover:bg-[#F5F4F0] transition-colors group"
-                      >
-                        <span className="text-[13px] font-bold text-[#1A1A1A] group-hover:text-[#C4A265] transition-colors">{child.label}</span>
-                        <span className="text-[11px] text-[#9A9A9A] font-medium leading-relaxed mt-0.5">{child.desc}</span>
-                      </Link>
-                    ))}
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-black/[0.04]">
+                <div style={{
+                  width: '280px',
+                  background: 'white',
+                  borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--shadow-lg)',
+                  border: '1px solid var(--color-border)',
+                  padding: '8px',
+                  overflow: 'hidden',
+                }}>
+                  {item.children.map((child) => (
+                    <Link 
+                      key={child.label} 
+                      href={child.href}
+                      className="flex flex-col p-3"
+                      style={{
+                        borderRadius: 'var(--radius-md)',
+                        transition: 'background 0.12s ease',
+                        textDecoration: 'none',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span style={{
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-primary)',
+                      }}>{child.label}</span>
+                      <span style={{
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--color-text-muted)',
+                        marginTop: '2px',
+                        lineHeight: '1.5',
+                      }}>{child.desc}</span>
+                    </Link>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--color-border-subtle)', margin: '8px 0 4px' }}>
                     <Link 
                       href={item.href} 
-                      className="flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#C4A265] hover:bg-[#C4A265]/5 rounded-lg transition-colors"
+                      className="flex items-center justify-center py-2.5"
+                      style={{
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 600,
+                        color: 'var(--color-accent)',
+                        textDecoration: 'none',
+                      }}
                     >
-                      View All {item.label} <ArrowRight size={12} />
+                      View All {item.label} →
                     </Link>
                   </div>
                 </div>
@@ -154,38 +208,61 @@ export default function Navbar() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsSearchOpen(true)}
-            className="flex items-center justify-center w-9 h-9 rounded-full text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-black/[0.04] transition-all duration-300"
+            className="flex items-center justify-center w-9 h-9"
+            style={{ 
+              color: 'var(--color-text-secondary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              background: 'transparent',
+              cursor: 'pointer',
+            }}
+            aria-label="Search"
           >
             <Search size={16} strokeWidth={2} />
           </button>
           
-          <Link href="/about" className="hidden lg:flex items-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B6B6B] hover:text-[#1A1A1A] px-3 py-2 transition-colors">
+          <Link 
+            href="/about" 
+            className="hidden lg:flex items-center px-4 py-2"
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              color: 'var(--color-text-secondary)',
+              textDecoration: 'none',
+            }}
+          >
             About
           </Link>
 
-
           <button 
-            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] transition-all text-[#1A1A1A]"
+            className="lg:hidden flex items-center justify-center w-10 h-10"
+            style={{ color: 'var(--color-text-primary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Menu"
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
+      </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu */}
       <div 
-        className={`lg:hidden fixed inset-0 z-[100] transition-all duration-500 ${
-          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`lg:hidden fixed inset-0 z-[100] ${
+          mobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
+        style={{
+          opacity: mobileMenuOpen ? 1 : 0,
+          transition: 'opacity 0.12s ease',
+        }}
       >
-        <div className="absolute inset-0 bg-[#FAFAF7] backdrop-blur-xl"></div>
+        <div className="absolute inset-0" style={{ background: 'var(--color-bg)' }} />
         
-        {/* Mobile Content */}
-        <div className="relative z-10 flex flex-col px-6 pt-[90px] pb-10 overflow-y-auto h-full">
+        <div className="relative z-10 flex flex-col px-6 pt-[80px] pb-10 overflow-y-auto h-full">
           {/* Mobile Search */}
           <form onSubmit={handleSearch} className="mb-8 relative">
             <input
@@ -193,68 +270,134 @@ export default function Navbar() {
               placeholder="Search gear, reviews..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#F5F4F0] border border-black/[0.05] rounded-xl py-3 pl-4 pr-12 text-[15px] font-medium focus:outline-none focus:ring-2 focus:ring-[#C4A265]/20 focus:border-[#C4A265]/30 transition-all"
+              className="w-full py-3 pl-4 pr-12"
+              style={{
+                fontFamily: 'var(--font-ui)',
+                fontSize: 'var(--text-base)',
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--color-text-body)',
+                outline: 'none',
+              }}
             />
-            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9A9A9A]">
+            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)', background: 'transparent', border: 'none' }}>
               <Search size={18} />
             </button>
           </form>
 
           {navItems.map((item) => (
-            <div key={item.label} className="mb-10">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#C4A265] mb-5">{item.label}</h3>
-              <div className="flex flex-col gap-5">
+            <div key={item.label} className="mb-8">
+              {/* Kicker — JetBrains Mono, uppercase */}
+              <p style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 400,
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'var(--color-accent)',
+                marginBottom: '16px',
+              }}>{item.label}</p>
+              <div className="flex flex-col gap-4">
                 {item.children.map((child) => (
                   <Link 
                     key={child.label} 
                     href={child.href}
-                    className="group flex flex-col"
+                    className="flex flex-col"
                     onClick={() => setMobileMenuOpen(false)}
+                    style={{ textDecoration: 'none' }}
                   >
-                    <span className="text-xl font-display font-medium text-[#1A1A1A] group-hover:text-[#C4A265] transition-colors">
-                      {child.label}
-                    </span>
-                    <span className="text-[13px] text-[#9A9A9A] font-medium leading-relaxed mt-1">
-                      {child.desc}
-                    </span>
+                    <span style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'var(--text-lg)',
+                      fontWeight: 700,
+                      color: 'var(--color-text-primary)',
+                    }}>{child.label}</span>
+                    <span style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-muted)',
+                      marginTop: '4px',
+                    }}>{child.desc}</span>
                   </Link>
                 ))}
               </div>
             </div>
           ))}
           
-          <div className="pt-6 border-t border-black/[0.06] mt-auto">
-            <div className="flex flex-col gap-4 mb-6">
-              <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-lg font-display font-bold text-[#1A1A1A]">About Our Process</Link>
-              <Link href="/disclosure" onClick={() => setMobileMenuOpen(false)} className="text-lg font-display font-bold text-[#1A1A1A]">Affiliate Disclosure</Link>
+          <div className="pt-6 mt-auto" style={{ borderTop: '1px solid var(--color-rule-hard)' }}>
+            <div className="flex flex-col gap-4">
+              <Link href="/about" onClick={() => setMobileMenuOpen(false)} style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                color: 'var(--color-text-primary)',
+                textDecoration: 'none',
+              }}>About Our Process</Link>
+              <Link href="/disclosure" onClick={() => setMobileMenuOpen(false)} style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                color: 'var(--color-text-primary)',
+                textDecoration: 'none',
+              }}>Affiliate Disclosure</Link>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Desktop Search Overlay */}
       <div 
-        className={`fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4 transition-all duration-500 ${
-          isSearchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] px-4 ${
+          isSearchOpen ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
+        style={{
+          opacity: isSearchOpen ? 1 : 0,
+          transition: 'opacity 0.12s ease',
+        }}
       >
         <div 
-          className="absolute inset-0 bg-[#0A0A0A]/40 backdrop-blur-md"
+          className="absolute inset-0"
+          style={{ background: 'rgba(17, 17, 16, 0.35)' }}
           onClick={() => setIsSearchOpen(false)}
-        ></div>
+        />
         
-        <div className={`relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 delay-75 transform ${
-          isSearchOpen ? 'translate-y-0 scale-100' : '-translate-y-8 scale-95'
-        }`}>
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#C4A265]">Search The Aura Archive</h2>
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '680px',
+          background: 'white',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid var(--color-border)',
+          overflow: 'hidden',
+          transform: isSearchOpen ? 'translateY(0)' : 'translateY(-12px)',
+          transition: 'transform 0.12s ease',
+        }}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-5">
+              {/* Search label — JetBrains Mono kicker */}
+              <p style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 400,
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'var(--color-text-muted)',
+              }}>Search Aura Home Office</p>
               <button 
                 onClick={() => setIsSearchOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] text-[#9A9A9A] hover:text-[#1A1A1A] transition-all"
+                className="flex items-center justify-center w-8 h-8"
+                style={{
+                  color: 'var(--color-text-muted)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                }}
+                aria-label="Close search"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
             
@@ -262,22 +405,49 @@ export default function Navbar() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search ergonomic chairs, mechanical keyboards, desk setups..."
+                placeholder="Search ergonomic chairs, standing desks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F5F4F0] border-none rounded-2xl py-5 pl-7 pr-14 text-xl font-display font-medium focus:ring-2 focus:ring-[#C4A265]/20 transition-all placeholder:text-[#9A9A9A]"
+                style={{
+                  width: '100%',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-xl)',
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px 56px 16px 20px',
+                  color: 'var(--color-text-primary)',
+                  outline: 'none',
+                }}
               />
               <button 
                 type="submit"
-                className="absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-[#1A1A1A] text-white rounded-xl hover:bg-[#C4A265] transition-all shadow-lg"
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9"
+                style={{
+                  background: 'var(--color-accent)',
+                  color: 'white',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                aria-label="Submit search"
               >
-                <Search size={18} />
+                <Search size={16} />
               </button>
             </form>
             
-            <div className="mt-8">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#9A9A9A] mb-4">Popular Searches</p>
-              <div className="flex flex-wrap gap-2.5">
+            <div className="mt-6">
+              {/* Kicker — JetBrains Mono */}
+              <p style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 400,
+                textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'var(--color-text-muted)',
+                marginBottom: '12px',
+              }}>Popular Searches</p>
+              <div className="flex flex-wrap gap-2">
                 {['Herman Miller', 'Mechanical Keyboards', 'OLED Monitors', 'Standing Desks', 'Cable Management'].map((term) => (
                   <button
                     key={term}
@@ -287,7 +457,25 @@ export default function Navbar() {
                       setIsSearchOpen(false);
                       setSearchQuery('');
                     }}
-                    className="px-4 py-2 bg-[#F5F4F0] hover:bg-[#C4A265] hover:text-white rounded-full text-[13px] font-bold text-[#6B6B6B] transition-all"
+                    style={{
+                      padding: '6px 14px',
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-pill)',
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.12s ease, color 0.12s ease',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-accent)';
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-accent)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)';
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)';
+                    }}
                   >
                     {term}
                   </button>
@@ -297,6 +485,6 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }

@@ -1,7 +1,18 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+
+/**
+ * CategoryGrid — DESIGN.md compliant
+ * 
+ * Rules enforced:
+ * - No decorative animations, no parallax, no hover lift
+ * - No glassmorphism, no backdrop-blur
+ * - No rounded corners on images (--radius-none)
+ * - Kickers in JetBrains Mono, uppercase
+ * - Square-cornered images
+ * - Hairline rules for structure
+ */
 
 const CATEGORIES = [
   { 
@@ -9,7 +20,7 @@ const CATEGORIES = [
     slug: 'reviews', 
     image: 'https://images.unsplash.com/photo-1454165833767-027508496bce?q=80&w=1200', 
     span: 'md:col-span-2 md:row-span-2',
-    desc: 'Unbiased gear analysis'
+    desc: 'Expert gear analysis'
   },
   { 
     name: 'Gaming PCs', 
@@ -57,44 +68,69 @@ const CATEGORIES = [
 
 export default function CategoryGrid() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-0" style={{ border: '1px solid var(--color-rule-hard)' }}>
       {CATEGORIES.map((cat) => (
         <Link 
           key={cat.slug}
           href={`/category/${cat.slug}`}
-          className={`${cat.span} group relative overflow-hidden rounded-3xl flex items-end min-h-[220px] md:min-h-[260px] cursor-pointer`}
+          className={`${cat.span} group relative overflow-hidden flex items-end cursor-pointer img-zoom-hover`}
+          style={{
+            minHeight: '220px',
+            borderRight: '1px solid var(--color-rule-hard)',
+            borderBottom: '1px solid var(--color-rule-hard)',
+            textDecoration: 'none',
+          }}
         >
-          {/* Image */}
+          {/* Image — square corners, subtle sleep-to-wake transition */}
           <div className="absolute inset-0 z-0">
             <img 
               src={cat.image} 
               alt={cat.name}
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-[1.8s] ease-out group-hover:scale-110"
+              className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+              style={{ borderRadius: 0 }}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=800';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-700"></div>
+            <div className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-70" style={{ background: 'linear-gradient(to top, rgba(17,17,16,0.95), rgba(17,17,16,0.3))' }} />
           </div>
           
           {/* Content */}
-          <div className="relative z-10 p-6 w-full flex items-end justify-between">
-            <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#C4A265] group-hover:text-white transition-colors duration-500">
-                {cat.desc}
-              </p>
-              <h3 className="text-2xl md:text-3xl font-display font-bold text-white tracking-tight leading-none italic">
+          <div className="relative z-10 p-6 w-full transition-transform duration-300 group-hover:-translate-y-1">
+            {/* Kicker — JetBrains Mono, uppercase */}
+            <p style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 400,
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-mono)',
+              color: 'rgba(245,243,240,0.6)',
+              marginBottom: 'var(--space-2)',
+            }}>
+              {cat.desc}
+            </p>
+            {/* Headline — DM Sans for UI labels */}
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(1.25rem, 2vw, 1.5rem)',
+              fontWeight: 700,
+              color: 'var(--color-text-inverse)',
+              letterSpacing: 'var(--tracking-display)',
+              lineHeight: 'var(--leading-tight)',
+              transition: 'color 0.2s ease',
+            }} className="group-hover:text-white">
+              <span style={{
+                backgroundImage: 'linear-gradient(currentColor, currentColor)',
+                backgroundPosition: '0% 100%',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '0% 2px',
+                transition: 'background-size 0.3s ease',
+              }} className="group-hover:bg-[length:100%_2px]">
                 {cat.name}
-              </h3>
-              <div className="h-0.5 w-0 bg-[#C4A265] rounded-full transition-all duration-700 group-hover:w-16"></div>
-            </div>
-            
-            <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-3 group-hover:translate-y-0 border border-white/20 shadow-lg">
-              <ArrowUpRight size={20} className="text-white" />
-            </div>
+              </span>
+            </h3>
           </div>
         </Link>
       ))}

@@ -4,19 +4,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  List,
   ChevronDown,
   ArrowRight,
-  Star,
   ShieldCheck,
-  Zap,
-  Award,
-  CheckCircle,
   Twitter,
   Mail,
   Share2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import type { WPPost } from '../types';
 
@@ -27,6 +21,18 @@ interface PostClientProps {
   latestPosts: WPPost[];
 }
 
+/**
+ * PostClient — Article Page
+ * DESIGN.md §5 Article Layout + §8 Component Patterns
+ *
+ * Key rules:
+ * - Article content max-width: 680px
+ * - Kickers in JetBrains Mono, ALWAYS uppercase
+ * - Author/trust block with hairline rules (--color-rule-hard)
+ * - FTC disclosure with border-left pattern
+ * - No box-shadow on content blocks
+ * - Images: border-radius: 0
+ */
 export default function PostClient({ post, latestPosts }: PostClientProps) {
   const [processedHtml, setProcessedHtml] = useState<string>('');
   const [toc, setToc] = useState<TOCItem[]>([]);
@@ -39,7 +45,6 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
   const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
   const author = post._embedded?.author?.[0];
   const categories = post._embedded?.['wp:term']?.[0] || [];
-  const rating = post.acf?.rating;
   const relatedPosts = latestPosts.filter(p => p.id !== post.id).slice(0, 3);
   const defaultPostImage = "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1400";
 
@@ -55,21 +60,25 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
       .replace(/Best /gi, '')
       .trim();
 
+    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+    const currentMonthNum = (new Date().getMonth() + 1).toString();
+
     const replacePlaceholders = (text: string, pCount: number, bList: string) => {
       return text
         .replace(/%keyword%/gi, keyword)
         .replace(/%Keyword%/gi, keyword)
         .replace(/%product_count%/gi, pCount.toString())
         .replace(/%brand_list%/gi, bList)
+        .replace(/%month_text%/gi, currentMonth)
+        .replace(/%month%/gi, currentMonthNum)
         .replace(/%year%/gi, currentYear);
     };
 
     const parser = new DOMParser();
     const tempDoc = parser.parseFromString(post.content.rendered, 'text/html');
     
-    // Calculate product count and brand list
     const productItems = tempDoc.querySelectorAll('.acms-product-card, .acms-product-item, .wp-block-product-card');
-    const productCount = productItems.length || 10; // Fallback to 10 if none found but it's a roundup
+    const productCount = productItems.length || 10;
     
     const brandSet = new Set<string>();
     productItems.forEach(item => {
@@ -104,11 +113,18 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
       tocData.push({ id, text, level: parseInt(heading.tagName.substring(1)) });
     });
 
+    // Ensure tooltip link opens in new tab
+    const tooltipLinks = doc.querySelectorAll('.acms-list__score-tooltip a');
+    tooltipLinks.forEach(link => {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer nofollow');
+    });
+
     setProcessedHtml(doc.body.innerHTML || '');
     setToc(tocData);
   }, [post?.content.rendered, post?.title.rendered]);
 
-  // Scroll Sync — Direct DOM manipulation, NO state updates, NO re-renders
+  // Scroll Sync — Direct DOM manipulation, no re-renders
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
@@ -116,14 +132,12 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
       if (timeoutId) return;
 
       timeoutId = setTimeout(() => {
-        // Update progress bar directly via ref
         const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
         const progress = totalHeight > 0 ? (window.scrollY / totalHeight) * 100 : 0;
         if (progressRef.current) {
           progressRef.current.style.width = `${progress}%`;
         }
 
-        // Update TOC active link directly via DOM
         if (toc.length > 0) {
           const headerOffset = 250;
           let currentId = '';
@@ -141,22 +155,17 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
           }
 
           if (currentId !== activeIdRef.current) {
-            // Remove active from previous
             const prevLink = tocLinksRef.current.get(activeIdRef.current);
             if (prevLink) {
-              prevLink.className = prevLink.className
-                .replace('text-[var(--text-primary)]', '')
-                .replace('border-[var(--accent-gold)]', 'border-transparent')
-                .replace('font-bold', '')
-                + ' border-transparent text-gray-400';
+              prevLink.style.borderLeftColor = 'transparent';
+              prevLink.style.color = 'var(--color-text-muted)';
+              prevLink.style.fontWeight = '400';
             }
-            // Add active to current
             const newLink = tocLinksRef.current.get(currentId);
             if (newLink) {
-              newLink.className = newLink.className
-                .replace('border-transparent', 'border-[var(--accent-gold)]')
-                .replace('text-gray-400', 'text-[var(--text-primary)]')
-                + ' font-bold';
+              newLink.style.borderLeftColor = 'var(--color-accent)';
+              newLink.style.color = 'var(--color-text-primary)';
+              newLink.style.fontWeight = '600';
             }
             activeIdRef.current = currentId;
           }
@@ -179,16 +188,14 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
       setTimeout(() => {
         const el = document.getElementById(id);
         if (el) {
-          const yOffset = -100;
-          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          const y = el.getBoundingClientRect().top + window.pageYOffset - 100;
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       }, 10);
     } else {
       const el = document.getElementById(id);
       if (el) {
-        const yOffset = -120;
-        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
@@ -196,45 +203,82 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-[var(--bg-primary)]">
-        {/* Progress Bar — controlled via ref, not state */}
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+        {/* Reading Progress Bar */}
         <div
           ref={progressRef}
-          className="fixed top-0 left-0 h-1 bg-[var(--accent-gold)] z-[100] transition-all duration-300 pointer-events-none"
-          style={{ width: '0%' }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: '2px',
+            background: 'var(--color-accent)',
+            zIndex: 100,
+            width: '0%',
+            pointerEvents: 'none',
+          }}
         />
 
-        {/* ── Post Hero Header ── */}
-        <header className="container mx-auto px-4 md:px-8 max-w-5xl mt-28 md:mt-36 mb-12 text-center">
-          {/* Category Badges — Refined for Editorial */}
+        {/* ── Post Hero Header — Wirecutter Left Alignment ── */}
+        <header style={{
+          maxWidth: '820px',
+          margin: '0 auto',
+          padding: '96px 24px 48px',
+          textAlign: 'left',
+        }}>
+          {/* Kicker — JetBrains Mono, uppercase (WIRED mandatory) */}
           {categories.length > 0 && (
-            <div className="flex justify-center gap-4 mb-8 flex-wrap">
+            <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '12px', marginBottom: 'var(--space-2)', flexWrap: 'wrap' }}>
               {categories.map((cat: { id: number; name: string; slug: string }) => (
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
-                  className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent-gold)] hover:text-[var(--accent-gold-dark)] transition-colors relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1.5px] after:bg-[var(--accent-gold)] hover:after:w-full after:transition-all"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 500,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: '0.08em',
+                    color: 'var(--color-accent)',
+                    textDecoration: 'none',
+                  }}
                 >
                   {cat.name}
                 </Link>
               ))}
             </div>
           )}
- 
-          {/* Title — Using refined Heading Hero */}
+
+          {/* H1 — Playfair Display */}
           <h1
-            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--text-primary)] leading-[1.1] mb-8 tracking-tight break-words"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(1.85rem, 6vw, 3.25rem)',
+              fontWeight: 800,
+              color: 'var(--color-text-primary)',
+              lineHeight: 1.15,
+              letterSpacing: '-0.025em',
+              marginBottom: 'var(--space-4)',
+            }}
             dangerouslySetInnerHTML={{ 
               __html: post.title.rendered
                 .replace(/%keyword%/gi, post.title.rendered.replace(/<[^>]*>/g, '').replace(/The \d+ Best | of \d{4}/gi, '').trim())
                 .replace(/%year%/gi, new Date().getFullYear().toString()) 
             }}
           />
- 
-          {/* Excerpt — Better spacing and font weight */}
+
+          {/* Deck — Source Serif 4 */}
           {post.excerpt?.rendered && (
             <div
-              className="text-lg md:text-xl text-gray-400 font-display italic max-w-3xl mx-auto mb-10 leading-relaxed [&>p]:m-0"
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '18px',
+                color: 'var(--color-text-secondary)',
+                lineHeight: 1.6,
+                maxWidth: '680px',
+                margin: '0 0 var(--space-8)',
+              }}
+              className="[&>p]:m-0"
               dangerouslySetInnerHTML={{ 
                 __html: post.excerpt.rendered
                   .replace(/%keyword%/gi, post.title.rendered.replace(/<[^>]*>/g, '').replace(/The \d+ Best | of \d{4}/gi, '').trim())
@@ -242,45 +286,107 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
               }}
             />
           )}
- 
-          {/* Author & Date — Elegant Metadata Block */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 pt-6 border-t border-[var(--border-light)] max-w-sm mx-auto">
+
+          {/* Author & Date — JetBrains Mono (WIRED article meta format) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            gap: 'var(--space-6)',
+            paddingTop: 'var(--space-5)',
+            borderTop: '1px solid var(--color-rule-hard)',
+            maxWidth: '100%',
+            margin: '0',
+            flexWrap: 'wrap',
+          }}>
             {author && (
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">By</span>
-                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] hover:text-[var(--accent-gold)] transition-colors cursor-pointer">
-                  {author.name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {author.avatar_urls && (author.avatar_urls['48'] || author.avatar_urls['96'] || author.avatar_urls['24']) && (
+                  <img
+                    src={author.avatar_urls['48'] || author.avatar_urls['96'] || author.avatar_urls['24']}
+                    alt={author.name}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '1px solid var(--color-border)'
+                    }}
+                  />
+                )}
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 'var(--tracking-mono)',
+                  color: 'var(--color-text-muted)',
+                  fontWeight: 400,
+                }}>
+                  BY <strong style={{ color: 'var(--color-text-primary)' }}>{author.name}</strong>
                 </span>
               </div>
             )}
-            <time dateTime={post.date} className="text-[11px] tracking-widest uppercase text-gray-400 font-bold">
-              {format(new Date(post.date), 'MMMM d, yyyy')}
+            <time dateTime={post.date} style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              letterSpacing: 'var(--tracking-mono)',
+              textTransform: 'uppercase' as const,
+              color: 'var(--color-text-muted)',
+              fontWeight: 400,
+            }}>
+              LAST UPDATED: {format(new Date(post.date), 'MMMM yyyy').toUpperCase()}
             </time>
           </div>
         </header>
 
-        {/* ── Featured Image ── */}
-        <div className="container mx-auto px-4 md:px-8 max-w-5xl mb-12">
-          <div className="relative aspect-[21/9] overflow-hidden rounded-xl shadow-lg border border-[var(--border-light)] bg-[#F5F4F0]">
+        {/* ── Featured Image — square corners ── */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 48px' }}>
+          <div style={{
+            position: 'relative',
+            aspectRatio: '21/9',
+            overflow: 'hidden',
+            borderRadius: 0,
+            borderTop: '2px solid var(--color-rule-section)',
+            borderBottom: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+          }}>
             <img
               src={featuredMedia?.source_url || defaultPostImage}
               alt={featuredMedia?.alt_text || (post.title.rendered ? post.title.rendered.replace(/<[^>]*>/g, '') : 'Post image')}
-              className="object-cover w-full h-full"
+              style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: 0 }}
             />
           </div>
         </div>
 
-        <div className="container mx-auto px-4 md:px-8 max-w-[1280px] mb-24">
+        {/* ── Main Content Area ── */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 96px' }}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             
-            {/* Left Sidebar — TOC */}
-            <aside className="hidden lg:block lg:col-span-2 sticky top-32 order-1">
-              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto w-full pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <span className="text-[11px] font-bold tracking-widest uppercase text-[#9A9A9A] mb-6 block">Contents</span>
-                <nav className="border-l border-[var(--border-light)]">
-                  <ul className="space-y-0">
+            {/* Left Sidebar — TOC (Independent Scroll) */}
+            <aside className="lg:col-span-2 lg:sticky lg:top-32 order-1 px-4 lg:px-0">
+              <div 
+                className="hidden lg:block scrollbar-hide" 
+                style={{ 
+                  maxHeight: 'calc(100vh - 140px)', 
+                  overflowY: 'auto', 
+                  paddingBottom: '16px' 
+                }}
+              >
+                {/* TOC Label — JetBrains Mono */}
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  letterSpacing: 'var(--tracking-ribbon)',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--color-text-muted)',
+                  display: 'block',
+                  marginBottom: '16px',
+                }}>CONTENTS</span>
+                <nav style={{ borderLeft: '1px solid var(--color-border-subtle)' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {toc.map((item) => (
-                      <li key={item.id} className="relative">
+                      <li key={item.id} style={{ position: 'relative' }}>
                         <a 
                           href={`#${item.id}`}
                           ref={(el) => { if (el) tocLinksRef.current.set(item.id, el); }}
@@ -288,7 +394,17 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
                             e.preventDefault();
                             scrollToHeading(item.id);
                           }}
-                          className={`block py-2 leading-relaxed transition-all duration-300 border-l-2 -ml-[1px] border-transparent text-gray-400 hover:text-[var(--text-primary)] hover:border-gray-300 ${item.level === 3 ? 'pl-8 text-xs' : 'pl-4 text-sm'}`}
+                          style={{
+                            display: 'block',
+                            padding: '7px 0 7px ' + (item.level === 3 ? '24px' : '12px'),
+                            fontFamily: 'var(--font-ui)',
+                            fontSize: item.level === 3 ? 'var(--text-xs)' : 'var(--text-sm)',
+                            lineHeight: 1.5,
+                            color: 'var(--color-text-muted)',
+                            textDecoration: 'none',
+                            borderLeft: '2px solid transparent',
+                            marginLeft: '-1px',
+                          }}
                         >
                           {item.text}
                         </a>
@@ -297,110 +413,283 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
                   </ul>
                 </nav>
               </div>
+
+              {/* Mobile TOC toggle */}
+              <div className="lg:hidden mb-6">
+                <button
+                  onClick={() => setIsMobileTocOpen(!isMobileTocOpen)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-primary)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+                    Table of Contents
+                  </span>
+                  <ChevronDown size={16} style={{ transform: isMobileTocOpen ? 'rotate(180deg)' : 'none' }} />
+                </button>
+                {isMobileTocOpen && toc.length > 0 && (
+                  <div style={{
+                    marginTop: '4px',
+                    background: 'var(--color-surface)',
+                    borderTop: '2px solid var(--color-rule-section)',
+                    borderBottom: '1px solid var(--color-border)',
+                    padding: '8px',
+                  }}>
+                    {toc.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => scrollToHeading(item.id, true)}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 12px',
+                          paddingLeft: item.level === 3 ? '24px' : '12px',
+                          fontFamily: 'var(--font-ui)',
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--color-text-secondary)',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {item.text}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </aside>
 
-            {/* Main Article Content Card */}
-            <main className="col-span-1 lg:col-span-8 order-2 min-w-0 bg-white p-5 md:p-8 lg:p-10 border border-[var(--border-light)] shadow-premium rounded-2xl">
-              <div className="mb-8">
-                <div className="bg-[#F5F4F0] border border-black/[0.04] rounded-xl p-5 mb-8 flex gap-4 text-[13px] md:text-sm text-[#6B6B6B]">
-                  <ShieldCheck className="w-5 h-5 text-[#C4A265] flex-shrink-0 mt-0.5" />
-                  <p>
-                    <strong className="text-[#1A1A1A]">Affiliate Disclosure:</strong> As an Amazon Associate I earn from qualifying purchases. This post may contain affiliate links. Read our full <Link href="/disclosure" className="text-[var(--accent-gold)] font-bold hover:underline">disclosure policy</Link>.
+            {/* ── Main Article Content — 8 Columns ── */}
+            <main className="col-span-1 lg:col-span-8 order-2 min-w-0 p-4 md:p-8 border-x-0 md:border-x-[1px] md:border-border" style={{
+              background: 'white',
+              borderTop: '2px solid var(--color-rule-section)',
+              borderBottom: '1px solid var(--color-border)',
+              borderRadius: 0,
+            }}>
+              {/* FTC Disclosure — border-left pattern per DESIGN.md §8 */}
+              <div className="disclosure" style={{ marginBottom: '32px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <ShieldCheck size={16} style={{ color: 'var(--color-accent)', flexShrink: 0, marginTop: '1px' }} />
+                  <p style={{ margin: 0 }}>
+                    <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>AFFILIATE DISCLOSURE:</strong>{' '}
+                    AS AN AMAZON ASSOCIATE WE EARN FROM QUALIFYING PURCHASES. THIS DOESN&apos;T AFFECT OUR RECOMMENDATIONS.{' '}
+                    <Link href="/disclosure" style={{ color: 'var(--color-accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                      HOW WE TEST →
+                    </Link>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-5 md:p-6 bg-white border border-[var(--border-light)] mb-12 rounded-xl shadow-sm">
-                <ShieldCheck className="text-[var(--accent-gold)] shrink-0" size={26} />
-                <div className="text-[13px] leading-relaxed text-[#6B6B6B]">
-                  <strong className="text-[var(--text-primary)] uppercase tracking-widest block mb-1.5 text-[11px]">Tested & Verified</strong>
-                  Our editors independently research and test products. When you buy through our links, we may earn a commission. <Link href="/about" className="font-bold underline hover:text-[var(--accent-gold)] transition-colors">Learn more about our review process.</Link>
-                </div>
-              </div>
-
-              <article className="gh-content max-w-none prose-premium">
+              {/* Article Body */}
+              <article className="prose-premium" ref={contentRef}>
                 <div 
-                  className="editorial-body" 
                   dangerouslySetInnerHTML={{ __html: processedHtml }} 
                 />
               </article>
 
               {/* Share Footer */}
-              <div className="mt-20 pt-10 border-t border-[var(--border-light)] flex flex-wrap items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#9A9A9A]">Share</span>
-                  <div className="flex gap-3">
-                    {[Twitter, Mail, Share2].map((Icon, i) => (
-                      <button key={i} className="w-10 h-10 rounded-full bg-[#F5F4F0] border border-black/[0.04] flex items-center justify-center text-[#6B6B6B] hover:bg-black hover:text-white transition-all duration-300">
-                        <Icon size={16} />
-                      </button>
-                    ))}
-                  </div>
+              <div style={{
+                marginTop: '64px',
+                paddingTop: '32px',
+                borderTop: '1px solid var(--color-rule-hard)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}>
+                {/* Share label — JetBrains Mono */}
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 'var(--tracking-ribbon)',
+                  color: 'var(--color-text-muted)',
+                }}>SHARE</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[Twitter, Mail, Share2].map((Icon, i) => (
+                    <button key={i} style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--color-text-secondary)',
+                      cursor: 'pointer',
+                    }}>
+                      <Icon size={15} />
+                    </button>
+                  ))}
                 </div>
               </div>
             </main>
 
-            {/* Right Sidebar — Trending */}
+            {/* Right Sidebar — Trending (2 Columns, Independent Scroll) */}
             <aside className="hidden lg:block lg:col-span-2 sticky top-32 order-3">
-              <span className="text-[11px] font-bold tracking-widest uppercase text-[#9A9A9A] mb-6 block">Trending</span>
-              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto w-full pb-4 space-y-8 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div 
+                className="scrollbar-hide" 
+                style={{ 
+                  maxHeight: 'calc(100vh - 140px)', 
+                  overflowY: 'auto', 
+                  paddingBottom: '32px' 
+                }}
+              >
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--color-text-muted)',
+                  display: 'block',
+                  marginBottom: '24px',
+                  borderBottom: '1px solid var(--color-rule-hard)',
+                  paddingBottom: '8px',
+                }}>TRENDING NOW</span>
+                <div className="space-y-6">
                 {relatedPosts.map((rp, i) => (
                   <Link
                     key={rp.id}
                     href={`/category/${rp._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${rp.slug}`}
-                    className="group block"
+                    className="group flex gap-4 items-start text-decoration-none"
                   >
-                    <div className="relative aspect-[4/3] bg-[#F5F4F0] overflow-hidden mb-4 rounded-xl shadow-sm border border-transparent group-hover:border-black/[0.04] transition-all">
-                      <img
-                        src={rp._embedded?.['wp:featuredmedia']?.[0]?.source_url || defaultPostImage}
-                        alt={rp.title.rendered}
-                        className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute top-2 left-2 bg-white/95 px-2.5 py-1 rounded-md shadow-sm">
-                        <span className="text-[11px] font-black tracking-widest text-[#1A1A1A]">0{i + 1}</span>
+                    {/* Number Marker — Mono */}
+                    <span style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--color-accent)',
+                      opacity: 0.4,
+                      marginTop: '2px',
+                    }}>0{i + 1}</span>
+
+                    <div style={{ flex: 1 }}>
+                      {/* Image — Small Thumb */}
+                      <div style={{
+                        width: '100%',
+                        aspectRatio: '16/9',
+                        background: 'var(--color-surface)',
+                        overflow: 'hidden',
+                        marginBottom: '8px',
+                        border: '1px solid var(--color-border-subtle)',
+                      }}>
+                        <img
+                          src={rp._embedded?.['wp:featuredmedia']?.[0]?.source_url || defaultPostImage}
+                          alt={rp.title.rendered}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%', transition: 'transform 0.5s ease' }}
+                          className="group-hover:scale-105"
+                        />
                       </div>
+                      {/* Title — Display */}
+                      <h4
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '15px',
+                          color: 'var(--color-text-primary)',
+                          lineHeight: '1.4',
+                          fontWeight: 700,
+                          margin: 0,
+                        }}
+                        dangerouslySetInnerHTML={{ __html: rp.title.rendered }}
+                      />
                     </div>
-                    <h4
-                      className="font-display text-sm text-[var(--text-primary)] leading-snug group-hover:text-[var(--accent-gold)] transition-colors font-bold"
-                      dangerouslySetInnerHTML={{ __html: rp.title.rendered }}
-                    />
                   </Link>
                 ))}
+                </div>
               </div>
             </aside>
           </div>
 
-          {/* Footer Navigation */}
-          <div className="mt-24 pt-16 border-t border-[var(--border-light)]">
-            <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[var(--accent-gold)] mb-8 block text-center md:text-left">Up Next</span>
+          {/* Up Next — hairline rule separator */}
+          <div style={{ marginTop: '80px', paddingTop: '48px', borderTop: '1px solid var(--color-rule-hard)' }}>
+            {/* Kicker — JetBrains Mono */}
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              fontWeight: 500,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase' as const,
+              color: 'var(--color-text-muted)',
+              display: 'block',
+              marginBottom: 'var(--space-6)',
+            }}>UP NEXT</span>
             {relatedPosts[0] && (
-              <Link
-                href={`/category/${relatedPosts[0]._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${relatedPosts[0].slug}`}
-                className="group flex flex-col md:flex-row gap-10 items-center bg-white p-8 rounded-3xl border border-transparent hover:border-black/[0.04] hover:shadow-premium transition-all duration-500"
-              >
-                <div className="relative w-full md:w-1/3 aspect-[16/9] md:aspect-[4/3] overflow-hidden rounded-2xl bg-[#F5F4F0]">
-                  <img
-                    src={relatedPosts[0]._embedded?.['wp:featuredmedia']?.[0]?.source_url || defaultPostImage}
-                    alt={relatedPosts[0].title.rendered}
-                    className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <div className="flex-1 space-y-5 text-center md:text-left">
-                  <h4
-                    className="font-display text-3xl md:text-5xl text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors leading-tight font-bold tracking-tight"
-                    dangerouslySetInnerHTML={{ __html: relatedPosts[0].title.rendered }}
-                  />
-                  <div
-                    className="text-[#6B6B6B] text-lg lg:text-xl line-clamp-2 italic font-display"
-                    dangerouslySetInnerHTML={{ __html: relatedPosts[0].excerpt.rendered }}
-                  />
-                  <div className="pt-2">
-                    <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-widest text-[var(--accent-gold)] pb-1 border-b-[1.5px] border-transparent group-hover:border-[var(--accent-gold)] transition-all">
-                      Continue Reading <ArrowRight size={14} className="ml-2" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
+            <Link
+              href={`/category/${relatedPosts[0]._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${relatedPosts[0].slug}`}
+              style={{
+                display: 'flex',
+                gap: '24px',
+                alignItems: 'center',
+                textDecoration: 'none',
+              }}
+              className="group flex-col md:flex-row"
+            >
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '200px',
+                aspectRatio: '16/10',
+                overflow: 'hidden',
+                borderRadius: 0,
+                background: 'var(--color-surface)',
+                flexShrink: 0,
+                border: '1px solid var(--color-rule-hard)',
+              }} className="md:w-1/4">
+                <img
+                  src={relatedPosts[0]._embedded?.['wp:featuredmedia']?.[0]?.source_url || defaultPostImage}
+                  alt={relatedPosts[0].title.rendered}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: 0 }}
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <h4 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-lg)',
+                  color: 'var(--color-text-primary)',
+                  lineHeight: 1.3,
+                  fontWeight: 700,
+                  letterSpacing: 'var(--tracking-display)',
+                  marginBottom: '8px',
+                }}>
+                  <span className="group-hover:bg-[length:100%_2px]" style={{
+                    backgroundImage: 'linear-gradient(currentColor, currentColor)',
+                    backgroundPosition: '0% 100%',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '0% 2px',
+                    transition: 'background-size 0.3s ease',
+                  }} dangerouslySetInnerHTML={{ __html: relatedPosts[0].title.rendered }} />
+                </h4>
+                <div style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '14px',
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 1.5,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical' as const,
+                  overflow: 'hidden',
+                }} dangerouslySetInnerHTML={{ __html: relatedPosts[0].excerpt.rendered }} />
+              </div>
+            </Link>
             )}
           </div>
         </div>

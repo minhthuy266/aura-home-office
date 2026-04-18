@@ -4,206 +4,309 @@ import { format } from 'date-fns';
 import { getFeaturedPost, getLatestPosts, getPostsByTagSlug } from '@/src/services/wpService';
 import PostCard from '@/src/components/PostCard';
 import CategoryGrid from '@/src/components/CategoryGrid';
-import { ArrowRight, ArrowUpRight, Star, Zap, Shield, Award } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { formatSEOText } from '@/src/utils/seoFormatter';
 
+/**
+ * Homepage — DESIGN.md §5 Page Templates
+ * 
+ * Structure:
+ * [Nav — sticky, white bg, bottom hairline rule]
+ * [Hero — 2-col: large image left + editorial headline right]
+ *   ↳ Kicker: REVIEWS · HOME OFFICE
+ *   ↳ H1: Playfair, text-4xl/5xl
+ *   ↳ Deck: Source Serif 4, text-md
+ * [Section ribbon — "BEST PICKS" — dark bg, inverse type]
+ * [Story grid — tiles with hairline rules between]
+ * [Section ribbon — "MOST POPULAR"]
+ * [Recent reviews — list format]
+ * [Footer — dark surface, inverse type]
+ */
 export default async function HomePage() {
   const allPosts = await getLatestPosts(12);
   const featuredPost = await getFeaturedPost();
   
-  const trendingPosts = allPosts.slice(1, 4); 
-  const standingDesks = await getPostsByTagSlug('standing-desks', 1, 3);
-  const furniturePosts = standingDesks.length > 0 ? standingDesks : allPosts.slice(4, 7);
-  const latestReviews = allPosts.slice(7, 10);
+  const trendingPosts = allPosts.slice(1, 5); 
+  const standingDesks = await getPostsByTagSlug('standing-desks', 1, 4);
+  const furniturePosts = standingDesks.length > 0 ? standingDesks : allPosts.slice(4, 8);
 
   return (
-    <main className="min-h-screen relative overflow-hidden font-sans">
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
 
-      {/* ═══════════════════════════════════════════
-          HERO SECTION — Refined Cinematic Layout
-          ═══════════════════════════════════════════ */}
-      <section className="relative pt-32 pb-24 bg-[#F5F4F0] border-b border-black/[0.04]">
-        {/* Decorative blobs */}
-        <div className="aura-blob w-[600px] h-[600px] bg-[#C4A265]/15 -top-32 -right-32"></div>
-        <div className="aura-blob w-[400px] h-[400px] bg-[#C4A265]/10 bottom-0 -left-32"></div>
-
-        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10 w-full">
+      {/* ═══════════════ HERO ═══════════════ */}
+      <section style={{
+        paddingTop: '96px',
+        paddingBottom: '80px',
+        background: 'var(--color-bg)',
+        borderBottom: '1px solid var(--color-rule-hard)',
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-stretch">
             
             {/* Left: Editorial Copy */}
-            <div className="space-y-6 lg:space-y-7 flex flex-col justify-center">
-              {/* Issue Badge */}
-              <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#C4A265]/8 border border-[#C4A265]/15 w-fit">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#C4A265] animate-pulse"></div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#C4A265]">
-                  Spring 2026 Collection
+            <div className="flex flex-col justify-between py-4 lg:py-8 reveal">
+              <div style={{ marginBottom: '40px' }} className="reveal delay-1">
+                {/* Kicker — JetBrains Mono, ALL-CAPS (WIRED mandatory) */}
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 400,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 'var(--tracking-mono)',
+                  color: 'var(--color-text-muted)',
+                  display: 'block',
+                  marginBottom: 'var(--space-2)',
+                }}>
+                  REVIEWS · HOME OFFICE
                 </span>
+
+                {/* H1 — Playfair Display */}
+                <h1 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(2.5rem, 5vw, var(--text-4xl))',
+                  fontWeight: 800,
+                  color: 'var(--color-text-primary)',
+                  lineHeight: 'var(--leading-display)',
+                  letterSpacing: 'var(--tracking-display)',
+                  marginBottom: 'var(--space-6)',
+                }}>
+                  The Best Home Office Gear,<br />
+                  <span style={{ fontStyle: 'italic', fontWeight: 700 }}>Tested &amp; Ranked.</span>
+                </h1>
+
+                {/* Deck — Source Serif 4 */}
+                <p style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-md)',
+                  lineHeight: 'var(--leading-relaxed)',
+                  color: 'var(--color-text-secondary)',
+                  maxWidth: '480px',
+                }} className="reveal delay-2">
+                  Expert reviews and ergonomic analysis for professionals building high-performance home offices. We test so you don&apos;t have to.
+                </p>
               </div>
 
-              {/* Headline */}
-              <h1 className="text-5xl md:text-6xl font-display font-bold text-[#1A1A1A] leading-[1.05] tracking-tight">
-                Curate Your
-                <br />
-                <span className="bg-gradient-to-r from-[#C4A265] via-[#D4AF37] to-[#A68B4B] bg-clip-text text-transparent italic px-1">
-                  Perfect
-                </span>
-                <br />
-                Workspace.
-              </h1>
-
-              {/* Subheading */}
-              <p className="text-lg text-[#555555] max-w-lg leading-relaxed font-light">
-                Expert reviews, ergonomic analysis, and curated gear for professionals who demand excellence from every corner of their home office.
-              </p>
-
-              {/* CTA Row */}
-              <div className="flex flex-wrap items-center gap-4">
-                <Link href="/category/reviews" className="btn-premium btn-dark">
-                  Explore Reviews
-                  <ArrowRight size={16} />
-                </Link>
-                <Link href="/about-us" className="btn-premium btn-gold">
-                  Our Method
-                  <ArrowUpRight size={16} />
-                </Link>
-              </div>
-
-              {/* Trust Signals */}
-              <div className="flex flex-wrap items-center gap-6 pt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center">
-                    <Shield size={12} className="text-[#C4A265]" />
-                  </div>
-                  <span className="text-xs font-semibold text-[#888888]">200+ Tested</span>
+              {/* CTAs */}
+              <div className="reveal delay-3">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '28px' }}>
+                  <Link href="/category/reviews" className="btn-buy">
+                    Explore Reviews <ArrowRight size={14} />
+                  </Link>
+                  <Link href="/about" className="btn-secondary">
+                    How We Test
+                  </Link>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center">
-                    <Award size={12} className="text-[#C4A265]" />
-                  </div>
-                  <span className="text-xs font-semibold text-[#888888]">Expert-Led</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center">
-                    <Zap size={12} className="text-[#C4A265]" />
-                  </div>
-                  <span className="text-xs font-semibold text-[#888888]">Unbiased</span>
+
+                {/* Trust signals — JetBrains Mono kicker style */}
+                <div style={{
+                  paddingTop: 'var(--space-5)',
+                  borderTop: '1px solid var(--color-rule-hard)',
+                }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 400,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: 'var(--tracking-mono)',
+                    color: 'var(--color-text-muted)',
+                    lineHeight: 1.8,
+                  }}>
+                    200+ PRODUCTS TESTED · EXPERT-LED RESEARCH · UNBIASED REVIEWS
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Hero Image Stack */}
-            <div className="relative min-h-[400px] lg:min-h-[600px] flex items-center">
-              {/* Main Image */}
-              <div className="relative rounded-3xl overflow-hidden h-full w-full shadow-luxury img-zoom">
+            {/* Right: Hero Image — square corners */}
+            <div className="relative min-h-[360px] lg:min-h-[520px] flex items-stretch reveal">
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                borderRadius: 0,
+                overflow: 'hidden',
+              }} className="img-zoom-hover">
                 <img 
                   src="https://images.unsplash.com/photo-1593062096033-9a26b09da705?q=80&w=1600" 
                   className="w-full h-full object-cover" 
-                  alt="Premium home office setup" 
+                  alt="Premium ergonomic home office setup with monitor and desk"
+                  width={800}
+                  height={600}
+                  loading="eager"
+                  style={{ borderRadius: 0 }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,16,0.5), transparent)' }} />
               </div>
 
-              {/* Featured Card Overlay */}
+              {/* Featured card overlay */}
               {featuredPost && (
                 <Link 
                   href={`/category/${featuredPost._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${featuredPost.slug}`} 
-                  className="absolute -bottom-6 -left-4 sm:-left-8 lg:-left-12 z-20 block group"
+                  style={{
+                    position: 'absolute',
+                    bottom: '-24px',
+                    left: '-16px',
+                    zIndex: 20,
+                    display: 'block',
+                    textDecoration: 'none',
+                  }}
+                  className="sm:-left-8 lg:-left-12"
                 >
-                  <div className="p-5 bg-white rounded-2xl shadow-[var(--shadow-card)] max-w-[280px] border border-black/[0.04] hover:shadow-[var(--shadow-card-hover)] transition-all duration-500 hover:-translate-y-2">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="pill pill-gold">Featured</span>
-                      <div className="flex items-center gap-1.5 text-[#C4A265]">
-                        <Star size={14} fill="currentColor" />
-                        <span className="text-sm font-bold">9.8</span>
-                      </div>
+                  <div style={{
+                    padding: '16px 20px',
+                    background: 'white',
+                    boxShadow: 'var(--shadow-md)',
+                    maxWidth: '260px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 0,
+                  }}>
+                    <div style={{ marginBottom: '10px' }}>
+                      {/* Kicker — JetBrains Mono */}
+                      <span style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 700,
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: 'var(--tracking-ribbon)',
+                        color: 'var(--color-accent)',
+                      }}>FEATURED</span>
                     </div>
                     <h3 
-                      className="text-base font-bold leading-snug text-[#1A1A1A] group-hover:text-[#C4A265] transition-colors line-clamp-2" 
-                      dangerouslySetInnerHTML={{ __html: featuredPost.title.rendered }} 
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        color: 'var(--color-text-primary)',
+                        lineHeight: 'var(--leading-snug)',
+                        letterSpacing: 'var(--tracking-display)',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical' as const,
+                        overflow: 'hidden',
+                        marginBottom: '12px',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: formatSEOText(featuredPost.title.rendered, featuredPost.title.rendered, featuredPost._embedded?.['wp:term']?.[0]?.[0]?.name, featuredPost.content?.rendered) }} 
                     />
-                    <div className="mt-4 flex items-center gap-2 text-xs font-bold text-[#9A9A9A] uppercase tracking-wider group-hover:text-[#C4A265] transition-colors">
-                      Read Review <ArrowUpRight size={14} />
-                    </div>
+                    <span style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600,
+                      color: 'var(--color-accent)',
+                    }}>
+                      Read Review →
+                    </span>
                   </div>
                 </Link>
               )}
-
-              {/* Floating Stat Badge */}
-              <div className="absolute -top-4 -right-4 sm:-right-6 lg:-right-8 z-20 animate-float">
-                <div className="glass-card p-4 rounded-2xl shadow-xl text-center border-white/40">
-                  <div className="text-3xl font-display font-bold text-[#C4A265]">4.9</div>
-                  <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Avg Rating</div>
-                  <div className="flex items-center justify-center gap-1 mt-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={12} fill="#D4AF37" className="text-[#D4AF37]" />
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
 
-      {/* ═══════════════════════════════════════════
-          TRENDING NOW — Clean Grid
-          ═══════════════════════════════════════════ */}
-      <section className="py-24 relative bg-white">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          {/* Section Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-14">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#C4A265]/10 flex items-center justify-center">
-                <Zap size={20} className="text-[#C4A265]" />
-              </div>
-              <h2 className="text-sm font-bold uppercase tracking-widest text-[#1A1A1A]">Trending Now</h2>
-            </div>
-            <div className="hidden sm:block flex-grow h-px bg-black/[0.04] mx-6"></div>
-            <Link href="/category/standing-desks" className="text-[11px] font-bold text-[#C4A265] uppercase tracking-widest hover:text-[#A68B4B] transition-colors flex items-center gap-1.5">
-              View All <ArrowRight size={14} />
-            </Link>
-          </div>
+      {/* ═══════════════ SECTION RIBBON — BEST PICKS ═══════════════ */}
+      <div className="section-ribbon">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }} className="md:px-8">
+          BEST PICKS
+        </div>
+      </div>
 
-          {/* 3-Column Trending */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* ═══════════════ TRENDING — Story Grid with Hairline Rules ═══════════════ */}
+      <section style={{ padding: '0', background: 'var(--color-bg)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 0 }}>
             {trendingPosts.map((p, i) => {
               const image = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=400";
-              const category = p._embedded?.['wp:term']?.[0]?.[0]?.name || 'Gear';
-              
+              const catName = p._embedded?.['wp:term']?.[0]?.[0]?.name || 'Gear';
+              const catSlug = p._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized';
+
               return (
                 <Link 
                   key={p.id} 
-                  href={`/category/${p._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${p.slug}`} 
-                  className="group flex flex-col bg-white rounded-3xl p-5 border border-black/[0.04] hover:shadow-luxury transition-all duration-500 hover:-translate-y-2 relative"
+                  href={`/category/${catSlug}/${p.slug}`} 
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column' as const,
+                    padding: 'var(--space-6)',
+                    borderRight: '1px solid var(--color-rule-hard)',
+                    borderBottom: '1px solid var(--color-rule-hard)',
+                    textDecoration: 'none',
+                    background: 'var(--color-bg)',
+                  }}
                 >
-                  {/* Rank Badge */}
-                  <div className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 z-20 w-12 h-12 rounded-full bg-[#1A1A1A] text-[#C4A265] flex items-center justify-center font-display text-lg font-black shadow-xl border-4 border-white group-hover:bg-[#C4A265] group-hover:text-white transition-colors duration-500">
-                    {i + 1}
+                  {/* Image — square corners */}
+                  <div style={{ aspectRatio: '16/9', overflow: 'hidden', position: 'relative', background: 'var(--color-surface)', flexShrink: 0, marginBottom: 'var(--space-4)', borderRadius: 0 }}>
+                    <img 
+                      src={image} 
+                      className="w-full h-full object-cover" 
+                      alt={p.title.rendered}
+                      loading="lazy"
+                      width={300}
+                      height={169}
+                      style={{ borderRadius: 0 }}
+                    />
                   </div>
 
-                  <div className="flex gap-5 items-center">
-                    {/* Thumbnail */}
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 bg-[#F5F4F0] relative">
-                      <img 
-                        src={image} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                        alt={p.title.rendered} 
-                      />
-                      <div className="absolute inset-0 bg-black/5 group-hover:opacity-0 transition-opacity"></div>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, flexGrow: 1 }}>
+                    {/* Kicker — JetBrains Mono (WIRED mandatory) */}
+                    <span style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 400,
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: 'var(--tracking-mono)',
+                      color: 'var(--color-text-muted)',
+                      display: 'block',
+                      marginBottom: 'var(--space-2)',
+                    }}>
+                      {catName}
+                    </span>
+                    
+                    {/* Headline — Playfair Display */}
+                    <h4 
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--text-xl)',
+                        fontWeight: 700,
+                        color: 'var(--color-text-primary)',
+                        lineHeight: 'var(--leading-tight)',
+                        letterSpacing: 'var(--tracking-display)',
+                        marginBottom: 'var(--space-2)',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical' as const,
+                        overflow: 'hidden',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: formatSEOText(p.title.rendered, p.title.rendered, catName, p.content?.rendered) }} 
+                    />
+                    
+                    {/* Deck — Source Serif 4 */}
+                    <div 
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-base)',
+                        color: 'var(--color-text-body)',
+                        lineHeight: 'var(--leading-relaxed)',
+                        marginBottom: 'var(--space-3)',
+                        flexGrow: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical' as const,
+                        overflow: 'hidden',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: formatSEOText(p.excerpt?.rendered || '', p.title.rendered, catName, p.content?.rendered) }}
+                    />
 
-                    <div className="space-y-3 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#C4A265]">{category}</span>
-                      </div>
-                      <h4 
-                        className="text-base font-display font-bold text-[#1A1A1A] leading-snug group-hover:text-[#C4A265] transition-colors line-clamp-2" 
-                        dangerouslySetInnerHTML={{ __html: p.title.rendered }} 
-                      />
-                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0 text-[10px] font-bold uppercase tracking-widest text-[#C4A265]">
-                        Read verdict <ArrowUpRight size={12} />
-                      </div>
-                    </div>
+                    {/* Byline — JetBrains Mono */}
+                    <time style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 400,
+                      color: 'var(--color-text-muted)',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: 'var(--tracking-mono)',
+                    }}>
+                      {format(new Date(p.date), 'MMM dd, yyyy')}
+                    </time>
                   </div>
                 </Link>
               );
@@ -212,19 +315,46 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          CATEGORY EXPLORATION — Visual Grid
-          ═══════════════════════════════════════════ */}
-      <section className="py-24 relative bg-[#FAFAF7]">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
-          <div className="mb-14 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-4">
-              <span className="label-micro text-[#C4A265]">Browse by Category</span>
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-[#1A1A1A] tracking-tight leading-[1.05]">
-                Find Your <span className="italic text-[#C4A265]">Focus.</span>
+      {/* ═══════════════ CATEGORIES ═══════════════ */}
+      <section style={{ padding: 'var(--space-20) 0', background: 'var(--color-bg)', borderTop: '1px solid var(--color-rule-hard)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
+          <div style={{ marginBottom: 'var(--space-10)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--space-6)' }}>
+            <div>
+              {/* Kicker */}
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 400,
+                textTransform: 'uppercase' as const,
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'var(--color-accent)',
+                display: 'block',
+                marginBottom: 'var(--space-2)',
+              }}>
+                BROWSE BY CATEGORY
+              </span>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2rem, 4vw, var(--text-3xl))',
+                fontWeight: 700,
+                color: 'var(--color-text-primary)',
+                letterSpacing: 'var(--tracking-display)',
+                lineHeight: 'var(--leading-tight)',
+              }}>
+                Find Your Focus.
               </h2>
             </div>
-            <Link href="/categories" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#C4A265] uppercase tracking-widest hover:text-[#A68B4B] transition-colors">
+            <Link href="/categories" style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--color-accent)',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+            }}>
               All Categories <ArrowRight size={14} />
             </Link>
           </div>
@@ -232,78 +362,123 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          LATEST REVIEWS — Magazine Grid
-          ═══════════════════════════════════════════ */}
-      <section className="py-24 relative overflow-hidden bg-white border-t border-black/[0.04]">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-4">
-              <span className="label-micro text-[#C4A265]">Latest Analysis</span>
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-[#1A1A1A] tracking-tight leading-[1.05]">
-                The <span className="italic text-[#C4A265]">Foundation.</span>
-              </h2>
-              <p className="text-[#6B6B6B] text-lg max-w-lg font-light leading-relaxed">
-                In-depth gear reviews from our testing lab — so you invest with confidence.
-              </p>
-            </div>
-            <Link href="/category/furniture" className="inline-flex items-center gap-2 text-sm font-bold text-[#C4A265] uppercase tracking-widest hover:text-[#A68B4B] transition-colors">
-              All Reviews <ArrowRight size={16} />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* ═══════════════ SECTION RIBBON — MOST POPULAR ═══════════════ */}
+      <div className="section-ribbon">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }} className="md:px-8">
+          MOST POPULAR
+        </div>
+      </div>
+
+      {/* ═══════════════ LATEST REVIEWS — Story Grid ═══════════════ */}
+      <section style={{ padding: '0', background: 'var(--color-bg)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 0 }}>
             {furniturePosts.map((p, i) => <PostCard key={p.id} post={p} index={i} />)}
           </div>
 
-          <div className="mt-16 text-center">
-            <Link href="/category/reviews" className="btn-premium btn-dark">
-              Browse All Reviews
-              <ArrowRight size={16} />
+          <div style={{ marginTop: 'var(--space-12)', textAlign: 'center', paddingBottom: 'var(--space-16)' }}>
+            <Link href="/category/reviews" className="btn-buy">
+              Browse All Reviews &nbsp;<ArrowRight size={16} />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          NEWSLETTER CTA — Dark Section
-          ═══════════════════════════════════════════ */}
-      <section className="relative py-24 bg-[#111111] overflow-hidden text-white">
-        <div className="aura-blob w-[600px] h-[600px] bg-[#C4A265]/20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+      {/* ═══════════════ NEWSLETTER ═══════════════ */}
+      <section style={{ background: 'var(--color-surface-dark)', padding: 'var(--space-20) 0' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row' as const,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-12)',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ flex: 1, minWidth: '260px' }}>
+              {/* Kicker — JetBrains Mono */}
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                textTransform: 'uppercase' as const,
+                letterSpacing: 'var(--tracking-ribbon)',
+                color: 'var(--color-accent-light)',
+                display: 'block',
+                marginBottom: 'var(--space-4)',
+              }}>THE AURA EDIT</span>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(1.75rem, 3vw, var(--text-3xl))',
+                fontWeight: 700,
+                color: 'var(--color-text-inverse)',
+                lineHeight: 'var(--leading-tight)',
+                letterSpacing: 'var(--tracking-display)',
+                marginBottom: 'var(--space-4)',
+              }}>
+                Curated picks,<br />
+                <span style={{ fontStyle: 'italic' }}>delivered weekly.</span>
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-base)',
+                color: 'rgba(245,243,240,0.65)',
+                lineHeight: 'var(--leading-relaxed)',
+                maxWidth: '360px',
+              }}>
+                Join 12,000+ professionals who get our best gear picks every Thursday.
+              </p>
+            </div>
 
-        <div className="max-w-4xl mx-auto px-4 md:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 mb-8 backdrop-blur-sm">
-            <Star size={14} fill="#C4A265" className="text-[#C4A265]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#C4A265]">The Aura Edit</span>
+            <div style={{ width: '100%', maxWidth: '400px' }}>
+              <form style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="email" 
+                  placeholder="Enter your email address" 
+                  style={{
+                    width: '100%',
+                    paddingLeft: '20px',
+                    paddingRight: '130px',
+                    paddingTop: '14px',
+                    paddingBottom: '14px',
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 'var(--radius-md)',
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '1rem',
+                    color: 'var(--color-text-inverse)',
+                    outline: 'none',
+                  }}
+                  required
+                />
+                <button type="submit" className="btn-buy" style={{
+                  position: 'absolute',
+                  right: '4px',
+                  top: '4px',
+                  bottom: '4px',
+                  padding: '0 18px',
+                  gap: '0',
+                  fontSize: 'var(--text-sm)',
+                }}>
+                  Subscribe
+                </button>
+              </form>
+              <p style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                textTransform: 'uppercase' as const,
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'rgba(245,243,240,0.4)',
+                marginTop: '12px',
+              }}>
+                No spam. Unsubscribe any time.{' '}
+                <Link href="/privacy-policy" style={{ color: 'rgba(245,243,240,0.6)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                  Privacy Policy
+                </Link>
+              </p>
+            </div>
           </div>
-
-          <h2 className="text-4xl md:text-6xl font-display font-bold text-white tracking-tight leading-[1.05] mb-6">
-            Curated picks,
-            <br />
-            <span className="italic text-[#C4A265]">delivered weekly.</span>
-          </h2>
-
-          <p className="text-[#9A9A9A] text-lg max-w-lg mx-auto mb-12 font-light leading-relaxed">
-            Join 12,000+ professionals who get our best gear picks and workspace insights every Thursday.
-          </p>
-
-          <form className="flex flex-col sm:flex-row items-stretch justify-center gap-4 max-w-xl mx-auto">
-            <input 
-              type="email" 
-              placeholder="Enter your email" 
-              className="flex-1 w-full px-6 py-4 rounded-full bg-white/5 border border-white/10 text-white placeholder:text-[#6B6B6B] text-base focus:outline-none focus:border-[#C4A265] focus:bg-white/10 transition-all duration-300"
-            />
-            <button className="btn-premium btn-gold whitespace-nowrap">
-              Subscribe Now
-              <ArrowRight size={18} />
-            </button>
-          </form>
-
-          <p className="text-sm text-[#6B6B6B] mt-8 font-medium">
-            No spam. Your data is safe with us. 
-            <Link href="/privacy-policy" className="text-[#C4A265] hover:text-white underline-offset-4 hover:underline ml-2 transition-all">Privacy Policy</Link>
-          </p>
         </div>
       </section>
 

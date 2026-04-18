@@ -1,41 +1,182 @@
 import React from 'react';
 import { getPostsByCategorySlug } from '../../src/services/wpService';
 import PostCard from '../../src/components/PostCard';
+import Link from 'next/link';
 
 interface CategoryPageProps {
   params: Promise<{ category: string }>;
 }
 
+/**
+ * Category Archive Page — DESIGN.md Redesign
+ * 
+ * Layout: Editorial 2-column (Main Content + Sidebar)
+ * Distinguishes archives from the homepage grid.
+ */
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { category: categorySlug } = await params;
   const { posts, category } = await getPostsByCategorySlug(categorySlug);
+  const displayName = category?.name || categorySlug.replace(/-/g, ' ');
+
+  // Featured and regular posts
+  const featuredPost = posts[0];
+  const remainingPosts = posts.slice(1);
 
   return (
-    <main className="min-h-screen pt-32 pb-20 px-4 md:px-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-100 rounded-full mb-4">
-             <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">Classification</span>
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '96px', paddingBottom: '80px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
+
+        {/* Header Section — Rich Editorial Style */}
+        <header style={{ 
+          marginBottom: 'var(--space-12)', 
+          borderBottom: '2px solid var(--color-rule-section)', 
+          paddingBottom: 'var(--space-8)' 
+        }}>
+          <nav style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link href="/" style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              color: 'var(--color-text-muted)',
+              textDecoration: 'none',
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-mono)',
+            }}>Home</Link>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>/</span>
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              color: 'var(--color-text-secondary)',
+              textTransform: 'uppercase' as const,
+              letterSpacing: 'var(--tracking-mono)',
+            }}>{displayName}</span>
+          </nav>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <h1 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+                fontWeight: 800,
+                color: 'var(--color-text-primary)',
+                lineHeight: 'var(--leading-tight)',
+                letterSpacing: '-0.02em',
+                marginBottom: '16px',
+                textTransform: 'capitalize',
+              }}>
+                {displayName}
+              </h1>
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-md)',
+                color: 'var(--color-text-secondary)',
+                lineHeight: 'var(--leading-relaxed)',
+                maxWidth: '600px',
+              }}>
+                Expert analysis and deep-dive reviews for {displayName.toLowerCase()}. 
+                We test everything to ensure your home office is both functional and inspiring.
+              </p>
+            </div>
+            
+            {/* Stats Label — Mono */}
+            <div style={{
+              padding: '12px 16px',
+              border: '1px solid var(--color-rule-hard)',
+              background: 'var(--color-surface)',
+              display: 'flex',
+              flexDirection: 'column' as const,
+              gap: '4px',
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 500, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Guides Found</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{(category?.count || posts.length)}</span>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-zinc-900 mb-6 capitalize">
-            {category?.name || categorySlug.replace(/-/g, ' ')}
-          </h1>
-          <p className="text-xl text-zinc-500 font-light leading-relaxed max-w-2xl">
-            {category?.count || 0} definitive guides and reviews curated for your home office.
-          </p>
         </header>
 
-        {posts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+        {/* Main Content Area — 2 Column Split */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* Left: Article List (75%) */}
+          <div className="lg:col-span-8 flex flex-col gap-0" style={{ borderTop: '1px solid var(--color-rule-hard)' }}>
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <PostCard key={post.id} post={post} isHorizontal={true} />
+              ))
+            ) : (
+              <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                <span className="kicker">No reviews found yet.</span>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="py-20 text-center border-t border-zinc-100">
-             <p className="text-zinc-400 font-mono text-sm tracking-widest uppercase">No articles found in this category yet.</p>
-          </div>
-        )}
+
+          {/* Right: Sidebar (25%) */}
+          <aside className="lg:col-span-4">
+            <div className="sticky top-32 space-y-12 overflow-y-auto px-1 scrollbar-hide" style={{ 
+              maxHeight: 'calc(100vh - 140px)',
+            }}>
+              
+              {/* Sidebar Section: Popular */}
+              <div>
+                <h4 style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 500,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.08em',
+                  color: 'var(--color-text-muted)',
+                  borderBottom: '1px solid var(--color-rule-hard)',
+                  paddingBottom: '12px',
+                  marginBottom: '20px',
+                }}>Popular in {displayName}</h4>
+                <div className="space-y-6">
+                  {posts.slice(0, 4).map((rp, i) => (
+                    <Link 
+                      key={rp.id} 
+                      href={`/category/${categorySlug}/${rp.slug}`}
+                      className="group flex gap-4 items-start text-decoration-none"
+                    >
+                      <span style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: 'var(--color-accent)',
+                        opacity: 0.3,
+                        lineHeight: 1,
+                      }}>0{i+1}</span>
+                      <div>
+                        <h5 style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 'var(--text-base)',
+                          fontWeight: 700,
+                          lineHeight: 'var(--leading-snug)',
+                          color: 'var(--color-text-primary)',
+                          margin: 0,
+                        }}>{rp.title.rendered}</h5>
+                        <time style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>{new Date(rp.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</time>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar Section: Trust Box */}
+              <div style={{
+                padding: '24px',
+                background: 'var(--color-surface-dark)',
+                color: 'white',
+                borderRadius: 0,
+              }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-accent-light)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Independent Testing</span>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '12px' }}>How we rank {displayName.toLowerCase()}</h4>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: '16px' }}>
+                  Our research involves 50+ hours of data analysis and real-world ergonomic testing for every product mentioned.
+                </p>
+                <Link href="/about" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'white', textTransform: 'uppercase', textDecoration: 'underline' }}>See our process →</Link>
+              </div>
+
+            </div>
+          </aside>
+
+        </div>
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 import { WPPost, WPCategory } from '../types';
 
 // revalidation time in seconds (60 = 1 minute balance for speed and freshness)
-const REVALIDATE_TIME = 60;
+const REVALIDATE_TIME = process.env.NODE_ENV === 'development' ? 0 : 60;
 
 // Force allow self-signed certs during migration
 if (process.env.NODE_ENV !== 'production' || process.env.BYPASS_SSL === 'true') {

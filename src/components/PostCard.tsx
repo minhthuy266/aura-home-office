@@ -3,120 +3,199 @@ import React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { WPPost } from '../types';
-import { ArrowUpRight } from 'lucide-react';
+import { formatSEOText } from '../utils/seoFormatter';
 
 interface PostCardProps {
   post: WPPost;
   isFeatured?: boolean;
   isCompact?: boolean;
+  isHorizontal?: boolean;
   index?: number;
 }
 
-export default function PostCard({ post, isFeatured, isCompact, index = 0 }: PostCardProps) {
+export default function PostCard({ post, isFeatured, isCompact, isHorizontal, index = 0 }: PostCardProps) {
   const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
   const categories = post._embedded?.['wp:term']?.[0] || [];
   const rating = post.acf?.rating; 
   const defaultImage = "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200";
   const postUrl = `/category/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
 
-  // Featured State
+  // FEATURED — Hero style
   if (isFeatured) {
     return (
-      <article className="group relative aspect-[16/9] overflow-hidden rounded-2xl">
+      <article className="group relative aspect-[16/9] overflow-hidden img-zoom-hover" style={{ borderRadius: 0 }}>
         <img 
           src={featuredMedia?.source_url || defaultImage} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2.5s] ease-out"
+          className="w-full h-full object-cover"
           alt={post.title.rendered}
+          loading="lazy"
+          style={{ borderRadius: 0 }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 space-y-4">
-          <div className="flex items-center gap-3">
-            {categories.slice(0,1).map(cat => (
-              <span key={cat.id} className="pill pill-gold">{cat.name}</span>
-            ))}
-            {rating && (
-              <span className="pill glass-dark text-white text-xs font-bold tracking-widest px-3">
-                <span className="text-[#D4AF37] mr-1">★</span> {rating}
-              </span>
-            )}
-          </div>
-          <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-[1.05] tracking-tight group-hover:text-[#D4AF37] transition-colors duration-500">
-            <Link href={postUrl} dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(17,17,16,0.85) 0%, rgba(17,17,16,0.2) 60%, transparent 100%)' }} />
+        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+          {categories.slice(0,1).map(cat => (
+            <span key={cat.id} className="kicker" style={{ color: 'rgba(245,243,240,0.7)', marginBottom: '12px' }}>{cat.name}</span>
+          ))}
+          <h3 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.5rem, 3vw, var(--text-3xl))',
+            fontWeight: 700,
+            color: 'var(--color-text-inverse)',
+            lineHeight: 'var(--leading-snug)',
+            letterSpacing: '-0.02em',
+            marginBottom: '12px',
+          }}>
+            <Link href={postUrl} style={{ color: 'inherit', textDecoration: 'none' }}>
+              <span className="group-hover:bg-[length:100%_2px]" style={{
+                backgroundImage: 'linear-gradient(currentColor, currentColor)',
+                backgroundPosition: '0% 100%',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '0% 2px',
+                transition: 'background-size 0.3s ease',
+              }} dangerouslySetInnerHTML={{ __html: formatSEOText(post.title.rendered, post.title.rendered, categories[0]?.name, post.content?.rendered) }} />
+            </Link>
           </h3>
-          <div className="flex items-center gap-4 mt-2">
-            <time className="text-xs text-white/60 font-semibold uppercase tracking-widest">{format(new Date(post.date), 'MMMM dd, yyyy')}</time>
-            <div className="flex-grow h-px bg-white/20"></div>
-            <span className="text-xs text-white/80 font-bold uppercase tracking-widest flex items-center gap-2 group-hover:text-[#D4AF37] transition-colors">
-              Read <ArrowUpRight size={14} />
-            </span>
-          </div>
+          <time className="text-editorial-cap" style={{ color: 'rgba(245,243,240,0.55)' }}>
+            {format(new Date(post.date), 'MMMM dd, yyyy')}
+          </time>
         </div>
       </article>
     );
   }
 
-  // Compact Style
+  // COMPACT — Sidebar style
   if (isCompact) {
     return (
-      <article className="group flex gap-5 items-center bg-white p-3 rounded-2xl hover:shadow-md transition-all duration-300 border border-transparent hover:border-black/[0.04]">
-        <Link href={postUrl} className="w-24 h-24 rounded-xl overflow-hidden shrink-0 img-zoom bg-[#F5F4F0]">
-          <img src={featuredMedia?.source_url || defaultImage} className="w-full h-full object-cover" alt={post.title.rendered} />
+      <article className="group flex gap-4 items-center" style={{ padding: '12px 0', borderBottom: '1px solid var(--color-rule-hard)' }}>
+        <Link href={postUrl} className="shrink-0 img-zoom-hover" style={{ width: '72px', height: '72px', background: 'var(--color-surface)', borderRadius: 0 }}>
+          <img src={featuredMedia?.source_url || defaultImage} className="w-full h-full object-cover" alt={post.title.rendered} loading="lazy" style={{ borderRadius: 0 }} />
         </Link>
-        <div className="space-y-2 min-w-0 pr-2">
+        <div className="min-w-0 pr-1">
           {categories.slice(0,1).map(cat => (
-            <span key={cat.id} className="label-micro block text-[#C4A265]">{cat.name}</span>
+            <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)', marginBottom: '4px', display: 'block' }}>{cat.name}</span>
           ))}
-          <h3 className="text-base font-display font-bold text-[#1A1A1A] leading-snug group-hover:text-[#C4A265] transition-colors duration-300 line-clamp-2">
-            <Link href={postUrl} dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+          <h3 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '15px',
+            fontWeight: 700,
+            color: 'var(--color-text-primary)',
+            lineHeight: '1.4',
+            letterSpacing: '-0.01em',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden',
+          }}>
+            <Link href={postUrl} dangerouslySetInnerHTML={{ __html: formatSEOText(post.title.rendered, post.title.rendered, categories[0]?.name, post.content?.rendered) }} style={{ color: 'inherit', textDecoration: 'none' }} />
           </h3>
-          <time className="label-micro block text-[#9A9A9A]">{format(new Date(post.date), 'MMM dd, yyyy')}</time>
         </div>
       </article>
     );
   }
 
-  // Standard Card
-  return (
-    <article className="group flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-[var(--shadow-card-hover)] border border-black/[0.04]">
-      <Link href={postUrl} className="block aspect-[16/10] overflow-hidden relative bg-[#F5F4F0]">
-        <img 
-          src={featuredMedia?.source_url || defaultImage} 
-          alt={featuredMedia?.alt_text || post.title.rendered}
-          className="w-full h-full object-cover group-hover:scale-[1.04] transition-all duration-[1.2s] ease-out"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-        <div className="absolute top-4 left-4 flex gap-2">
+  // HORIZONTAL — List style (For Category Pages)
+  if (isHorizontal) {
+    return (
+      <article className="group flex flex-col sm:flex-row gap-6 md:gap-8" style={{
+        padding: '32px 0',
+        borderBottom: '1px solid var(--color-rule-hard)',
+      }}>
+        <Link href={postUrl} className="shrink-0 img-zoom-hover" style={{
+          width: '100%',
+          maxWidth: '300px',
+          aspectRatio: '16/10',
+          background: 'var(--color-surface)',
+          borderRadius: 0,
+        }}>
+          <img 
+            src={featuredMedia?.source_url || defaultImage} 
+            className="w-full h-full object-cover" 
+            alt={post.title.rendered} 
+            loading="lazy" 
+          />
+        </Link>
+        <div className="flex flex-col justify-center">
           {categories.slice(0,1).map(cat => (
-            <span key={cat.id} className="pill pill-dark shadow-md px-3 py-1 text-xs">{cat.name}</span>
+            <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)', marginBottom: '8px', display: 'block' }}>{cat.name}</span>
           ))}
+          <h3 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-xl)',
+            fontWeight: 700,
+            color: 'var(--color-text-primary)',
+            lineHeight: '1.3',
+            letterSpacing: '-0.015em',
+            marginBottom: '12px',
+          }}>
+            <Link href={postUrl} style={{ color: 'inherit', textDecoration: 'none' }}>
+              <span className="group-hover:bg-[length:100%_2px]" style={{
+                backgroundImage: 'linear-gradient(currentColor, currentColor)',
+                backgroundPosition: '0% 100%',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '0% 2px',
+                transition: 'background-size 0.3s ease',
+              }} dangerouslySetInnerHTML={{ __html: formatSEOText(post.title.rendered, post.title.rendered, categories[0]?.name, post.content?.rendered) }} />
+            </Link>
+          </h3>
+          <div 
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '15px',
+              color: 'var(--color-text-secondary)',
+              lineHeight: '1.6',
+              marginBottom: '16px',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const,
+              overflow: 'hidden',
+            }}
+            dangerouslySetInnerHTML={{ __html: formatSEOText(post.excerpt?.rendered || '', post.title.rendered, categories[0]?.name, post.content?.rendered) }}
+          />
+          <time className="text-editorial-cap" style={{ fontSize: '10px' }}>
+            {format(new Date(post.date), 'MMM dd, yyyy')}
+          </time>
         </div>
-        {rating && (
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-dark text-white text-xs font-bold tracking-wider shadow-lg">
-            <span className="text-[#D4AF37]">★</span> {rating}
-          </div>
-        )}
+      </article>
+    );
+  }
+
+  // STANDARD — Vertical Grid style (For Homepage)
+  return (
+    <article className="group flex flex-col" style={{
+      padding: 'var(--space-6)',
+      borderRight: '1px solid var(--color-rule-hard)',
+      borderBottom: '1px solid var(--color-rule-hard)',
+    }}>
+      <Link href={postUrl} className="block img-zoom-hover" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-surface)', position: 'relative', marginBottom: 'var(--space-4)', borderRadius: 0 }}>
+        <img src={featuredMedia?.source_url || defaultImage} alt={post.title.rendered} className="w-full h-full object-cover" loading="lazy" style={{ borderRadius: 0 }} />
       </Link>
-      
-      <div className="p-6 flex flex-col flex-grow">
-        <time dateTime={post.date} className="label-micro mb-3 block text-[#9A9A9A]">
-          {format(new Date(post.date), 'MMM dd, yyyy')}
-        </time>
-        <h3 className="text-xl font-display font-bold leading-snug mb-3 text-[#1A1A1A] group-hover:text-[#C4A265] transition-colors duration-300 line-clamp-2">
-          <Link href={postUrl} dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+      <div className="flex flex-col flex-grow">
+        {categories.slice(0,1).map(cat => (
+          <span key={cat.id} className="label-micro" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{cat.name}</span>
+        ))}
+        <h3 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-xl)',
+          fontWeight: 700,
+          lineHeight: 'var(--leading-tight)',
+          letterSpacing: '-0.015em',
+          color: 'var(--color-text-primary)',
+          marginBottom: 'var(--space-2)',
+        }}>
+          <Link href={postUrl} style={{ color: 'inherit', textDecoration: 'none' }}>
+            <span className="group-hover:bg-[length:100%_2px]" style={{
+              backgroundImage: 'linear-gradient(currentColor, currentColor)',
+              backgroundPosition: '0% 100%',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '0% 2px',
+              transition: 'background-size 0.3s ease',
+            }} dangerouslySetInnerHTML={{ __html: formatSEOText(post.title.rendered, post.title.rendered, categories[0]?.name, post.content?.rendered) }} />
+          </Link>
         </h3>
-        <div 
-          className="text-[#6B6B6B] line-clamp-2 text-sm leading-relaxed mb-6 flex-grow"
-          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+        <div style={{ fontFamily: 'var(--font-body)', fontSize: '15px', color: 'var(--color-text-body)', lineHeight: '1.6', marginBottom: 'var(--space-3)', flexGrow: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}
+          dangerouslySetInnerHTML={{ __html: formatSEOText(post.excerpt?.rendered || '', post.title.rendered, categories[0]?.name, post.content?.rendered) }}
         />
-        <div className="mt-auto pt-4 border-t border-black/[0.04] flex justify-between items-center">
-          <span className="text-xs font-bold text-[#1A1A1A] uppercase tracking-widest group-hover:text-[#C4A265] transition-colors duration-300">
-            Read Review
-          </span>
-          <span className="w-8 h-8 rounded-full bg-[#FAFAF7] border border-black/5 flex items-center justify-center group-hover:bg-[#C4A265] group-hover:border-[#C4A265] group-hover:text-white transition-all duration-300 text-[#1A1A1A]">
-            <ArrowUpRight size={14} />
-          </span>
-        </div>
+        <time className="text-editorial-cap" style={{ fontSize: '10px' }}>{format(new Date(post.date), 'MMM dd, yyyy')}</time>
       </div>
     </article>
   );
