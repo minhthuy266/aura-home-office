@@ -73,9 +73,13 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
         style={{
           maxWidth: '820px',
           margin: '0 auto',
-          padding: '96px 24px 48px',
+          paddingTop: 'var(--page-pt, 160px)',
+          paddingBottom: '48px',
+          paddingLeft: '24px',
+          paddingRight: '24px',
           textAlign: 'left',
         }}
+        className="[--page-pt:120px] md:[--page-pt:160px]"
       >
         {/* Kicker — JetBrains Mono, uppercase (WIRED mandatory) */}
         {categories.length > 0 && (

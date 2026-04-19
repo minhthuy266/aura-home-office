@@ -92,9 +92,9 @@ export async function getPosts(page = 1, perPage = 10, categoryId?: number | num
     }
     if (tagId) url.searchParams.set('tags', tagId.toString());
 
-    console.log(`[WP SERVICE] Requesting Page: ${page}, PerPage: ${perPage}, Categories: ${categoryId}`);
+    const categoryLog = categoryId !== undefined ? `, Categories: ${categoryId}` : '';
+    console.log(`[WP SERVICE] Requesting Page: ${page}, PerPage: ${perPage}${categoryLog}`);
 
-    console.log(`Fetching posts from: ${url.toString()}`);
     const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     

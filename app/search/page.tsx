@@ -24,7 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const posts = searchResult.posts || [];
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '160px', paddingBottom: '80px' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: 'var(--page-pt, 160px)', paddingBottom: '80px' }} className="[--page-pt:120px] md:[--page-pt:160px]">
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
 
         {/* Header */}
@@ -73,7 +73,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
         {/* Results — Story Grid with hairline rules */}
         {posts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 0, borderTop: '1px solid var(--color-rule-hard)', borderLeft: '1px solid var(--color-rule-hard)' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 0, borderTop: '1px solid var(--color-rule-hard)', borderLeft: '1px solid var(--color-rule-hard)', borderRight: '1px solid var(--color-rule-hard)' }}>
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

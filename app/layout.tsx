@@ -2,6 +2,8 @@ import './globals.css';
 import { Playfair_Display, Source_Serif_4, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
+import NavigationProgressBar from '../src/components/NavigationProgressBar';
+import { Suspense } from 'react';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -72,6 +74,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       </head>
       <body className="antialiased flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-ui)', background: 'var(--color-bg)', color: 'var(--color-text-body)' }}>
+        <Suspense fallback={null}>
+          <NavigationProgressBar />
+        </Suspense>
         <Navbar />
         <div>
           {children}

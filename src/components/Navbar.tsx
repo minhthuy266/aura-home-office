@@ -62,6 +62,7 @@ export default function Navbar() {
   const handleRouteOrSearchChange = React.useCallback(() => {
     setIsSearchOpen(false);
     setMobileMenuOpen(false);
+    setActiveDropdown(null);
     setSearchQuery('');
   }, []);
 
@@ -269,6 +270,9 @@ export default function Navbar() {
                             textDecoration: 'none',
                             borderRadius: '2px',
                           }}
+                          onClick={() => {
+                            if (child.href === pathname) setActiveDropdown(null);
+                          }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >
@@ -277,7 +281,14 @@ export default function Navbar() {
                         </Link>
                       ))}
                       <div style={{ borderTop: '1px solid var(--color-rule-soft)', marginTop: '8px', padding: '8px 0 4px' }}>
-                        <Link href={item.href} className="flex items-center justify-center py-2" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700, color: 'var(--color-accent)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        <Link 
+                          href={item.href} 
+                          className="flex items-center justify-center py-2" 
+                          style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700, color: 'var(--color-accent)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                          onClick={() => {
+                            if (item.href === pathname) setActiveDropdown(null);
+                          }}
+                        >
                           Explore {item.label} Archive →
                         </Link>
                       </div>

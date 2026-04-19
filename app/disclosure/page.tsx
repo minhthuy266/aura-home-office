@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function DisclosurePage() {
   return (
-    <main style={{ minHeight: '100vh', paddingTop: '96px', paddingBottom: '96px', background: 'var(--color-bg)' }}>
+    <main style={{ minHeight: '100vh', paddingTop: 'var(--page-pt, 160px)', paddingBottom: '96px', background: 'var(--color-bg)' }} className="[--page-pt:120px] md:[--page-pt:160px]">
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 var(--space-6)' }}>
         
         {/* Editorial Header */}
