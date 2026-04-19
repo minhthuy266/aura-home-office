@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Search, Menu, X, ChevronDown } from 'lucide-react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Search, Menu, X, ChevronDown, Loader2 } from 'lucide-react';
 import Logo from './Logo';
 
 const navItems = [
@@ -45,15 +45,25 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPending, startTransition] = useTransition();
   const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null!);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Close menus when route changes
+  useEffect(() => {
+    setIsSearchOpen(false);
+    setMobileMenuOpen(false);
+    setSearchQuery('');
+  }, [pathname, searchParams]);
 
   useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
+    if (isSearchOpen && searchInputRef.current && !isPending) {
       searchInputRef.current.focus();
     }
-  }, [isSearchOpen]);
+  }, [isSearchOpen, isPending]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -84,16 +94,16 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
+      startTransition(() => {
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      });
     }
   };
 
   return (
     <>
       <header
-        className="nav-container"
+        className={`nav-container ${isScrolled ? '-translate-y-[28px] md:-translate-y-[36px]' : 'translate-y-0'}`}
         style={{
           position: 'fixed',
           top: 0,
@@ -103,29 +113,29 @@ export default function Navbar() {
           background: 'var(--color-bg)',
           borderBottom: '1px solid var(--color-rule-hard)',
           transition: 'transform 0.3s ease',
-          transform: isScrolled ? 'translateY(-34px)' : 'translateY(0)',
         }}
       >
         {/* ROW 1: Utility Bar (Above) — Slimmer for Mobile */}
-        <div style={{
-          height: 'var(--row1-height, 34px)',
+        <div className="hidden md:flex w-full" style={{
+          height: '36px',
           background: 'var(--color-text-primary)',
-          display: 'flex',
           alignItems: 'center',
           overflow: 'hidden'
-        }} className="[--row1-height:28px] md:[--row1-height:34px]">
-          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'center', md: { justifyContent: 'space-between' } as any, alignItems: 'center' }} className="justify-center md:justify-between">
+        }}>
+          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Left: Branding Statement */}
             <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-              <span className="hidden lg:block" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}>
+              <span className="hidden lg:block pt-0.5" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
               <span className="hidden lg:block" style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.1)' }}></span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em' }} className="md:text-[10px]">
+              <span className="pt-0.5" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1 }}>
                 Independent Research & Testing
               </span>
             </div>
             
-            <nav className="hidden md:flex" style={{ gap: '24px' }}>
+            {/* Right: Utility Links */}
+            <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
               {[
                 { label: 'About', href: '/about' },
                 { label: 'Disclosure', href: '/disclosure' },
@@ -139,7 +149,8 @@ export default function Navbar() {
                   color: 'rgba(255,255,255,0.65)',
                   textDecoration: 'none',
                   transition: 'color 0.2s ease',
-                }} className="hover:text-white">
+                  lineHeight: 1
+                }} className="hover:text-white pt-0.5">
                   {link.label}
                 </Link>
               ))}
@@ -147,15 +158,26 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ROW 2: Branding & Main Nav — Slimmer for Mobile */}
+        {/* ROW 1: Mobile Version (Branding Only) */}
+        <div className="flex md:hidden w-full" style={{
+          height: '28px',
+          background: 'var(--color-text-primary)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <span className="pt-px" style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1 }}>
+            Independent Research & Testing
+          </span>
+        </div>
+
         <div style={{
-          height: 'var(--row2-height, 76px)',
+          height: 'var(--row2-height, 64px)',
           display: 'flex',
           alignItems: 'center',
           position: 'relative',
           background: 'var(--color-bg)',
-        }} className="[--row2-height:60px] md:[--row2-height:76px]">
-          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        }} className="[--row2-height:56px] md:[--row2-height:64px]">
+          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
             {/* Branding (Left) */}
             <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center' }}>
               <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
@@ -163,8 +185,8 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Main Navigation (Center) */}
-            <nav className="hidden lg:flex items-center gap-10" style={{ flex: '0 0 auto' }}>
+            {/* Main Navigation (Center) — Absolute Centered for balance */}
+            <nav className="hidden lg:flex items-center gap-10" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
               {navItems.map((item) => (
                 <div 
                   key={item.label} 
@@ -173,10 +195,10 @@ export default function Navbar() {
                   onMouseLeave={handleMouseLeave}
                 >
                   <button 
-                    className="flex items-center gap-2 py-6 relative"
+                    className="flex items-center gap-2 py-5 relative"
                     style={{
                       fontFamily: 'var(--font-ui)',
-                      fontSize: '14px',
+                      fontSize: '12px',
                       fontWeight: 700,
                       color: activeDropdown === item.label ? 'var(--color-accent)' : 'var(--color-text-primary)',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -194,7 +216,7 @@ export default function Navbar() {
                     <span 
                       style={{ 
                         position: 'absolute', 
-                        bottom: '22px', 
+                        bottom: '18px', 
                         left: 0, 
                         width: activeDropdown === item.label ? '100%' : '0%', 
                         height: '2px', 
@@ -205,9 +227,9 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {/* Enhanced Dropdown — Using Design Tokens */}
+                  {/* Dropdown — Using Design Tokens */}
                   <div 
-                    className="absolute top-full left-0 pt-0"
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-0"
                     style={{
                       opacity: activeDropdown === item.label ? 1 : 0,
                       transform: `translateY(${activeDropdown === item.label ? '0' : '10px'})`,
@@ -268,33 +290,33 @@ export default function Navbar() {
                 }}
               >
                 <Search size={19} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
-                <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="hidden xl:block">Search</span>
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="hidden xl:block">Search</span>
               </button>
               
               <Link 
                 href="/reviews" 
-                className="hidden lg:flex items-center px-6 py-3 transition-all"
+                className="hidden lg:flex items-center px-6 py-2.5 transition-all"
                 style={{
                   background: 'var(--color-text-primary)',
                   color: 'var(--color-bg)',
                   fontFamily: 'var(--font-ui)',
-                  fontSize: '14px',
+                  fontSize: '12px',
                   fontWeight: 800,
                   textDecoration: 'none',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  letterSpacing: '0.05em',
                 }}
                 onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
               >
-                Go Reviews
+                Reviews
               </Link>
 
-              <button 
-                className="lg:hidden"
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+              {/* Mobile Menu Trigger */}
+              <button
+                className="lg:hidden flex items-center justify-center w-10 h-10 ml-2"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -445,34 +467,38 @@ export default function Navbar() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search ergonomic chairs, standing desks..."
+                placeholder="Search brands, products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={isPending}
                 style={{
                   width: '100%',
                   fontFamily: 'var(--font-body)',
-                  fontSize: '18px',
+                  fontSize: '16px',
                   background: 'var(--color-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '12px 56px 12px 20px',
+                  padding: '10px 48px 10px 16px',
                   color: 'var(--color-text-primary)',
                   outline: 'none',
+                  opacity: isPending ? 0.7 : 1,
                 }}
               />
               <button 
                 type="submit"
+                disabled={isPending}
                 className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9"
                 style={{
                   background: 'var(--color-accent)',
                   color: 'white',
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  opacity: isPending ? 0.8 : 1,
                 }}
                 aria-label="Submit search"
               >
-                <Search size={16} />
+                {isPending ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               </button>
             </form>
             
@@ -492,10 +518,11 @@ export default function Navbar() {
                   <button
                     key={term}
                     onClick={() => {
+                      if (isPending) return;
                       setSearchQuery(term);
-                      router.push(`/search?q=${encodeURIComponent(term)}`);
-                      setIsSearchOpen(false);
-                      setSearchQuery('');
+                      startTransition(() => {
+                        router.push(`/search?q=${encodeURIComponent(term)}`);
+                      });
                     }}
                     style={{
                       padding: '6px 14px',
@@ -503,7 +530,7 @@ export default function Navbar() {
                       border: '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-pill)',
                       fontFamily: 'var(--font-ui)',
-                      fontSize: 'var(--text-sm)',
+                      fontSize: '12px',
                       color: 'var(--color-text-secondary)',
                       cursor: 'pointer',
                       transition: 'border-color 0.12s ease, color 0.12s ease',

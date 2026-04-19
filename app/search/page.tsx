@@ -20,10 +20,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = params.q || '';
   
-  const posts = query ? await searchPosts(query) : [];
+  const searchResult = query ? await searchPosts(query) : { posts: [] };
+  const posts = searchResult.posts || [];
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '96px', paddingBottom: '80px' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '160px', paddingBottom: '80px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
 
         {/* Header */}
