@@ -162,6 +162,7 @@ export default async function PostPage({ params }: PostPageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       )}
+
       <PostArticle 
         post={post} 
         latestPosts={latestPosts} 

@@ -18,7 +18,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
   const categories = post._embedded?.['wp:term']?.[0] || [];
   const rating = post.acf?.rating; 
   const defaultImage = "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200";
-  const postUrl = `/category/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
+  const postUrl = `/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
 
   // FEATURED — Hero style
   if (isFeatured) {
