@@ -23,7 +23,12 @@ export default async function ReviewsHubPage() {
   const feedPosts = allPosts?.slice(5) || [];
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '160px', paddingBottom: '96px' }}>
+    <main style={{ 
+      minHeight: '100vh', 
+      background: 'var(--color-bg)', 
+      paddingTop: 'var(--page-pt, 160px)', 
+      paddingBottom: '96px' 
+    }} className="[--page-pt:120px] md:[--page-pt:160px]">
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
         
         {/* ─── Breadcrumb ─── */}

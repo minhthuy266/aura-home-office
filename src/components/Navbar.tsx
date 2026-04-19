@@ -103,26 +103,29 @@ export default function Navbar() {
           background: 'var(--color-bg)',
           borderBottom: '1px solid var(--color-rule-hard)',
           transition: 'transform 0.3s ease',
-          transform: isScrolled ? 'translateY(-36px)' : 'translateY(0)', // Hide utility bar on scroll
+          transform: isScrolled ? 'translateY(-34px)' : 'translateY(0)',
         }}
       >
-        {/* ROW 1: Utility Bar (Above) */}
+        {/* ROW 1: Utility Bar (Above) — Slimmer for Mobile */}
         <div style={{
-          height: '34px',
-          background: 'var(--color-text-primary)', // Standardized charcoal
+          height: 'var(--row1-height, 34px)',
+          background: 'var(--color-text-primary)',
           display: 'flex',
           alignItems: 'center',
-        }}>
-          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          overflow: 'hidden'
+        }} className="[--row1-height:28px] md:[--row1-height:34px]">
+          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'center', md: { justifyContent: 'space-between' } as any, alignItems: 'center' }} className="justify-center md:justify-between">
             <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}>
+              <span className="hidden lg:block" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
-              <span style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.1)' }}></span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em' }}>Independent Research & Testing</span>
+              <span className="hidden lg:block" style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.1)' }}></span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em' }} className="md:text-[10px]">
+                Independent Research & Testing
+              </span>
             </div>
             
-            <nav style={{ display: 'flex', gap: '24px' }}>
+            <nav className="hidden md:flex" style={{ gap: '24px' }}>
               {[
                 { label: 'About', href: '/about' },
                 { label: 'Disclosure', href: '/disclosure' },
@@ -144,14 +147,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ROW 2: Branding & Main Nav */}
+        {/* ROW 2: Branding & Main Nav — Slimmer for Mobile */}
         <div style={{
-          height: '76px',
+          height: 'var(--row2-height, 76px)',
           display: 'flex',
           alignItems: 'center',
           position: 'relative',
           background: 'var(--color-bg)',
-        }}>
+        }} className="[--row2-height:60px] md:[--row2-height:76px]">
           <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Branding (Left) */}
             <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center' }}>
@@ -312,42 +315,29 @@ export default function Navbar() {
       >
         <div className="absolute inset-0" style={{ background: 'var(--color-bg)' }} />
         
-        <div className="relative z-10 flex flex-col px-6 pt-[80px] pb-10 overflow-y-auto h-full">
-          {/* Mobile Search */}
-          <form onSubmit={handleSearch} className="mb-8 relative">
-            <input
-              type="text"
-              placeholder="Search gear, reviews..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-3 pl-4 pr-12"
-              style={{
-                fontFamily: 'var(--font-ui)',
-                fontSize: 'var(--text-base)',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--color-text-body)',
-                outline: 'none',
-              }}
-            />
-            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)', background: 'transparent', border: 'none' }}>
-              <Search size={18} />
-            </button>
-          </form>
+        <div className="relative z-10 flex flex-col px-6 pt-[120px] pb-10 overflow-y-auto h-full">
+          {/* Mobile Search removed — using global overlay instead */}
 
           {navItems.map((item) => (
             <div key={item.label} className="mb-8">
-              {/* Kicker — JetBrains Mono, uppercase */}
-              <p style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 400,
-                textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-mono)',
-                color: 'var(--color-accent)',
-                marginBottom: '16px',
-              }}>{item.label}</p>
+              {/* Clickable Section Header — Sync with desktop behavior */}
+              <Link 
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'block',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 'var(--tracking-mono)',
+                  color: 'var(--color-accent)',
+                  marginBottom: '20px',
+                  textDecoration: 'none',
+                }}
+              >
+                {item.label} →
+              </Link>
               <div className="flex flex-col gap-4">
                 {item.children.map((child) => (
                   <Link 
@@ -461,11 +451,11 @@ export default function Navbar() {
                 style={{
                   width: '100%',
                   fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-xl)',
+                  fontSize: '18px',
                   background: 'var(--color-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '16px 56px 16px 20px',
+                  padding: '12px 56px 12px 20px',
                   color: 'var(--color-text-primary)',
                   outline: 'none',
                 }}

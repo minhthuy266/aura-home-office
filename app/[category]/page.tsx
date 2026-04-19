@@ -162,7 +162,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   };
 
   return (
-    <main key={`${categorySlug}-${currentPage}`} style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '160px', paddingBottom: '80px' }}>
+    <main key={`${categorySlug}-${currentPage}`} style={{ 
+      minHeight: '100vh', 
+      background: 'var(--color-bg)', 
+      paddingTop: 'var(--page-pt, 160px)', 
+      paddingBottom: '80px' 
+    }} className="[--page-pt:120px] md:[--page-pt:160px]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
@@ -502,7 +507,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 </div>
               </div>
 
-              {/* Sidebar Section: Trust Box */}
               <div style={{
                 padding: '24px',
                 background: 'var(--color-surface-dark)',

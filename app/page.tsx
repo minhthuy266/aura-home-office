@@ -54,11 +54,11 @@ export default async function HomePage() {
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section style={{
-        paddingTop: '160px',
+        paddingTop: 'var(--page-pt, 160px)',
         paddingBottom: '80px',
         background: 'var(--color-bg)',
         borderBottom: '1px solid var(--color-rule-hard)',
-      }}>
+      }} className="[--page-pt:120px] md:[--page-pt:160px]">
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-stretch">
             
