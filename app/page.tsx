@@ -159,7 +159,7 @@ export default async function HomePage() {
               {/* Featured card overlay */}
               {featuredPost && (
                 <Link 
-                  href={`/category/${featuredPost._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${featuredPost.slug}`} 
+                  href={`/${featuredPost._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${featuredPost.slug}`}
                   style={{
                     position: 'absolute',
                     bottom: '-24px',
@@ -241,7 +241,7 @@ export default async function HomePage() {
               return (
                 <Link 
                   key={p.id} 
-                  href={`/category/${catSlug}/${p.slug}`} 
+                  href={`/${catSlug}/${p.slug}`}
                   className="max-md:border-r-0 md:border-r md:even:border-r-0 lg:even:border-r lg:[&:nth-child(4n)]:border-r-0 border-b border-[var(--color-rule-hard)]"
                   style={{
                     display: 'flex',

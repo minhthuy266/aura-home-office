@@ -197,7 +197,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                   {posts.slice(0, 4).map((rp, i) => (
                     <Link 
                       key={rp.id} 
-                      href={`/category/${categorySlug}/${rp.slug}`}
+                      href={`/${categorySlug}/${rp.slug}`}
                       className="group flex gap-4 items-start text-decoration-none"
                     >
                       <span style={{

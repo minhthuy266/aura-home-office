@@ -42,5 +42,14 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/category/:categorySlug/:postSlug',
+        destination: '/:categorySlug/:postSlug',
+        permanent: true,
+      },
+    ]
+  },
 }
 export default nextConfig;
