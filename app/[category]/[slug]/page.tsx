@@ -1,6 +1,6 @@
 import { getPostBySlug, getLatestPosts } from '../../../src/services/wpService';
 import { notFound } from 'next/navigation';
-import PostClient from '../../../src/components/PostClient';
+import PostArticle from '../../../src/components/PostArticle';
 import { Metadata } from 'next';
 
 interface PostPageProps {
@@ -102,7 +102,7 @@ export default async function PostPage({ params }: PostPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <PostClient post={post} latestPosts={latestPosts} />
+      <PostArticle post={post} latestPosts={latestPosts} />
     </>
   );
 }
