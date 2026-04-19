@@ -1,5 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Read the Privacy Policy of Aura Home Office. Learn how we collect, use, store, and protect your personal data when you visit our website.',
+};
 
 export default function PrivacyPage() {
   return (
@@ -72,7 +78,7 @@ export default function PrivacyPage() {
             textTransform: 'uppercase',
             letterSpacing: 'var(--tracking-mono)'
           }}>
-            Last updated: April 18, 2026
+            Last updated: April 19, 2026
           </p>
         </section>
       </div>

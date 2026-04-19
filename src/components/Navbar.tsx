@@ -8,33 +8,33 @@ import Logo from './Logo';
 const navItems = [
   {
     label: 'Furniture',
-    href: '/category/furniture',
+    href: '/furniture',
     children: [
-      { label: 'Standing Desks', href: '/category/standing-desks', desc: 'Height-adjustable workspaces' },
-      { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs', desc: 'Comfort for long hours' },
-      { label: 'Desk Converters', href: '/category/desk-converters', desc: 'Sit-stand solutions' },
-      { label: 'Desk Storage', href: '/category/desk-storage', desc: 'Organization & drawers' },
-      { label: 'Footrests & Mats', href: '/category/footrests-mats', desc: 'Under-desk support' },
+      { label: 'Standing Desks', href: '/standing-desks', desc: 'Height-adjustable workspaces' },
+      { label: 'Ergonomic Chairs', href: '/ergonomic-chairs', desc: 'Comfort for long hours' },
+      { label: 'Desk Converters', href: '/desk-converters', desc: 'Sit-stand solutions' },
+      { label: 'Desk Storage', href: '/desk-storage', desc: 'Organization & drawers' },
+      { label: 'Footrests & Mats', href: '/footrests-mats', desc: 'Under-desk support' },
     ]
   },
   {
     label: 'Setup',
-    href: '/category/setup',
+    href: '/setup',
     children: [
-      { label: 'Monitor Arms', href: '/category/monitor-arms', desc: 'Display mounting solutions' },
-      { label: 'Desk Lighting', href: '/category/desk-lighting', desc: 'Lamps & ambient lights' },
-      { label: 'Cable Management', href: '/category/cable-management', desc: 'Keep wires hidden' },
-      { label: 'Keyboards & Mice', href: '/category/keyboards-mice', desc: 'Input devices' },
-      { label: 'Desk Accessories', href: '/category/desk-accessories', desc: 'Essential add-ons' },
+      { label: 'Monitor Arms', href: '/monitor-arms', desc: 'Display mounting solutions' },
+      { label: 'Desk Lighting', href: '/desk-lighting', desc: 'Lamps & ambient lights' },
+      { label: 'Cable Management', href: '/cable-management', desc: 'Keep wires hidden' },
+      { label: 'Keyboards & Mice', href: '/keyboards-mice', desc: 'Input devices' },
+      { label: 'Desk Accessories', href: '/desk-accessories', desc: 'Essential add-ons' },
     ]
   },
   {
     label: 'Guides',
-    href: '/category/guides',
+    href: '/guides',
     children: [
-      { label: 'Ergonomics & Health', href: '/category/ergonomics-health', desc: 'Posture & wellness tips' },
-      { label: 'Workspace Ideas', href: '/category/workspace-ideas', desc: 'Inspiration & aesthetics' },
-      { label: 'Productivity', href: '/category/productivity', desc: 'Work smarter & faster' },
+      { label: 'Ergonomics & Health', href: '/ergonomics-health', desc: 'Posture & wellness tips' },
+      { label: 'Workspace Ideas', href: '/workspace-ideas', desc: 'Inspiration & aesthetics' },
+      { label: 'Productivity', href: '/productivity', desc: 'Work smarter & faster' },
     ]
   }
 ];
@@ -93,165 +93,211 @@ export default function Navbar() {
   return (
     <>
       <header
-        className="nav"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 120,
-        display: 'flex',
-        alignItems: 'center',
-        minHeight: '64px',
-        background: 'var(--color-bg)',
-        borderBottom: '1px solid var(--color-rule-hard)',
-        padding: isScrolled ? 'var(--space-2) 0' : 'var(--space-3) 0',
-        boxShadow: isScrolled ? 'var(--shadow-sm)' : 'none',
-      }}
-    >
-      <div className="max-w-[1200px] w-full mx-auto px-6 md:px-8 flex justify-between items-center relative z-[110]">
-        <Link href="/" className="relative z-10" onClick={() => setMobileMenuOpen(false)}>
-          <Logo />
-        </Link>
+        className="nav-container"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 150,
+          background: 'var(--color-bg)',
+          borderBottom: '1px solid var(--color-rule-hard)',
+          transition: 'transform 0.3s ease',
+          transform: isScrolled ? 'translateY(-36px)' : 'translateY(0)', // Hide utility bar on scroll
+        }}
+      >
+        {/* ROW 1: Utility Bar (Above) */}
+        <div style={{
+          height: '34px',
+          background: 'var(--color-text-primary)', // Standardized charcoal
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+              <span style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.1)' }}></span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em' }}>Independent Research & Testing</span>
+            </div>
+            
+            <nav style={{ display: 'flex', gap: '24px' }}>
+              {[
+                { label: 'About', href: '/about' },
+                { label: 'Disclosure', href: '/disclosure' },
+                { label: 'Contact', href: '/contact' },
+              ].map(link => (
+                <Link key={link.label} href={link.href} style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'rgba(255,255,255,0.65)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease',
+                }} className="hover:text-white">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-1">
-          {navItems.map((item) => (
-            <div 
-              key={item.label} 
-              className="relative"
-              onMouseEnter={() => handleMouseEnter(item.label)}
-              onMouseLeave={handleMouseLeave}
-            >
-              <button 
-                className="flex items-center gap-1 px-4 py-2"
-                style={{
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  color: activeDropdown === item.label ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  transition: 'color 0.12s ease',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {item.label}
-                <ChevronDown size={13} style={{
-                  transform: activeDropdown === item.label ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 0.12s ease'
-                }} />
-              </button>
+        {/* ROW 2: Branding & Main Nav */}
+        <div style={{
+          height: '76px',
+          display: 'flex',
+          alignItems: 'center',
+          position: 'relative',
+          background: 'var(--color-bg)',
+        }}>
+          <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0 var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Branding (Left) */}
+            <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center' }}>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
+                <Logo />
+              </Link>
+            </div>
 
-              {/* Dropdown */}
-              <div 
-                className="absolute top-full left-1/2 -translate-x-1/2 pt-3"
-                style={{
-                  opacity: activeDropdown === item.label ? 1 : 0,
-                  transform: `translateX(-50%) translateY(${activeDropdown === item.label ? '0' : '6px'})`,
-                  pointerEvents: activeDropdown === item.label ? 'auto' : 'none',
-                  transition: 'opacity 0.12s ease, transform 0.12s ease',
-                }}
-              >
-                <div style={{
-                  width: '280px',
-                  background: 'white',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-lg)',
-                  border: '1px solid var(--color-border)',
-                  padding: '8px',
-                  overflow: 'hidden',
-                }}>
-                  {item.children.map((child) => (
-                    <Link 
-                      key={child.label} 
-                      href={child.href}
-                      className="flex flex-col p-3"
-                      style={{
-                        borderRadius: 'var(--radius-md)',
-                        transition: 'background 0.12s ease',
-                        textDecoration: 'none',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <span style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 600,
-                        color: 'var(--color-text-primary)',
-                      }}>{child.label}</span>
-                      <span style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--color-text-muted)',
-                        marginTop: '2px',
-                        lineHeight: '1.5',
-                      }}>{child.desc}</span>
-                    </Link>
-                  ))}
-                  <div style={{ borderTop: '1px solid var(--color-border-subtle)', margin: '8px 0 4px' }}>
-                    <Link 
-                      href={item.href} 
-                      className="flex items-center justify-center py-2.5"
-                      style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 600,
-                        color: 'var(--color-accent)',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      View All {item.label} →
-                    </Link>
+            {/* Main Navigation (Center) */}
+            <nav className="hidden lg:flex items-center gap-10" style={{ flex: '0 0 auto' }}>
+              {navItems.map((item) => (
+                <div 
+                  key={item.label} 
+                  className="relative"
+                  onMouseEnter={() => handleMouseEnter(item.label)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <button 
+                    className="flex items-center gap-2 py-6 relative"
+                    style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: activeDropdown === item.label ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {item.label}
+                    <ChevronDown size={12} style={{ opacity: 0.3, transform: activeDropdown === item.label ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
+                    
+                    {/* Synchronized Underline */}
+                    <span 
+                      style={{ 
+                        position: 'absolute', 
+                        bottom: '22px', 
+                        left: 0, 
+                        width: activeDropdown === item.label ? '100%' : '0%', 
+                        height: '2px', 
+                        background: 'var(--color-accent)', 
+                        transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+                        opacity: activeDropdown === item.label ? 1 : 0 
+                      }} 
+                    />
+                  </button>
+
+                  {/* Enhanced Dropdown — Using Design Tokens */}
+                  <div 
+                    className="absolute top-full left-0 pt-0"
+                    style={{
+                      opacity: activeDropdown === item.label ? 1 : 0,
+                      transform: `translateY(${activeDropdown === item.label ? '0' : '10px'})`,
+                      pointerEvents: activeDropdown === item.label ? 'auto' : 'none',
+                      transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
+                      zIndex: 200,
+                    }}
+                  >
+                    <div style={{
+                      width: '280px',
+                      background: 'var(--color-bg)',
+                      boxShadow: 'var(--shadow-lg)',
+                      border: '1px solid var(--color-rule-soft)',
+                      padding: '8px',
+                    }}>
+                      {item.children.map((child) => (
+                        <Link 
+                          key={child.label} 
+                          href={child.href}
+                          className="flex flex-col p-3"
+                          style={{
+                            transition: 'background 0.2s ease',
+                            textDecoration: 'none',
+                            borderRadius: '2px',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{child.label}</span>
+                          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: '1.4' }}>{child.desc}</span>
+                        </Link>
+                      ))}
+                      <div style={{ borderTop: '1px solid var(--color-rule-soft)', marginTop: '8px', padding: '8px 0 4px' }}>
+                        <Link href={item.href} className="flex items-center justify-center py-2" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700, color: 'var(--color-accent)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                          Explore {item.label} Archive →
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+            </nav>
+
+            {/* Practical Utilities (Right) */}
+            <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '24px' }}>
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="group"
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: 'var(--color-text-primary)',
+                  padding: '8px 0',
+                }}
+              >
+                <Search size={19} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="hidden xl:block">Search</span>
+              </button>
+              
+              <Link 
+                href="/reviews" 
+                className="hidden lg:flex items-center px-6 py-3 transition-all"
+                style={{
+                  background: 'var(--color-text-primary)',
+                  color: 'var(--color-bg)',
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+              >
+                Go Reviews
+              </Link>
+
+              <button 
+                className="lg:hidden"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
-          ))}
-        </nav>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setIsSearchOpen(true)}
-            className="flex items-center justify-center w-9 h-9"
-            style={{ 
-              color: 'var(--color-text-secondary)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
-            aria-label="Search"
-          >
-            <Search size={16} strokeWidth={2} />
-          </button>
-          
-          <Link 
-            href="/about" 
-            className="hidden lg:flex items-center px-4 py-2"
-            style={{
-              fontFamily: 'var(--font-ui)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              color: 'var(--color-text-secondary)',
-              textDecoration: 'none',
-            }}
-          >
-            About
-          </Link>
-
-          <button 
-            className="lg:hidden flex items-center justify-center w-10 h-10"
-            style={{ color: 'var(--color-text-primary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Menu"
-          >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          </div>
         </div>
-      </div>
       </header>
 
       {/* Mobile Menu */}

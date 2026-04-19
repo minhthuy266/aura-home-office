@@ -2,54 +2,19 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'aurahomeoffice.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cms.aurahomeoffice.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'secure.gravatar.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'm.media-amazon.com',
-      },
-      {
-        protocol: 'http',
-        hostname: 'aurahomeoffice.com',
-      },
+      { protocol: 'https', hostname: 'aurahomeoffice.com' },
+      { protocol: 'https', hostname: 'cms.aurahomeoffice.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'secure.gravatar.com' },
+      { protocol: 'https', hostname: 'm.media-amazon.com' },
+      { protocol: 'http', hostname: 'aurahomeoffice.com' },
     ],
   },
   env: {
-    VITE_WP_API_URL: process.env.VITE_WP_API_URL || process.env.NEXT_PUBLIC_WP_API_URL || "", 
+    NEXT_PUBLIC_WP_API_URL: process.env.NEXT_PUBLIC_WP_API_URL || "https://cms.aurahomeoffice.com",
   },
-  async rewrites() {
-    const wpUrl = process.env.VITE_WP_API_URL || process.env.NEXT_PUBLIC_WP_API_URL;
-    if (!wpUrl) return [];
-    
-    return [
-      {
-        source: '/api/wp/:path*',
-        destination: `${wpUrl}/wp-json/:path*`,
-      },
-    ]
-  },
-  async redirects() {
-    return [
-      {
-        source: '/category/:categorySlug/:postSlug',
-        destination: '/:categorySlug/:postSlug',
-        permanent: true,
-      },
-    ]
-  },
-}
+  // We are using Clean URLs (e.g., /furniture instead of /category/furniture)
+  // Since there is no legacy system, no redirects are needed.
+};
+
 export default nextConfig;

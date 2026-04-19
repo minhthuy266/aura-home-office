@@ -1,5 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Affiliate Disclosure',
+  description: 'Read our affiliate disclosure to understand how Aura Home Office is funded through reader-supported links and our commitment to unbiased reviews.',
+};
 
 export default function DisclosurePage() {
   return (

@@ -79,7 +79,7 @@ export default function CategoryGrid() {
       {CATEGORIES.map((cat) => (
         <Link 
           key={cat.slug}
-          href={`/category/${cat.slug}`}
+          href={`/${cat.slug}`}
           className={`${cat.span} group relative overflow-hidden flex items-end cursor-pointer img-zoom-hover`}
           style={{
             minHeight: '220px',

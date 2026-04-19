@@ -2,7 +2,6 @@ import './globals.css';
 import { Playfair_Display, Source_Serif_4, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
-import NextTopLoader from 'nextjs-toploader';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -31,7 +30,7 @@ const mono = JetBrains_Mono({
 export const metadata = {
   title: {
     default: 'Aura Home Office | Best WFH Gear & Ergonomic Reviews 2026',
-    template: '%s | Aura Home Office'
+    template: '%s | Aura'
   },
   description: 'Deep-tissue gear reviews and aesthetic setup guides for high-performance home offices. We analyze hundreds of artifacts so you don\'t have to.',
   keywords: ['home office reviews', 'ergonomic setup', 'wfh gear', 'best office chairs 2026', 'standing desk reviews'],
@@ -44,11 +43,13 @@ export const metadata = {
     siteName: 'Aura Home Office',
     locale: 'en_US',
     type: 'website',
+    images: ['https://aurahomeoffice.com/og-image.jpg'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Aura Home Office | Workspace Artifacts',
     description: 'The definitive guide for your best workday.',
+    images: ['https://aurahomeoffice.com/og-image.jpg'],
   },
   icons: {
     icon: '/icon.svg',
@@ -71,17 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       </head>
       <body className="antialiased flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-ui)', background: 'var(--color-bg)', color: 'var(--color-text-body)' }}>
-        <NextTopLoader 
-          color="#1A6B5A"
-          initialPosition={0.08}
-          crawlSpeed={200}
-          height={2}
-          crawl={true}
-          showSpinner={false}
-          easing="ease"
-          speed={200}
-          shadow="false"
-        />
         <Navbar />
         <div>
           {children}

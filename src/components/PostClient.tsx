@@ -232,7 +232,7 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
               {categories.map((cat: { id: number; name: string; slug: string }) => (
                 <Link
                   key={cat.id}
-                  href={`/category/${cat.slug}`}
+                  href={`/${cat.slug}`}
                   style={{
                     fontFamily: 'var(--font-mono)',
                     fontSize: 'var(--text-xs)',
@@ -609,7 +609,7 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
                 {relatedPosts.map((rp, i) => (
                   <Link
                     key={rp.id}
-                    href={`/category/${rp._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${rp.slug}`}
+                    href={`/${rp._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${rp.slug}`}
                     className="group flex gap-4 items-start text-decoration-none"
                   >
                     {/* Number Marker — Mono */}
@@ -674,7 +674,7 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
             }}>UP NEXT</span>
             {relatedPosts[0] && (
             <Link
-              href={`/category/${relatedPosts[0]._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${relatedPosts[0].slug}`}
+              href={`/${relatedPosts[0]._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${relatedPosts[0].slug}`}
               style={{
                 display: 'flex',
                 gap: '24px',

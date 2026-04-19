@@ -44,8 +44,8 @@ export default async function HomePage() {
   const featuredPost = await getFeaturedPost();
   
   const trendingPosts = allPosts.slice(1, 5); 
-  const standingDesks = await getPostsByTagSlug('standing-desks', 1, 4);
-  const furniturePosts = standingDesks.length > 0 ? standingDesks : allPosts.slice(4, 8);
+  const { posts: standingDesks } = await getPostsByTagSlug('standing-desks', 1, 4);
+  const furniturePosts = (standingDesks && standingDesks.length > 0) ? standingDesks : allPosts.slice(4, 8);
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
@@ -54,7 +54,7 @@ export default async function HomePage() {
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section style={{
-        paddingTop: '96px',
+        paddingTop: '160px',
         paddingBottom: '80px',
         background: 'var(--color-bg)',
         borderBottom: '1px solid var(--color-rule-hard)',
@@ -108,7 +108,7 @@ export default async function HomePage() {
               {/* CTAs */}
               <div className="reveal delay-3">
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '28px' }}>
-                  <Link href="/category/reviews" className="btn-buy">
+                  <Link href="/reviews" className="btn-buy">
                     Explore Reviews <ArrowRight size={14} />
                   </Link>
                   <Link href="/about" className="btn-secondary">
@@ -403,7 +403,7 @@ export default async function HomePage() {
       {/* CTA Button Block */}
       <section style={{ padding: 'var(--space-12) 0 var(--space-16) 0', background: 'var(--color-bg)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-          <Link href="/category/reviews" className="btn-buy">
+          <Link href="/reviews" className="btn-buy">
               Browse All Reviews &nbsp;<ArrowRight size={16} />
             </Link>
           </div>

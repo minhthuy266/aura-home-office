@@ -9,13 +9,13 @@ import Logo from './Logo';
  */
 export default function Footer() {
   const categories = [
-    { label: 'Furniture', href: '/category/furniture' },
-    { label: 'Setup', href: '/category/setup' },
-    { label: 'Guides', href: '/category/guides' },
-    { label: 'Standing Desks', href: '/category/standing-desks' },
-    { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs' },
-    { label: 'Monitor Arms', href: '/category/monitor-arms' },
-    { label: 'Desk Accessories', href: '/category/desk-accessories' },
+    { label: 'Furniture', href: '/furniture' },
+    { label: 'Setup', href: '/setup' },
+    { label: 'Guides', href: '/guides' },
+    { label: 'Standing Desks', href: '/standing-desks' },
+    { label: 'Ergonomic Chairs', href: '/ergonomic-chairs' },
+    { label: 'Monitor Arms', href: '/monitor-arms' },
+    { label: 'Desk Accessories', href: '/desk-accessories' },
   ];
 
   const legal = [
@@ -23,6 +23,7 @@ export default function Footer() {
     { label: 'Contact', href: '/contact' },
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Affiliate Disclosure', href: '/disclosure' },
+    { label: 'Terms of Service', href: '/terms' },
   ];
 
   return (
