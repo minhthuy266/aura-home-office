@@ -115,9 +115,26 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
           />
         </Link>
         <div className="flex flex-col justify-center">
-          {categories.slice(0,1).map(cat => (
-            <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)', marginBottom: '8px', display: 'block' }}>{cat.name}</span>
-          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            {categories.slice(0,1).map(cat => (
+              <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)' }}>{cat.name}</span>
+            ))}
+            {post._embedded?.['wp:term']?.[1]?.[0] && (
+              <>
+                <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--color-border-hard)' }}></span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: 'var(--color-text-muted)',
+                }}>
+                  {post._embedded['wp:term'][1][0].name}
+                </span>
+              </>
+            )}
+          </div>
           <h3 style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'var(--text-xl)',
@@ -161,10 +178,8 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
 
   // STANDARD — Vertical Grid style (For Homepage)
   return (
-    <article className="group flex flex-col" style={{
+    <article className="group flex flex-col max-md:border-r-0 md:border-r md:even:border-r-0 lg:even:border-r lg:[&:nth-child(4n)]:border-r-0 border-b border-[var(--color-rule-hard)]" style={{
       padding: 'var(--space-6)',
-      borderRight: '1px solid var(--color-rule-hard)',
-      borderBottom: '1px solid var(--color-rule-hard)',
     }}>
       <Link href={postUrl} className="block img-zoom-hover" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-surface)', position: 'relative', marginBottom: 'var(--space-4)', borderRadius: 0 }}>
         <img src={featuredMedia?.source_url || defaultImage} alt={post.title.rendered} className="w-full h-full object-cover" loading="lazy" style={{ borderRadius: 0 }} />

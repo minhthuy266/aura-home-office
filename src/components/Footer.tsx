@@ -9,13 +9,13 @@ import Logo from './Logo';
  */
 export default function Footer() {
   const categories = [
-    { label: 'Reviews', href: '/category/reviews' },
-    { label: 'Gaming PCs', href: '/category/gaming-pcs' },
-    { label: 'Components', href: '/category/components' },
-    { label: 'Peripherals', href: '/category/peripherals' },
+    { label: 'Furniture', href: '/category/furniture' },
+    { label: 'Setup', href: '/category/setup' },
+    { label: 'Guides', href: '/category/guides' },
     { label: 'Standing Desks', href: '/category/standing-desks' },
-    { label: 'Air Purifiers', href: '/category/air-purifiers' },
-    { label: 'Blog', href: '/category/blog' },
+    { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs' },
+    { label: 'Monitor Arms', href: '/category/monitor-arms' },
+    { label: 'Desk Accessories', href: '/category/desk-accessories' },
   ];
 
   const legal = [

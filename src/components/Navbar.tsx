@@ -7,30 +7,34 @@ import Logo from './Logo';
 
 const navItems = [
   {
-    label: 'Reviews',
-    href: '/category/reviews',
+    label: 'Furniture',
+    href: '/category/furniture',
     children: [
-      { label: 'All Reviews', href: '/category/reviews', desc: 'Expert gear analysis & verdicts' },
-      { label: 'Gaming PCs', href: '/category/gaming-pcs', desc: 'High-performance rigs & setups' },
-      { label: 'Components', href: '/category/components', desc: 'Internal hardware & upgrades' },
-      { label: 'Peripherals', href: '/category/peripherals', desc: 'Keyboards, mice & monitors' },
+      { label: 'Standing Desks', href: '/category/standing-desks', desc: 'Height-adjustable workspaces' },
+      { label: 'Ergonomic Chairs', href: '/category/ergonomic-chairs', desc: 'Comfort for long hours' },
+      { label: 'Desk Converters', href: '/category/desk-converters', desc: 'Sit-stand solutions' },
+      { label: 'Desk Storage', href: '/category/desk-storage', desc: 'Organization & drawers' },
+      { label: 'Footrests & Mats', href: '/category/footrests-mats', desc: 'Under-desk support' },
     ]
   },
   {
-    label: 'Gear by Tag',
-    href: '#',
+    label: 'Setup',
+    href: '/category/setup',
     children: [
-      { label: 'Standing Desks', href: '/category/standing-desks', desc: 'Ergonomic height-adjustable desks' },
-      { label: 'Air Purifiers', href: '/category/air-purifiers', desc: 'Cleaner air for your office' },
-      { label: 'Amazon News', href: '/category/amazon-news', desc: 'Latest from the world of e-commerce' },
+      { label: 'Monitor Arms', href: '/category/monitor-arms', desc: 'Display mounting solutions' },
+      { label: 'Desk Lighting', href: '/category/desk-lighting', desc: 'Lamps & ambient lights' },
+      { label: 'Cable Management', href: '/category/cable-management', desc: 'Keep wires hidden' },
+      { label: 'Keyboards & Mice', href: '/category/keyboards-mice', desc: 'Input devices' },
+      { label: 'Desk Accessories', href: '/category/desk-accessories', desc: 'Essential add-ons' },
     ]
   },
   {
-    label: 'Editorial',
-    href: '/category/blog',
+    label: 'Guides',
+    href: '/category/guides',
     children: [
-      { label: 'Latest Blog', href: '/category/blog', desc: 'Office trends & productivity tips' },
-      { label: 'Lifestyle', href: '/category/blog', desc: 'Balancing work and wellness' },
+      { label: 'Ergonomics & Health', href: '/category/ergonomics-health', desc: 'Posture & wellness tips' },
+      { label: 'Workspace Ideas', href: '/category/workspace-ideas', desc: 'Inspiration & aesthetics' },
+      { label: 'Productivity', href: '/category/productivity', desc: 'Work smarter & faster' },
     ]
   }
 ];

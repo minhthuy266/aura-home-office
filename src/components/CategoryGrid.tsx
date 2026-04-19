@@ -16,53 +16,60 @@ import Link from 'next/link';
 
 const CATEGORIES = [
   { 
-    name: 'Reviews', 
-    slug: 'reviews', 
-    image: 'https://images.unsplash.com/photo-1454165833767-027508496bce?q=80&w=1200', 
+    name: 'Furniture', 
+    slug: 'furniture', 
+    // Home office with wooden desk, shelving, clean editorial feel
+    image: 'https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?q=80&w=1200', 
     span: 'md:col-span-2 md:row-span-2',
-    desc: 'Expert gear analysis'
+    desc: 'Desks, Chairs & More'
   },
   { 
-    name: 'Gaming PCs', 
-    slug: 'gaming-pcs', 
-    image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=800', 
+    name: 'Workspace Setup', 
+    slug: 'setup', 
+    // Clean minimal home office desk with ultrawide monitor
+    image: 'https://images.unsplash.com/photo-1593640495253-23196b27a87f?q=80&w=800', 
     span: 'md:col-span-2 md:row-span-1',
-    desc: 'Performance for work and play'
-  },
-  { 
-    name: 'Peripherals', 
-    slug: 'peripherals', 
-    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?q=80&w=800', 
-    span: 'md:col-span-1 md:row-span-1',
-    desc: 'Premium tools for your hands'
-  },
-  { 
-    name: 'Components', 
-    slug: 'components', 
-    image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?q=80&w=800', 
-    span: 'md:col-span-1 md:row-span-1',
-    desc: 'Building blocks of productivity'
+    desc: 'The Foundation'
   },
   { 
     name: 'Standing Desks', 
     slug: 'standing-desks', 
-    image: 'https://images.unsplash.com/photo-1595844730298-b960ff98fee0?q=80&w=800', 
+    // Person working at a height-adjustable standing desk
+    image: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?q=80&w=800', 
     span: 'md:col-span-1 md:row-span-1',
-    desc: 'Ergonomic elevation'
+    desc: 'Active Workspace'
   },
   { 
-    name: 'Air Purifiers', 
-    slug: 'air-purifiers', 
-    image: 'https://images.unsplash.com/photo-1585771724684-2e270052e24a?q=80&w=800', 
+    name: 'Ergonomic Chairs', 
+    slug: 'ergonomic-chairs', 
+    // Ergonomic mesh office chair at home office desk
+    image: 'https://images.unsplash.com/photo-1623177579111-ccdec0898ed1?q=80&w=800', 
     span: 'md:col-span-1 md:row-span-1',
-    desc: 'Breathe cleaner air'
+    desc: 'Lumbar & Comfort'
   },
   { 
-    name: 'Blog', 
-    slug: 'blog', 
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=1200', 
+    name: 'Monitor Arms', 
+    slug: 'monitor-arms', 
+    // Triple monitor home office setup with desk-mounted arms
+    image: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?q=80&w=800', 
+    span: 'md:col-span-1 md:row-span-1',
+    desc: 'Display Ergonomics'
+  },
+  { 
+    name: 'Desk Accessories', 
+    slug: 'desk-accessories', 
+    // Organized home office desk: lamp, organizer, keyboard, notepad
+    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?q=80&w=800', 
+    span: 'md:col-span-1 md:row-span-1',
+    desc: 'Essential Add-ons'
+  },
+  { 
+    name: 'Guides & Health', 
+    slug: 'guides', 
+    // Person at desk with good ergonomic posture, home office
+    image: 'https://images.unsplash.com/photo-1587614382346-4ec70e388b28?q=80&w=1200', 
     span: 'md:col-span-2 md:row-span-1',
-    desc: 'Stay updated with office trends'
+    desc: 'Wellness & Focus'
   },
 ];
 

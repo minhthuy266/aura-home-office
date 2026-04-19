@@ -540,6 +540,47 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
                   ))}
                 </div>
               </div>
+
+              {/* Tags Section — DESIGN.md §8 Component Patterns */}
+              {post._embedded?.['wp:term']?.[1] && post._embedded['wp:term'][1].length > 0 && (
+                <div style={{
+                  marginTop: '40px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}>
+                  {post._embedded['wp:term'][1].map((tag: { id: number; name: string; slug: string }) => (
+                    <Link
+                      key={tag.id}
+                      href={`/search?q=${tag.slug}`}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '10px',
+                        fontWeight: 500,
+                        color: 'var(--color-text-muted)',
+                        textTransform: 'uppercase' as const,
+                        letterSpacing: '0.05em',
+                        textDecoration: 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-accent)';
+                        e.currentTarget.style.color = 'var(--color-accent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-border-subtle)';
+                        e.currentTarget.style.color = 'var(--color-text-muted)';
+                      }}
+                    >
+                      #{tag.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </main>
 
             {/* Right Sidebar — Trending (2 Columns, Independent Scroll) */}

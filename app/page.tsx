@@ -223,12 +223,11 @@ export default async function HomePage() {
                 <Link 
                   key={p.id} 
                   href={`/category/${catSlug}/${p.slug}`} 
+                  className="max-md:border-r-0 md:border-r md:even:border-r-0 lg:even:border-r lg:[&:nth-child(4n)]:border-r-0 border-b border-[var(--color-rule-hard)]"
                   style={{
                     display: 'flex',
                     flexDirection: 'column' as const,
                     padding: 'var(--space-6)',
-                    borderRight: '1px solid var(--color-rule-hard)',
-                    borderBottom: '1px solid var(--color-rule-hard)',
                     textDecoration: 'none',
                     background: 'var(--color-bg)',
                   }}
@@ -316,7 +315,7 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════ CATEGORIES ═══════════════ */}
-      <section style={{ padding: 'var(--space-20) 0', background: 'var(--color-bg)', borderTop: '1px solid var(--color-rule-hard)' }}>
+      <section style={{ padding: 'var(--space-20) 0', background: 'var(--color-bg)', borderTop: '1px solid var(--color-rule-hard)', marginTop: '-1px', position: 'relative', zIndex: 10 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
           <div style={{ marginBottom: 'var(--space-10)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--space-6)' }}>
             <div>
@@ -376,13 +375,19 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 0 }}>
             {furniturePosts.map((p, i) => <PostCard key={p.id} post={p} index={i} />)}
           </div>
+        </div>
+      </section>
 
-          <div style={{ marginTop: 'var(--space-12)', textAlign: 'center', paddingBottom: 'var(--space-16)' }}>
-            <Link href="/category/reviews" className="btn-buy">
+      {/* Full bleed divider after grid */}
+      <div style={{ borderBottom: '1px solid var(--color-rule-hard)', marginTop: '-1px', position: 'relative', zIndex: 10 }}></div>
+
+      {/* CTA Button Block */}
+      <section style={{ padding: 'var(--space-12) 0 var(--space-16) 0', background: 'var(--color-bg)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+          <Link href="/category/reviews" className="btn-buy">
               Browse All Reviews &nbsp;<ArrowRight size={16} />
             </Link>
           </div>
-        </div>
       </section>
 
       {/* ═══════════════ NEWSLETTER ═══════════════ */}
