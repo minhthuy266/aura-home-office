@@ -1,9 +1,17 @@
 "use client";
-import React, { useState, useEffect, useRef, useTransition } from 'react';
+import React, { useState, useEffect, useRef, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, Menu, X, ChevronDown, Loader2 } from 'lucide-react';
 import Logo from './Logo';
+
+function SearchObserver({ onSearchChange }: { onSearchChange: (params: string) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    onSearchChange(searchParams.toString());
+  }, [searchParams, onSearchChange]);
+  return null;
+}
 
 const navItems = [
   {
@@ -50,14 +58,17 @@ export default function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null!);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  // Close menus when route changes
-  useEffect(() => {
+  const handleRouteOrSearchChange = React.useCallback(() => {
     setIsSearchOpen(false);
     setMobileMenuOpen(false);
     setSearchQuery('');
-  }, [pathname, searchParams]);
+  }, []);
+
+  // Close menus when route changes
+  useEffect(() => {
+    handleRouteOrSearchChange();
+  }, [pathname, handleRouteOrSearchChange]);
 
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current && !isPending) {
@@ -102,6 +113,9 @@ export default function Navbar() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <SearchObserver onSearchChange={handleRouteOrSearchChange} />
+      </Suspense>
       <header
         className={`nav-container ${isScrolled ? '-translate-y-[28px] md:-translate-y-[36px]' : 'translate-y-0'}`}
         style={{
