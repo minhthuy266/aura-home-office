@@ -1,10 +1,46 @@
 import React from 'react';
-import { getPostsByCategorySlug } from '../../src/services/wpService';
+import { getPostsByCategorySlug, getCategories } from '../../src/services/wpService';
 import PostCard from '../../src/components/PostCard';
 import Link from 'next/link';
+import { Metadata } from 'next';
 
 interface CategoryPageProps {
   params: Promise<{ category: string }>;
+}
+
+/**
+ * Pre-render all category pages at build time for SEO.
+ */
+export async function generateStaticParams() {
+  const categories = await getCategories();
+  return categories.map((cat) => ({
+    category: cat.slug,
+  }));
+}
+
+/**
+ * Per-category SEO metadata: canonical, description, OG.
+ */
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { category: categorySlug } = await params;
+  const { category } = await getPostsByCategorySlug(categorySlug);
+  const displayName = category?.name || categorySlug.replace(/-/g, ' ');
+  const baseUrl = 'https://aurahomeoffice.com';
+  const categoryUrl = `${baseUrl}/${categorySlug}`;
+
+  return {
+    title: `Best ${displayName} Reviews & Buying Guides 2026`,
+    description: `Expert analysis and deep-dive reviews for ${displayName.toLowerCase()}. We test everything to ensure your home office is both functional and inspiring.`,
+    alternates: {
+      canonical: categoryUrl,
+    },
+    openGraph: {
+      title: `Best ${displayName} Reviews & Buying Guides 2026`,
+      description: `Expert analysis and deep-dive reviews for ${displayName.toLowerCase()}.`,
+      url: categoryUrl,
+      type: 'website',
+    },
+  };
 }
 
 /**
@@ -17,13 +53,43 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const { category: categorySlug } = await params;
   const { posts, category } = await getPostsByCategorySlug(categorySlug);
   const displayName = category?.name || categorySlug.replace(/-/g, ' ');
+  const baseUrl = 'https://aurahomeoffice.com';
 
   // Featured and regular posts
   const featuredPost = posts[0];
   const remainingPosts = posts.slice(1);
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+      { '@type': 'ListItem', position: 2, name: displayName, item: `${baseUrl}/${categorySlug}` },
+    ],
+  };
+
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `Best ${displayName} Reviews & Buying Guides`,
+    description: `Expert analysis and deep-dive reviews for ${displayName.toLowerCase()}.`,
+    url: `${baseUrl}/${categorySlug}`,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: posts.length,
+      itemListElement: posts.slice(0, 10).map((p, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `${baseUrl}/${categorySlug}/${p.slug}`,
+        name: p.title.rendered.replace(/<[^>]*>/g, ''),
+      })),
+    },
+  };
+
   return (
     <main style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingTop: '96px', paddingBottom: '80px' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
 
         {/* Header Section — Rich Editorial Style */}

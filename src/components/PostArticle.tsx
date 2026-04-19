@@ -71,8 +71,6 @@ export default function PostArticle({ post, latestPosts }: PostArticleProps) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      {/* PostInteractive handles progress bar + TOC scroll spy (client-only) */}
-      <PostInteractive toc={toc} />
 
       {/* ── Post Hero Header — Wirecutter Left Alignment ── */}
       <header
@@ -247,8 +245,8 @@ export default function PostArticle({ post, latestPosts }: PostArticleProps) {
       {/* ── Main Content Area ── */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 96px' }}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Left Sidebar TOC — rendered by PostInteractive (client) */}
-          {/* PostInteractive already renders the <aside> with TOC */}
+          {/* Left Sidebar TOC + Progress Bar — rendered by PostInteractive (client) */}
+          <PostInteractive toc={toc} />
 
           {/* ── Main Article Content — 8 Columns ── */}
           <main

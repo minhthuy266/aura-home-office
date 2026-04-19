@@ -6,22 +6,39 @@ import PostCard from '@/src/components/PostCard';
 import CategoryGrid from '@/src/components/CategoryGrid';
 import { ArrowRight } from 'lucide-react';
 import { formatSEOText } from '@/src/utils/seoFormatter';
+import { Metadata } from 'next';
 
-/**
- * Homepage — DESIGN.md §5 Page Templates
- * 
- * Structure:
- * [Nav — sticky, white bg, bottom hairline rule]
- * [Hero — 2-col: large image left + editorial headline right]
- *   ↳ Kicker: REVIEWS · HOME OFFICE
- *   ↳ H1: Playfair, text-4xl/5xl
- *   ↳ Deck: Source Serif 4, text-md
- * [Section ribbon — "BEST PICKS" — dark bg, inverse type]
- * [Story grid — tiles with hairline rules between]
- * [Section ribbon — "MOST POPULAR"]
- * [Recent reviews — list format]
- * [Footer — dark surface, inverse type]
- */
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://aurahomeoffice.com',
+  },
+  openGraph: {
+    url: 'https://aurahomeoffice.com',
+  },
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Aura Home Office',
+  url: 'https://aurahomeoffice.com',
+  description: 'Expert reviews and ergonomic analysis for professionals building high-performance home offices.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://aurahomeoffice.com/search?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Aura Home Office',
+  url: 'https://aurahomeoffice.com',
+  logo: 'https://aurahomeoffice.com/favicon.ico',
+  sameAs: [],
+};
+
 export default async function HomePage() {
   const allPosts = await getLatestPosts(12);
   const featuredPost = await getFeaturedPost();
@@ -32,6 +49,8 @@ export default async function HomePage() {
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section style={{

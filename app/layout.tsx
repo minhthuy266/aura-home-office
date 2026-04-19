@@ -37,9 +37,6 @@ export const metadata = {
   keywords: ['home office reviews', 'ergonomic setup', 'wfh gear', 'best office chairs 2026', 'standing desk reviews'],
   authors: [{ name: 'Aura Editorial Team' }],
   metadataBase: new URL('https://aurahomeoffice.com'),
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     title: 'Aura Home Office | Expert-Led Workspace Curation',
     description: 'Elevate your productivity with our meticulously curated ergonomic guides.',
