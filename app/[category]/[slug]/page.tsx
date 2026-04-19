@@ -1,4 +1,5 @@
-import { getPostBySlug, getLatestPosts } from '../../../src/services/wpService';
+import { getPostBySlug, getLatestPosts, getAllPosts } from '../../../src/services/wpService';
+import { processPostContent } from '../../../src/utils/processContent';
 import { notFound } from 'next/navigation';
 import PostArticle from '../../../src/components/PostArticle';
 import { Metadata } from 'next';
@@ -6,6 +7,9 @@ import { Metadata } from 'next';
 interface PostPageProps {
   params: Promise<{ category: string; slug: string }>;
 }
+
+export const dynamic = 'force-static';
+export const revalidate = false;
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { category, slug } = await params;
@@ -44,7 +48,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export async function generateStaticParams() {
-  const posts = await getLatestPosts(100); // Pre-render top 100 most recent posts
+  const posts = await getAllPosts();
   return posts.map((post) => ({
     category: post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized',
     slug: post.slug,
@@ -137,6 +141,11 @@ export default async function PostPage({ params }: PostPageProps) {
     }))
   } : null;
 
+  const { html: processedHtml, toc } = processPostContent(
+    post.content.rendered,
+    post.title.rendered,
+  );
+
   return (
     <>
       <script
@@ -153,7 +162,12 @@ export default async function PostPage({ params }: PostPageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       )}
-      <PostArticle post={post} latestPosts={latestPosts} />
+      <PostArticle 
+        post={post} 
+        latestPosts={latestPosts} 
+        processedHtml={processedHtml}
+        toc={toc}
+      />
     </>
   );
 }

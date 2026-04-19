@@ -35,6 +35,45 @@ export async function getPosts(page = 1, perPage = 10, categoryId?: number, tagI
   }
 }
 
+export async function getAllPosts(): Promise<WPPost[]> {
+  if (!isConfigured) return MOCK_POSTS;
+
+  const allPosts: WPPost[] = [];
+  let page = 1;
+  const perPage = 100;
+
+  try {
+    while (true) {
+      const url = new URL(`${API_URL}/wp-json/wp/v2/posts`);
+      url.searchParams.set('_embed', '1');
+      url.searchParams.set('page', page.toString());
+      url.searchParams.set('per_page', perPage.toString());
+      url.searchParams.set('status', 'publish');
+
+      console.log(`Fetching posts for generateStaticParams: ${url.toString()}`);
+      const res = await fetch(url.toString(), { next: { revalidate: false } });
+
+      if (!res.ok) {
+        // Break out gracefully if reaching beyond last page
+        break;
+      }
+
+      const posts: WPPost[] = await res.json();
+      if (posts.length === 0) break;
+
+      allPosts.push(...posts);
+
+      const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
+      if (page >= totalPages) break;
+      page++;
+    }
+    return allPosts;
+  } catch (err) {
+    console.error("WP API Fetch Error (getAllPosts):", err);
+    return MOCK_POSTS;
+  }
+}
+
 export async function getPostBySlug(slug: string): Promise<WPPost | null> {
   if (!isConfigured) return MOCK_POSTS.find(p => p.slug === slug) || null;
 

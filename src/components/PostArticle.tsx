@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WPPost } from '../types';
-import { processPostContent } from '../utils/processContent';
+import { TOCItem } from '../utils/processContent';
 import PostInteractive from './PostInteractive';
 
 interface PostArticleProps {
   post: WPPost;
   latestPosts: WPPost[];
+  processedHtml: string;
+  toc: TOCItem[];
 }
 
 /**
@@ -32,7 +34,7 @@ interface PostArticleProps {
  * - No box-shadow on content blocks
  * - Images: border-radius: 0
  */
-export default function PostArticle({ post, latestPosts }: PostArticleProps) {
+export default function PostArticle({ post, latestPosts, processedHtml, toc }: PostArticleProps) {
   const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
   const author = post._embedded?.author?.[0];
   const categories = post._embedded?.['wp:term']?.[0] || [];
@@ -40,12 +42,6 @@ export default function PostArticle({ post, latestPosts }: PostArticleProps) {
   const relatedPosts = latestPosts.filter((p) => p.id !== post.id).slice(0, 3);
   const defaultPostImage =
     'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1400';
-
-  // ── Process content SERVER-SIDE ──
-  const { html: processedHtml, toc } = processPostContent(
-    post.content.rendered,
-    post.title.rendered,
-  );
 
   // Clean title for display (replace placeholders in title too)
   const cleanTitleForDisplay = post.title.rendered
