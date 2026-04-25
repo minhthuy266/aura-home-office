@@ -22,7 +22,7 @@ const websiteJsonLd = {
   '@type': 'WebSite',
   name: 'Aura Home Office',
   url: 'https://aurahomeoffice.com',
-  description: 'Expert reviews and ergonomic analysis for professionals building high-performance home offices.',
+  description: 'Independent home office buying guide. Practical research on standing desks, ergonomic chairs, monitor arms, and workspace gear.',
   potentialAction: {
     '@type': 'SearchAction',
     target: 'https://aurahomeoffice.com/search?q={search_term_string}',
@@ -90,7 +90,7 @@ export default async function HomePage() {
                   marginBottom: 'var(--space-6)',
                 }}>
                   The Best Home Office Gear,<br />
-                  <span style={{ fontStyle: 'italic', fontWeight: 700 }}>Tested &amp; Ranked.</span>
+                  <span style={{ fontStyle: 'italic', fontWeight: 700 }}>Researched &amp; Ranked.</span>
                 </h1>
 
                 {/* Deck — Source Serif 4 */}
@@ -101,7 +101,7 @@ export default async function HomePage() {
                   color: 'var(--color-text-secondary)',
                   maxWidth: '480px',
                 }} className="reveal delay-2">
-                  Expert reviews and ergonomic analysis for professionals building high-performance home offices. We test so you don&apos;t have to.
+                  Independent research on home office gear — standing desks, ergonomic chairs, monitor arms, and workspace accessories. Practical buying advice without the hype.
                 </p>
               </div>
 
@@ -112,7 +112,7 @@ export default async function HomePage() {
                     Explore Reviews <ArrowRight size={14} />
                   </Link>
                   <Link href="/about" className="btn-secondary">
-                    How We Test
+                    Our Approach
                   </Link>
                 </div>
 
@@ -130,7 +130,7 @@ export default async function HomePage() {
                     color: 'var(--color-text-muted)',
                     lineHeight: 1.8,
                   }}>
-                    200+ PRODUCTS TESTED · EXPERT-LED RESEARCH · UNBIASED REVIEWS
+                    200+ PRODUCTS RESEARCHED · OWNER FEEDBACK REVIEWED · NO PAID RANKINGS
                   </span>
                 </div>
               </div>

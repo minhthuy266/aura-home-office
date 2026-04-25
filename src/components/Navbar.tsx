@@ -145,7 +145,7 @@ export default function Navbar() {
               </span>
               <span className="hidden lg:block" style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.1)' }}></span>
               <span className="pt-0.5" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1 }}>
-                Independent Research & Testing
+                Independent Research & Reviews
               </span>
             </div>
             
@@ -181,7 +181,7 @@ export default function Navbar() {
           justifyContent: 'center',
         }}>
           <span className="pt-px" style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', textTransform: 'uppercase', color: 'var(--color-accent-light)', fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1 }}>
-            Independent Research & Testing
+            Independent Research & Reviews
           </span>
         </div>
 
@@ -420,7 +420,7 @@ export default function Navbar() {
                 fontWeight: 700,
                 color: 'var(--color-text-primary)',
                 textDecoration: 'none',
-              }}>About Our Process</Link>
+              }}>About Us</Link>
               <Link href="/disclosure" onClick={() => setMobileMenuOpen(false)} style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--text-lg)',

@@ -3,14 +3,41 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Affiliate Disclosure',
-  description: 'Read our affiliate disclosure to understand how Aura Home Office is funded through reader-supported links and our commitment to unbiased reviews.',
+  title: 'Affiliate Disclosure — Aura Home Office',
+  description:
+    'Read our affiliate disclosure to understand how Aura Home Office is funded through reader-supported links, and our commitment to honest, unbiased research.',
+  alternates: {
+    canonical: 'https://aurahomeoffice.com/disclosure',
+  },
+  openGraph: {
+    title: 'Affiliate Disclosure — Aura Home Office',
+    description: 'How Aura Home Office earns commissions and why it never affects our recommendations.',
+    url: 'https://aurahomeoffice.com/disclosure',
+    type: 'website',
+  },
 };
 
 export default function DisclosurePage() {
   return (
     <main style={{ minHeight: '100vh', paddingTop: 'var(--page-pt, 160px)', paddingBottom: '96px', background: 'var(--color-bg)' }} className="[--page-pt:120px] md:[--page-pt:160px]">
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 var(--space-6)' }}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebPage',
+              name: 'Affiliate Disclosure',
+              url: 'https://aurahomeoffice.com/disclosure',
+              description: 'Affiliate disclosure for Aura Home Office.',
+              publisher: {
+                '@type': 'Organization',
+                name: 'Aura Home Office',
+                url: 'https://aurahomeoffice.com',
+              },
+            }),
+          }}
+        />
         
         {/* Editorial Header */}
         <header style={{ marginBottom: '80px', textAlign: 'center' }}>
@@ -52,7 +79,7 @@ export default function DisclosurePage() {
 
           <h2>Our Editorial Integrity</h2>
           <p>
-            Our recommendations are always based on one thing: <strong style={{ color: 'var(--color-text-primary)' }}>Quality.</strong> We spend hundreds of hours researching, testing, and comparing gear so you don't have to. A product's affiliate status never influences our decision to recommend it. If we don't like a product, we'll tell you — regardless of whether it pays a commission or not.
+            Our recommendations are always based on one thing: <strong style={{ color: 'var(--color-text-primary)' }}>what is genuinely useful for the buyer.</strong> We spend considerable time researching and comparing gear so you don&apos;t have to. A product&apos;s affiliate status never influences our decision to recommend it. If we don&apos;t think a product is worth buying, we say so — regardless of whether it pays a commission or not.
           </p>
 
           <h2>Price &amp; Availability Notice</h2>

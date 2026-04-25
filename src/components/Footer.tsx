@@ -45,7 +45,7 @@ export default function Footer() {
               lineHeight: 'var(--leading-relaxed)',
               maxWidth: '320px',
             }}>
-              Independent gear reviews for high-performance home offices. We research so you don't have to.
+              Independent home office buying guide. We research so you don’t waste yours.
             </p>
             {/* Mono kicker */}
             <span style={{
@@ -137,7 +137,7 @@ export default function Footer() {
           }}>
             AFFILIATE DISCLOSURE — Aura Home Office is reader-supported. As an Amazon Associate we earn from qualifying purchases. We may also earn commissions from other partners when you purchase through our links, at no extra cost to you.{' '}
             <Link href="/disclosure" style={{ color: 'var(--color-accent-light)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-              How we test →
+              Read our full disclosure →
             </Link>
           </p>
         </div>

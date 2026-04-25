@@ -65,8 +65,94 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
     )
     .replace(/%year%/gi, new Date().getFullYear().toString());
 
+  // Plain text title for schema
+  const plainTitle = post.title.rendered.replace(/<[^>]*>/g, '');
+  const postUrl = `https://aurahomeoffice.com/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
+  const imageUrl = featuredMedia?.source_url || defaultPostImage;
+
+  // Evidence label from tags (tag slugs: research-based, hands-on-tested, showroom-checked, owner-feedback-based)
+  const evidenceTag = tags.find((t: { slug: string }) =>
+    ['research-based', 'hands-on-tested', 'showroom-checked', 'owner-feedback-based'].includes(t.slug)
+  );
+  const evidenceLabelMap: Record<string, { label: string; color: string }> = {
+    'research-based':       { label: 'Research-Based', color: 'var(--color-text-muted)' },
+    'hands-on-tested':      { label: 'Hands-On Tested', color: 'var(--color-accent)' },
+    'showroom-checked':     { label: 'Showroom Checked', color: '#7B6E5D' },
+    'owner-feedback-based': { label: 'Owner Feedback-Based', color: 'var(--color-text-muted)' },
+  };
+  const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
+
+  // Article JSON-LD schema
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: plainTitle,
+    description: post.excerpt?.rendered?.replace(/<[^>]*>/g, '').slice(0, 200) || '',
+    image: imageUrl,
+    url: postUrl,
+    datePublished: post.date,
+    dateModified: post.modified || post.date,
+    author: {
+      '@type': 'Organization',
+      name: 'Aura Home Office',
+      url: 'https://aurahomeoffice.com',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Aura Home Office',
+      url: 'https://aurahomeoffice.com',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://aurahomeoffice.com/og-image.jpg',
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': postUrl,
+    },
+  };
+
+  // BreadcrumbList JSON-LD schema
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://aurahomeoffice.com',
+      },
+      ...(categories[0]
+        ? [
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: categories[0].name,
+              item: `https://aurahomeoffice.com/${categories[0].slug}`,
+            },
+          ]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: categories[0] ? 3 : 2,
+        name: plainTitle,
+        item: postUrl,
+      },
+    ],
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+      {/* ── Article + BreadcrumbList Schema ── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
 
       {/* ── Post Hero Header — Wirecutter Left Alignment ── */}
       <header
@@ -81,6 +167,67 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
         }}
         className="[--page-pt:120px] md:[--page-pt:160px]"
       >
+        {/* Breadcrumb — visual nav + SEO signal */}
+        <nav
+          aria-label="Breadcrumb"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: 'var(--space-4)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--color-text-muted)',
+              textDecoration: 'none',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            Home
+          </Link>
+          {categories[0] && (
+            <>
+              <span style={{ color: 'var(--color-border)', fontSize: '11px' }}>›</span>
+              <Link
+                href={`/${categories[0].slug}`}
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--color-text-muted)',
+                  textDecoration: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {categories[0].name}
+              </Link>
+            </>
+          )}
+          <span style={{ color: 'var(--color-border)', fontSize: '11px' }}>›</span>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--color-text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              maxWidth: '200px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            aria-current="page"
+          >
+            {plainTitle}
+          </span>
+        </nav>
+
         {/* Kicker — JetBrains Mono, uppercase (WIRED mandatory) */}
         {categories.length > 0 && (
           <div
@@ -111,6 +258,33 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
             ))}
           </div>
         )}
+
+        {/* Evidence Label badge — fulfills About page promise */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            border: '1px solid var(--color-border-subtle)',
+            background: 'var(--color-surface)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
+          <ShieldCheck size={12} style={{ color: evidenceInfo.color, flexShrink: 0 }} />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.07em',
+              color: evidenceInfo.color,
+            }}
+          >
+            {evidenceInfo.label}
+          </span>
+        </div>
 
         {/* H1 — Playfair Display */}
         <h1
@@ -285,7 +459,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
                       textUnderlineOffset: '2px',
                     }}
                   >
-                    HOW WE TEST →
+                    READ OUR DISCLOSURE →
                   </Link>
                 </p>
               </div>

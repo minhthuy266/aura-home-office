@@ -489,7 +489,7 @@ export default function PostClient({ post, latestPosts }: PostClientProps) {
                     <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>AFFILIATE DISCLOSURE:</strong>{' '}
                     AS AN AMAZON ASSOCIATE WE EARN FROM QUALIFYING PURCHASES. THIS DOESN&apos;T AFFECT OUR RECOMMENDATIONS.{' '}
                     <Link href="/disclosure" style={{ color: 'var(--color-accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
-                      HOW WE TEST →
+                      READ OUR DISCLOSURE →
                     </Link>
                   </p>
                 </div>

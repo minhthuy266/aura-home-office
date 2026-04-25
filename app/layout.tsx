@@ -31,16 +31,30 @@ const mono = JetBrains_Mono({
 
 export const metadata = {
   title: {
-    default: 'Aura Home Office | Best WFH Gear & Ergonomic Reviews 2026',
-    template: '%s | Aura'
+    default: 'Aura Home Office | Home Office Buying Guide',
+    template: '%s | Aura Home Office',
   },
-  description: 'Deep-tissue gear reviews and aesthetic setup guides for high-performance home offices. We analyze hundreds of artifacts so you don\'t have to.',
-  keywords: ['home office reviews', 'ergonomic setup', 'wfh gear', 'best office chairs 2026', 'standing desk reviews'],
-  authors: [{ name: 'Aura Editorial Team' }],
+  description:
+    'Independent home office buying guide. We research standing desks, ergonomic chairs, monitor arms, and workspace gear so you can buy right the first time — without wasting money on the wrong gear.',
+  keywords: [
+    'home office buying guide',
+    'best standing desk',
+    'ergonomic chair reviews',
+    'home office setup',
+    'wfh gear',
+    'monitor arm reviews',
+    'desk accessories',
+    'cable management',
+  ],
+  authors: [{ name: 'Aura Home Office Editorial Team' }],
   metadataBase: new URL('https://aurahomeoffice.com'),
+  alternates: {
+    canonical: 'https://aurahomeoffice.com',
+  },
   openGraph: {
-    title: 'Aura Home Office | Expert-Led Workspace Curation',
-    description: 'Elevate your productivity with our meticulously curated ergonomic guides.',
+    title: 'Aura Home Office | Independent Home Office Buying Guide',
+    description:
+      'Honest research on home office gear. No paid rankings. No fake testing. Just practical advice on what fits your space and budget.',
     url: 'https://aurahomeoffice.com',
     siteName: 'Aura Home Office',
     locale: 'en_US',
@@ -49,8 +63,9 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aura Home Office | Workspace Artifacts',
-    description: 'The definitive guide for your best workday.',
+    title: 'Aura Home Office | Home Office Buying Guide',
+    description:
+      'Research-based reviews on standing desks, ergonomic chairs, and workspace gear for real home offices.',
     images: ['https://aurahomeoffice.com/og-image.jpg'],
   },
   icons: {
@@ -64,7 +79,13 @@ export const metadata = {
   robots: {
     index: true,
     follow: true,
-  }
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -72,6 +93,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${playfair.variable} ${sourceSerif.variable} ${dmSans.variable} ${mono.variable}`}>
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+        {/* WebSite Schema — enables Google Sitelinks Searchbox */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'Aura Home Office',
+              url: 'https://aurahomeoffice.com',
+              description:
+                'Independent home office buying guide covering standing desks, ergonomic chairs, monitor arms, and workspace gear.',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                  '@type': 'EntryPoint',
+                  urlTemplate:
+                    'https://aurahomeoffice.com/search?q={search_term_string}',
+                },
+                'query-input': 'required name=search_term_string',
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'Aura Home Office',
+                url: 'https://aurahomeoffice.com',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: 'https://aurahomeoffice.com/og-image.jpg',
+                },
+              },
+            }),
+          }}
+        />
       </head>
       <body className="antialiased flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-ui)', background: 'var(--color-bg)', color: 'var(--color-text-body)' }}>
         <Suspense fallback={null}>
