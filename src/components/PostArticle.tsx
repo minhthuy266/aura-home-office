@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import type { WPPost } from '../types';
 import { TOCItem } from '../utils/processContent';
 import PostInteractive from './PostInteractive';
+import { formatSEOText } from '../utils/seoFormatter';
 
 interface PostArticleProps {
   post: WPPost;
@@ -54,16 +55,8 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
     )
     .replace(/%year%/gi, new Date().getFullYear().toString());
 
-  // Clean excerpt
-  const cleanExcerpt = post.excerpt?.rendered
-    ?.replace(
-      /%keyword%/gi,
-      post.title.rendered
-        .replace(/<[^>]*>/g, '')
-        .replace(/The \d+ Best | of \d{4}/gi, '')
-        .trim(),
-    )
-    .replace(/%year%/gi, new Date().getFullYear().toString());
+  // Clean excerpt using the central SEO formatter (handles placeholders + filler removal)
+  const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
 
   // Plain text title for schema
   const plainTitle = post.title.rendered.replace(/<[^>]*>/g, '');
@@ -167,151 +160,58 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
         }}
         className="[--page-pt:120px] md:[--page-pt:160px]"
       >
-        {/* Breadcrumb — visual nav + SEO signal */}
-        <nav
-          aria-label="Breadcrumb"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: 'var(--space-4)',
-            flexWrap: 'wrap',
-          }}
-        >
-          <Link
-            href="/"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              textDecoration: 'none',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-            }}
-          >
-            Home
-          </Link>
-          {categories[0] && (
-            <>
-              <span style={{ color: 'var(--color-border)', fontSize: '11px' }}>›</span>
-              <Link
-                href={`/${categories[0].slug}`}
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '11px',
-                  color: 'var(--color-text-muted)',
-                  textDecoration: 'none',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                {categories[0].name}
-              </Link>
-            </>
-          )}
-          <span style={{ color: 'var(--color-border)', fontSize: '11px' }}>›</span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              color: 'var(--color-text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              maxWidth: '200px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            aria-current="page"
-          >
-            {plainTitle}
-          </span>
-        </nav>
+        {/* Clean Meta Row: Breadcrumbs + Trust Signal */}
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap',
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          gap: '16px', 
+          marginBottom: '32px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '11px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em'
+        }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)' }}>
+            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Home</Link>
+            <span style={{ color: 'var(--color-border)' }}>›</span>
+            <Link href={`/${categories[0]?.slug}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 700 }}>{categories[0]?.name}</Link>
+          </nav>
 
-        {/* Kicker — JetBrains Mono, uppercase (WIRED mandatory) */}
-        {categories.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-start',
-              gap: '12px',
-              marginBottom: 'var(--space-2)',
-              flexWrap: 'wrap',
-            }}
-          >
-            {categories.map((cat: { id: number; name: string; slug: string }) => (
-              <Link
-                key={cat.id}
-                href={`/${cat.slug}`}
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 500,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.08em',
-                  color: 'var(--color-accent)',
-                  textDecoration: 'none',
-                }}
-              >
-                {cat.name}
-              </Link>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+            <ShieldCheck size={12} style={{ color: 'var(--color-accent)' }} />
+            Independent Buying Guide
           </div>
-        )}
-
-        {/* Evidence Label badge — fulfills About page promise */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            border: '1px solid var(--color-border-subtle)',
-            background: 'var(--color-surface)',
-            marginBottom: 'var(--space-4)',
-          }}
-        >
-          <ShieldCheck size={12} style={{ color: evidenceInfo.color, flexShrink: 0 }} />
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.07em',
-              color: evidenceInfo.color,
-            }}
-          >
-            {evidenceInfo.label}
-          </span>
         </div>
 
-        {/* H1 — Playfair Display */}
+        {/* Headline — Balanced Size */}
         <h1
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(1.85rem, 6vw, 3.25rem)',
+            fontSize: 'clamp(2rem, 5vw, 3.25rem)',
             fontWeight: 800,
+            lineHeight: 1.1,
+            letterSpacing: '-0.03em',
             color: 'var(--color-text-primary)',
-            lineHeight: 1.15,
-            letterSpacing: '-0.025em',
-            marginBottom: 'var(--space-4)',
+            marginBottom: '32px',
           }}
-          dangerouslySetInnerHTML={{ __html: cleanTitleForDisplay }}
+          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
         />
 
-        {/* Deck — Source Serif 4 */}
+        {/* Deck / Intro */}
         {cleanExcerpt && (
           <div
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: '18px',
+              fontSize: 'clamp(1.125rem, 3vw, 1.35rem)',
+              lineHeight: 1.5,
               color: 'var(--color-text-secondary)',
-              lineHeight: 1.6,
-              maxWidth: '680px',
-              margin: '0 0 var(--space-8)',
+              borderLeft: '4px solid var(--color-accent)',
+              paddingLeft: '24px',
+              marginBottom: '48px',
+              maxWidth: '800px'
             }}
-            className="[&>p]:m-0"
             dangerouslySetInnerHTML={{ __html: cleanExcerpt }}
           />
         )}
@@ -531,7 +431,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
                 {tags.map((tag: { id: number; name: string; slug: string }) => (
                   <Link
                     key={tag.id}
-                    href={`/search?q=${tag.slug}`}
+                    href={`/tag/${tag.slug}`}
                     style={{
                       padding: '6px 12px',
                       background: 'var(--color-surface)',

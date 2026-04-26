@@ -40,12 +40,23 @@ const organizationJsonLd = {
 };
 
 export default async function HomePage() {
-  const allPosts = await getLatestPosts(12);
   const featuredPost = await getFeaturedPost();
   
-  const trendingPosts = allPosts.slice(1, 5); 
+  // 1. Get Best Picks via tag
+  const { posts: taggedBestPicks } = await getPostsByTagSlug('best-picks', 1, 4);
+  
+  // 2. Fallback logic: if no best-picks tagged, use latest posts (excluding featured)
+  let trendingPosts = taggedBestPicks;
+  if (!trendingPosts || trendingPosts.length === 0) {
+    const allPosts = await getLatestPosts(12);
+    // Filter out the featured post if it exists to avoid duplication
+    trendingPosts = allPosts
+      .filter(p => p.id !== featuredPost?.id)
+      .slice(0, 4);
+  }
+  
   const { posts: standingDesks } = await getPostsByTagSlug('standing-desks', 1, 4);
-  const furniturePosts = (standingDesks && standingDesks.length > 0) ? standingDesks : allPosts.slice(4, 8);
+  const furniturePosts = (standingDesks && standingDesks.length > 0) ? standingDesks : []; 
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>

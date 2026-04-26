@@ -1,7 +1,7 @@
-import { getPostsByCategorySlug, getCategories, getCategoryBySlug, getPostsByMultipleCategories } from '../../src/services/wpService';
+import { getPostsByCategorySlug, getCategories, getCategoryBySlug, getPostsByMultipleCategories, getPostBySlug } from '../../src/services/wpService';
 import PostCard from '../../src/components/PostCard';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { WPPost } from '../../src/types';
 
@@ -89,6 +89,14 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   console.log(`[CategoryPage] Slug: ${categorySlug}, Page: ${currentPage}`);
 
   if (!category) {
+    // ─── NEW: Fallback Check — Is this actually a post slug? ───
+    const post = await getPostBySlug(categorySlug);
+    if (post) {
+      const realCategorySlug = post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized';
+      console.log(`[REDIRECT] Found post at category root: ${categorySlug} -> /${realCategorySlug}/${categorySlug}`);
+      redirect(`/${realCategorySlug}/${categorySlug}`);
+    }
+    
     notFound();
   }
 

@@ -1,104 +1,66 @@
-import { format } from 'date-fns';
+/**
+ * Utility to process WordPress HTML content for Next.js frontend.
+ */
 
-export function formatSEOText(
-  text: string, 
-  title?: string, 
-  fallbackKeyword: string = '',
-  contentHtml?: string
-): string {
+const CMS_URL = 'https://cms.aurahomeoffice.com';
+
+/**
+ * Advanced SEO Formatter — Handles placeholders and cleans up AI repetition.
+ */
+export function formatSEOText(text: string, title: string = '', category: string = '', fullContent: string = ''): string {
   if (!text) return '';
+
+  let processed = text.replace(/<[^>]*>/g, '').trim();
+
+  // 1. Extract dynamic values from Title (e.g., "Best 10 Chairs" -> 10, Chairs)
+  const productCountMatch = title.match(/(\d+)/);
+  const productCount = productCountMatch ? productCountMatch[0] : '10';
+  // 2. Replace Placeholders in Title (just in case)
+  const cleanTitle = title.replace(/<[^>]*>/g, '').replace(/The \d+ Best | of \d{4}/gi, '').trim();
   const currentYear = new Date().getFullYear().toString();
-  const currentMonth = format(new Date(), 'MMMM');
+
+  // 3. Smart Filtering: Split by sentences and remove the first one ONLY if there's more content
+  let sentences = processed.split(/(\.|\?|!)\s+/);
   
-  let productCount = '';
-  let brandList = '';
-
-  if (contentHtml) {
-    const productMatches = contentHtml.match(/class="[^"]*\b(?:acms-product-card|acms-product-item|wp-block-product-card)\b[^"]*"/gi);
-    if (productMatches && productMatches.length > 0) {
-      productCount = productMatches.length.toString();
-    }
-
-    const titleRegex = /class="[^"]*\b(?:acms-product-title|product-title)\b[^"]*"[^>]*>([^<]+)</gi;
-    let match;
-    const brandSet = new Set<string>();
-    while ((match = titleRegex.exec(contentHtml)) !== null) {
-      const brand = match[1].trim().split(' ')[0];
-      if (brand && brand.length > 2) {
-        brandSet.add(brand.replace(/[^a-zA-Z0-9-]/g, ''));
-      }
-    }
-
-    if (brandSet.size === 0) {
-      const h3Regex = /<h3[^>]*>([^<]+)<\/h3>/gi;
-      while ((match = h3Regex.exec(contentHtml)) !== null) {
-        const h3Text = match[1].trim();
-        const words = h3Text.split(' ');
-        const potentialBrand = words[0].match(/^\d+/) ? words[1] : words[0]; 
-        if (potentialBrand && potentialBrand.length > 2 && /[A-Z]/.test(potentialBrand[0])) {
-          brandSet.add(potentialBrand.replace(/[^a-zA-Z0-9-]/g, ''));
-        }
-      }
-    }
-
-    const brands = Array.from(brandSet).slice(0, 5);
-    if (brands.length > 0) {
-      brandList = brands.slice(0, -1).join(', ') + (brands.length > 1 ? ' and ' : '') + brands.slice(-1);
+  if (sentences.length > 2 && sentences[0] && (
+    sentences[0].startsWith('We compared') || 
+    sentences[0].startsWith('In this guide') ||
+    sentences[0].includes('by specs, owner feedback, practical features') // Bắt đúng cái câu trong Prompt của mày
+  )) {
+    // Only remove if there is significant content left
+    const testRemainder = sentences.slice(2).join('').trim();
+    if (testRemainder.length > 10) {
+      sentences.splice(0, 2);
+      processed = sentences.join(' ');
     }
   }
+
+  // 4. Final placeholder replacement in the cleaned text
+  processed = processed.replace(/%keyword%/gi, cleanTitle);
+  processed = processed.replace(/%product_count%/gi, productCount);
+  processed = processed.replace(/%year%/gi, currentYear);
+
+  return formatPostContent(processed.trim());
+}
+
+export function formatPostContent(html: string): string {
+  if (!html) return '';
+
+  let processedHtml = html;
+
+  // Domain Rewriting
+  const cmsLinkRegex = new RegExp(CMS_URL, 'g');
+  processedHtml = processedHtml.replace(cmsLinkRegex, '');
+
+  // Cleanup links
+  processedHtml = processedHtml.replace(/href="\/\//g, 'href="/');
+
+  // Smart Link classification
+  processedHtml = processedHtml.replace(/ target="_blank"/g, '');
+  processedHtml = processedHtml.replace(
+    /<a href="(http[^"]+)"/g, 
+    '<a href="$1" target="_blank" rel="noopener noreferrer nofollow"'
+  );
   
-  let result = text
-    .replace(/%year%/gi, currentYear)
-    .replace(/%month_text%/gi, currentMonth)
-    .replace(/%(?:currentmonth|month)%/gi, currentMonth);
-
-  // Smartly handle product counts without stupid defaults
-  if (productCount) {
-    result = result.replace(/%product_count%/gi, productCount);
-  } else {
-    // Completely remove the variable and surrounding whitespace (e.g. "The 10 Best" -> "The Best")
-    result = result.replace(/\s*%product_count%\s*/gi, ' ');
-  }
-
-  if (brandList) {
-    result = result.replace(/%brand_list%/gi, brandList);
-  } else {
-    // Only use a very generic, harmless fallback if explicitly requested template
-    result = result.replace(/%brand_list%/gi, 'top brands');
-  }
-
-  // KEYWORD EXTRACTION
-  let extractedKeyword = '';
-  if (title) {
-    const cleanTitle = title.replace(/<[^>]*>/g, '');
-    let keywordMatch = cleanTitle
-      .replace(/The\s+(?:%product_count%|\d+)?\s*Best\s+/gi, '')
-      .replace(/\s+of\s+(?:%year%|\d{4})/gi, '')
-      .replace(/Best\s+/gi, '')
-      .replace(/%(?:product_count|year|month_text)%/gi, '')
-      .trim();
-
-    if (keywordMatch.toLowerCase() !== '%keyword%') {
-      extractedKeyword = keywordMatch;
-    }
-  }
-
-  // FINAL KEYWORD ASSIGNMENT
-  // Fallback to Category Name, properly formatted
-  let finalKeyword = extractedKeyword || fallbackKeyword.replace(/-/g, ' ');
-  if (!finalKeyword) {
-    finalKeyword = 'Products'; 
-  }
-  // Title Casing
-  const finalKeywordCased = finalKeyword.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-  result = result
-    .replace(/%keyword%/gi, finalKeywordCased)
-    .replace(/%Keyword%/gi, finalKeywordCased);
-
-  // NUKE ALL REMAINING DYNAMIC VARIABLES TO GUARANTEE NO LEAKS
-  result = result.replace(/%[a-zA-Z0-9_]+%/g, '');
-
-  // Cleanup potential double spaces left from nuking, and trim
-  return result.replace(/\s{2,}/g, ' ').trim();
+  return processedHtml;
 }

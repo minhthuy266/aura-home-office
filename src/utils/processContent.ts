@@ -95,13 +95,53 @@ function fixTooltipLinks(html: string): string {
 }
 
 /**
+ * Rewrite internal CMS links to relative paths and inject categories.
+ * Example: https://cms.aurahomeoffice.com/my-post/ -> /furniture/my-post/
+ */
+function resolveInternalLinks(html: string, routeMap: Record<string, string>, categoryMap: Set<string> = new Set()): string {
+  const CMS_URL = 'https://cms.aurahomeoffice.com';
+  
+  // 1. First, make everything relative by removing domain
+  let processed = html.replace(new RegExp(CMS_URL, 'g'), '');
+
+  // 2. Flatten hierarchical category links if necessary
+  // Example: /furniture/footrests-mats/ -> /footrests-mats/ (if footrests-mats is a category)
+  processed = processed.replace(/href="\/([^"/]+)\/([^"/]+)\/?"/g, (match, parent, child) => {
+    if (categoryMap.has(child)) {
+      return `href="/${child}/"`;
+    }
+    return match;
+  });
+
+  // 3. Use the routeMap to find slugs and inject categories
+  processed = processed.replace(/href="\/([^"/]+)\/?"/g, (match, slug) => {
+    const category = routeMap[slug];
+    if (category) {
+      return `href="/${category}/${slug}"`;
+    }
+    return match;
+  });
+
+  // 4. SMART LINK HANDLING
+  processed = processed.replace(
+    /<a href="(http[^"]+)"/g, 
+    '<a href="$1" target="_blank" rel="noopener noreferrer nofollow"'
+  );
+
+  return processed;
+}
+
+/**
  * Main entry point — call from Server Components.
  */
 export function processPostContent(
   contentHtml: string,
   titleRendered: string,
+  routeMap: Record<string, string> = {},
+  categoryMap: Set<string> = new Set()
 ): ProcessedContent {
-  let html = replacePlaceholders(contentHtml, titleRendered);
+  let html = resolveInternalLinks(contentHtml, routeMap, categoryMap);
+  html = replacePlaceholders(html, titleRendered);
   html = fixTooltipLinks(html);
   const result = extractTocAndInjectIds(html);
   return result;

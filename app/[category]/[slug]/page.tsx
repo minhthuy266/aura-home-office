@@ -1,4 +1,4 @@
-import { getPostBySlug, getLatestPosts, getAllPosts } from '../../../src/services/wpService';
+import { getPostBySlug, getLatestPosts, getAllPosts, getRouteMap, getCategoryMap } from '../../../src/services/wpService';
 import { processPostContent } from '../../../src/utils/processContent';
 import { notFound } from 'next/navigation';
 import PostArticle from '../../../src/components/PostArticle';
@@ -64,6 +64,9 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   const latestPosts = await getLatestPosts(6);
+  const routeMap = await getRouteMap();
+  const categoryMap = await getCategoryMap();
+
   const baseUrl = 'https://aurahomeoffice.com';
   const postUrl = `${baseUrl}/${category}/${slug}`;
   const publishDate = new Date(post.date).toISOString();
@@ -113,7 +116,6 @@ export default async function PostPage({ params }: PostPageProps) {
   // JSON-LD: FAQPage — extract Q&A from WP content
   const faqEntries: { question: string; answer: string }[] = [];
   const content = post.content.rendered;
-  // Match FAQ items: <strong>Q: ...</strong> or <h3>Q: ...</h3> followed by answer text
   const faqSectionMatch = content.match(/FAQs?<\/h2>([\s\S]*?)(?:<h2|$)/i);
   if (faqSectionMatch) {
     const faqHtml = faqSectionMatch[1];
@@ -144,6 +146,8 @@ export default async function PostPage({ params }: PostPageProps) {
   const { html: processedHtml, toc } = processPostContent(
     post.content.rendered,
     post.title.rendered,
+    routeMap,
+    categoryMap
   );
 
   return (

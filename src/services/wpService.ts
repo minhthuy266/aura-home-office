@@ -1,99 +1,33 @@
 import { WPPost, WPCategory } from '../types';
 
-// revalidation time in seconds (60 = 1 minute balance for speed and freshness)
-const REVALIDATE_TIME = process.env.NODE_ENV === 'development' ? 0 : 60;
+const API_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://cms.aurahomeoffice.com';
+const REVALIDATE_TIME = 60; // 1 minute cache for performance
 
-// Removed SSL bypass to clear console warnings.
+const isConfigured = !!process.env.NEXT_PUBLIC_WORDPRESS_URL || true; // Force true for demo if not set
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_WP_API_URL || process.env.VITE_WP_API_URL || '';
-const API_URL = RAW_API_URL.replace(/\/$/, '');
-const isConfigured = !!API_URL;
+// Mock data for fallback
+const MOCK_POSTS: WPPost[] = [];
 
-const MOCK_CATEGORIES: WPCategory[] = [
-  { id: 160, name: "Reviews", slug: "reviews", count: 5 },
-  { id: 153, name: "Gaming PCs", slug: "gaming-pcs", count: 3 },
-  { id: 157, name: "Components", slug: "components", count: 6 },
-  { id: 163, name: "Peripherals", slug: "peripherals", count: 3 },
-  { id: 1, name: "Blog", slug: "blog", count: 12 },
-];
-const MOCK_POSTS: WPPost[] = [
-  {
-    id: 229,
-    slug: 'portable-power-station',
-    date: "2026-03-05T00:20:09",
-    modified: "2026-03-05T00:20:09",
-    title: { rendered: "The 30 Best Portable Power Station of 2026" },
-    excerpt: { rendered: "Whether you are gearing up for a weekend camping trip, preparing for unexpected power outages, or needing reliable backup power for RV adventures..." },
-    content: { rendered: "<p>Whether you are gearing up for a weekend camping trip, preparing for unexpected power outages...</p>" },
-    acf: { rating: 4.8 },
-    _embedded: {
-      author: [{ name: "Aura Home Office", avatar_urls: { "48": "https://secure.gravatar.com/avatar/fake" } }],
-      "wp:featuredmedia": [{ 
-        source_url: "https://m.media-amazon.com/images/I/511uY4VGxyS._SL500_.jpg",
-        alt_text: "Portable Power Station"
-      }],
-      "wp:term": [[{ id: 160, name: "Reviews", slug: "reviews" }]]
-    }
-  },
-  {
-    id: 101,
-    slug: 'best-gaming-pcs-2026',
-    date: "2026-04-01T10:00:00",
-    modified: "2026-04-01T10:00:00",
-    title: { rendered: "Best Gaming PCs for Your Home Office in 2026" },
-    excerpt: { rendered: "We rank the top pre-built gaming rigs that balance raw power with aesthetic design for a professional workspace." },
-    content: { rendered: "<p>Full review of top gaming PCs...</p>" },
-    acf: { rating: 4.5 },
-    _embedded: {
-      author: [{ name: "Aura Team", avatar_urls: { "48": "https://secure.gravatar.com/avatar/fake" } }],
-      "wp:featuredmedia": [{ 
-        source_url: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=800",
-        alt_text: "Top Gaming PCs"
-      }],
-      "wp:term": [[{ id: 153, name: "Gaming PCs", slug: "gaming-pcs" }]]
-    }
-  },
-  {
-    id: 102,
-    slug: 'ergonomic-keyboard-roundup',
-    date: "2026-04-10T15:30:00",
-    modified: "2026-04-10T15:30:00",
-    title: { rendered: "2026 Ergonomic Keyboard Roundup: Efficiency Meets Comfort" },
-    excerpt: { rendered: "If you spend 8+ hours a day typing, these keyboards are the single best investment you can make for your wrists." },
-    content: { rendered: "<p>The best keyboards we tested this year...</p>" },
-    acf: { rating: 4.9 },
-    _embedded: {
-      author: [{ name: "Expert Reviewer", avatar_urls: { "48": "https://secure.gravatar.com/avatar/fake" } }],
-      "wp:featuredmedia": [{ 
-        source_url: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?q=80&w=800",
-        alt_text: "Ergonomic Keyboards"
-      }],
-      "wp:term": [[{ id: 163, name: "Peripherals", slug: "peripherals" }]]
-    }
-  }
-];
-
-console.log("WP Service Configured:", { isConfigured, API_URL });
-
-export async function getPosts(page = 1, perPage = 10, categoryId?: number | number[], tagId?: number): Promise<{posts: WPPost[], totalPages: number, totalPosts: number}> {
-  if (!isConfigured) {
-    console.log("WP API not configured, using mock posts.");
-    return { posts: MOCK_POSTS, totalPages: 1, totalPosts: MOCK_POSTS.length };
-  }
-
+/**
+ * Base fetcher for posts with common params.
+ */
+export async function getPosts(page = 1, perPage = 10, categories?: number[], tags?: number[]): Promise<{posts: WPPost[], totalPages: number, totalPosts: number}> {
+  if (!isConfigured) return { posts: MOCK_POSTS, totalPages: 1, totalPosts: MOCK_POSTS.length };
+  
   try {
     const url = new URL(`${API_URL}/wp-json/wp/v2/posts`);
     url.searchParams.set('_embed', '1');
     url.searchParams.set('page', page.toString());
     url.searchParams.set('per_page', perPage.toString());
-    if (categoryId) {
-      const catParam = Array.isArray(categoryId) ? categoryId.join(',') : categoryId.toString();
-      url.searchParams.set('categories', catParam);
+    url.searchParams.set('status', 'publish');
+    
+    if (categories && categories.length > 0) {
+      url.searchParams.set('categories', categories.join(','));
     }
-    if (tagId) url.searchParams.set('tags', tagId.toString());
-
-    const categoryLog = categoryId !== undefined ? `, Categories: ${categoryId}` : '';
-    console.log(`[WP SERVICE] Requesting Page: ${page}, PerPage: ${perPage}${categoryLog}`);
+    
+    if (tags && tags.length > 0) {
+      url.searchParams.set('tags', tags.join(','));
+    }
 
     const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -104,31 +38,32 @@ export async function getPosts(page = 1, perPage = 10, categoryId?: number | num
     
     return { posts, totalPages, totalPosts };
   } catch (err) {
-    console.error("WP API Fetch Error (getPosts):", err);
-    return { posts: MOCK_POSTS, totalPages: 1, totalPosts: MOCK_POSTS.length };
+    console.error("Fetch Error:", err);
+    return { posts: [], totalPages: 0, totalPosts: 0 };
   }
 }
 
+/**
+ * Fetches all posts by iterating through pages (for static param generation).
+ */
 export async function getAllPosts(): Promise<WPPost[]> {
-  if (!isConfigured) return MOCK_POSTS;
-
   const allPosts: WPPost[] = [];
   let page = 1;
   const perPage = 100;
 
-  try {
-    while (true) {
+  while (true) {
+    try {
       const url = new URL(`${API_URL}/wp-json/wp/v2/posts`);
       url.searchParams.set('_embed', '1');
       url.searchParams.set('page', page.toString());
       url.searchParams.set('per_page', perPage.toString());
       url.searchParams.set('status', 'publish');
 
-      console.log(`Fetching posts for generateStaticParams: ${url.toString()}`);
-      const res = await fetch(url.toString(), { next: { revalidate: false } });
+      console.log(`[WP SERVICE] Fetching all posts page ${page} for Route Map...`);
+      const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE_TIME } });
 
       if (!res.ok) {
-        // Break out gracefully if reaching beyond last page
+        console.error(`[WP SERVICE] Error fetching page ${page}: ${res.status}`);
         break;
       }
 
@@ -140,46 +75,52 @@ export async function getAllPosts(): Promise<WPPost[]> {
       const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
       if (page >= totalPages) break;
       page++;
+    } catch (e) {
+      break;
     }
-    return allPosts;
-  } catch (err) {
-    console.error("WP API Fetch Error (getAllPosts):", err);
-    return MOCK_POSTS;
   }
+
+  return allPosts;
 }
 
+/**
+ * Fetches a single post by its slug.
+ */
 export async function getPostBySlug(slug: string): Promise<WPPost | null> {
   if (!isConfigured) return MOCK_POSTS.find(p => p.slug === slug) || null;
-
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/posts?_embed=1&slug=${slug}`, { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/posts?slug=${slug}&_embed=1`, { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const posts = await res.json();
-    return posts.length > 0 ? posts[0] : (MOCK_POSTS.find(p => p.slug === slug) || null);
+    return posts.length > 0 ? posts[0] : null;
   } catch (err) {
     console.error("Fetch Error:", err);
-    return MOCK_POSTS.find(p => p.slug === slug) || null;
+    return null;
   }
 }
 
+/**
+ * Fetches all categories.
+ */
 export async function getCategories(): Promise<WPCategory[]> {
-  if (!isConfigured) return MOCK_CATEGORIES;
-
+  if (!isConfigured) return [];
   try {
     const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?per_page=100`, { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return await res.json();
   } catch (err) {
     console.error("Fetch Error:", err);
-    return MOCK_CATEGORIES;
+    return [];
   }
 }
 
+/**
+ * Fetches a single category by its slug.
+ */
 export async function getCategoryBySlug(slug: string): Promise<WPCategory | null> {
-  if (!isConfigured) return MOCK_CATEGORIES.find(c => c.slug === slug) || null;
-
+  if (!isConfigured) return null;
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?slug=${slug}`);
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?slug=${slug}`, { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const categories = await res.json();
     return categories.length > 0 ? categories[0] : null;
@@ -189,17 +130,25 @@ export async function getCategoryBySlug(slug: string): Promise<WPCategory | null
   }
 }
 
+/**
+ * Fetches posts by category slug.
+ */
 export async function getPostsByCategorySlug(categorySlug: string, page = 1, perPage = 10): Promise<{posts: WPPost[], category: WPCategory | null, totalPages: number, totalPosts: number}> {
   const category = await getCategoryBySlug(categorySlug);
   if (!category) return { posts: [], category: null, totalPages: 0, totalPosts: 0 };
-  const { posts, totalPages, totalPosts } = await getPosts(page, perPage, category.id);
+  
+  console.log(`[WP SERVICE] Requesting Page: ${page}, PerPage: ${perPage}, Categories: ${category.id}`);
+  const { posts, totalPages, totalPosts } = await getPosts(page, perPage, [category.id]);
   return { posts, category, totalPages, totalPosts };
 }
 
-export async function getTagBySlug(slug: string): Promise<any | null> {
+/**
+ * Fetches a single tag by its slug.
+ */
+export async function getTagBySlug(slug: string): Promise<WPCategory | null> {
   if (!isConfigured) return null;
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/tags?slug=${slug}`);
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/tags?slug=${slug}`, { next: { revalidate: REVALIDATE_TIME } });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const tags = await res.json();
     return tags.length > 0 ? tags[0] : null;
@@ -209,10 +158,20 @@ export async function getTagBySlug(slug: string): Promise<any | null> {
   }
 }
 
+/**
+ * Fetches posts by tag ID.
+ */
+export async function getPostsByTagId(tagId: number, page = 1, perPage = 10): Promise<{posts: WPPost[], totalPages: number, totalPosts: number}> {
+  return getPosts(page, perPage, undefined, [tagId]);
+}
+
+/**
+ * Fetches posts by tag Slug.
+ */
 export async function getPostsByTagSlug(tagSlug: string, page = 1, perPage = 10): Promise<{posts: WPPost[], totalPages: number, totalPosts: number}> {
   const tag = await getTagBySlug(tagSlug);
   if (!tag) return { posts: [], totalPages: 0, totalPosts: 0 };
-  return getPosts(page, perPage, undefined, tag.id);
+  return getPostsByTagId(tag.id, page, perPage);
 }
 
 /**
@@ -229,11 +188,14 @@ export async function getLatestPosts(perPage = 10): Promise<WPPost[]> {
 
 /**
  * Fetches the post intended for the Hero/Featured slot.
- * Logic: Fetches the most recent post, or could be filtered by a 'featured' tag in the future.
+ * Logic: Looks for 'featured' tag first, fallbacks to the most recent post.
  */
 export async function getFeaturedPost(): Promise<WPPost | null> {
-  const posts = await getLatestPosts(1);
-  return posts.length > 0 ? posts[0] : null;
+  const { posts } = await getPostsByTagSlug('featured', 1, 1);
+  if (posts.length > 0) return posts[0];
+  
+  const latest = await getLatestPosts(1);
+  return latest.length > 0 ? latest[0] : null;
 }
 
 /**
@@ -250,6 +212,31 @@ export async function getPostsBySilo(categorySlug: string, count = 3): Promise<W
 export async function getPostsByMultipleCategories(categoryIds: number[], page = 1, perPage = 10): Promise<{posts: WPPost[], totalPages: number, totalPosts: number}> {
   if (categoryIds.length === 0) return { posts: [], totalPages: 0, totalPosts: 0 };
   return getPosts(page, perPage, categoryIds);
+}
+
+/**
+ * Builds a map of slug -> categorySlug for link rewriting.
+ */
+export async function getRouteMap(): Promise<Record<string, string>> {
+  console.log("[WP SERVICE] Building Route Map...");
+  const allPosts = await getAllPosts();
+  const routeMap: Record<string, string> = {};
+  
+  allPosts.forEach(post => {
+    const categorySlug = post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized';
+    routeMap[post.slug] = categorySlug;
+  });
+  
+  console.log(`[WP SERVICE] Route Map Built: ${Object.keys(routeMap).length} posts mapped.`);
+  return routeMap;
+}
+
+/**
+ * Builds a set of all category slugs to identify category links.
+ */
+export async function getCategoryMap(): Promise<Set<string>> {
+  const categories = await getCategories();
+  return new Set(categories.map(cat => cat.slug));
 }
 
 /**
