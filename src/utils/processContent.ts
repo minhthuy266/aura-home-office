@@ -31,19 +31,29 @@ function replacePlaceholders(
     .replace(/Best /gi, '')
     .trim();
 
+  const productCountMatch = cleanTitle.match(/(\d+)/);
+  const productCount = productCountMatch ? productCountMatch[0] : '';
+
   const now = new Date();
   const currentYear = now.getFullYear().toString();
   const currentMonth = now.toLocaleString('en-US', { month: 'long' });
   const currentMonthNum = (now.getMonth() + 1).toString();
 
-  return html
+  let processed = html
     .replace(/%keyword%/gi, keyword)
     .replace(/%Keyword%/gi, keyword)
-    .replace(/%product_count%/gi, '10') // safe fallback
     .replace(/%brand_list%/gi, 'top-tier manufacturers')
     .replace(/%month_text%/gi, currentMonth)
     .replace(/%month%/gi, currentMonthNum)
     .replace(/%year%/gi, currentYear);
+
+  if (productCount) {
+    processed = processed.replace(/%product_count%/gi, productCount);
+  } else {
+    processed = processed.replace(/\s*%product_count%\s*/gi, ' ');
+  }
+
+  return processed;
 }
 
 /**
@@ -85,12 +95,53 @@ function extractTocAndInjectIds(html: string): ProcessedContent {
 }
 
 /**
- * Ensure score-tooltip links open in new tabs.
+ * Rebrand generic ACMS score elements into Aura Home Office branding.
+ */
+function rebrandAuraScore(html: string): string {
+  let processed = html;
+
+  // 1. Rename the label (Case-insensitive to catch ACMS SCORE)
+  processed = processed.replace(
+    /ACMS Score/gi, 
+    'Aura TrustScore™'
+  );
+
+  // 2. Rewrite the tooltip explanation with premium editorial copy
+  // We target the entire div content to avoid duplication artifacts (like extra commas or double links)
+  const auraScoreText = 'Aura TrustScore™ is based on listed product specs, available buyer feedback signals, practical workspace fit, and feature-to-price value. <a href="/about#trustscore" rel="nofollow">Learn more ›</a>';
+  
+  processed = processed.replace(
+    /(<div\b[^>]*class="[^"]*acms-list__score-tooltip[^"]*"[^>]*>)([\s\S]*?)(<\/div>)/gi,
+    (match, openTag, innerContent, closeTag) => {
+      // If it looks like a score explanation, replace it entirely
+      if (innerContent.toLowerCase().includes('calculated based on') || 
+          innerContent.toLowerCase().includes('score')) {
+        return `${openTag}${auraScoreText}${closeTag}`;
+      }
+      return match;
+    }
+  );
+
+  return processed;
+}
+
+/**
+ * Ensure links inside score tooltips open in new tabs.
  */
 function fixTooltipLinks(html: string): string {
+  // Ensure ALL links in score tooltips have correct attributes
   return html.replace(
-    /(<a\b[^>]*class="[^"]*acms-list__score-tooltip[^"]*"[^>]*)(>)/gi,
-    '$1 target="_blank" rel="noopener noreferrer nofollow"$2',
+    /(<div\b[^>]*class="[^"]*acms-list__score-tooltip[^"]*"[^>]*>)([\s\S]*?)(<\/div>)/gi,
+    (match, openTag, innerContent, closeTag) => {
+      const fixedInner = innerContent.replace(
+        /<a\b([^>]*?)(>)/gi,
+        (aMatch, attrs, tagEnd) => {
+          if (attrs.includes('target="_blank"')) return aMatch;
+          return `<a${attrs} target="_blank" rel="noopener noreferrer nofollow"${tagEnd}`;
+        }
+      );
+      return `${openTag}${fixedInner}${closeTag}`;
+    }
   );
 }
 
@@ -142,6 +193,7 @@ export function processPostContent(
 ): ProcessedContent {
   let html = resolveInternalLinks(contentHtml, routeMap, categoryMap);
   html = replacePlaceholders(html, titleRendered);
+  html = rebrandAuraScore(html);
   html = fixTooltipLinks(html);
   const result = extractTocAndInjectIds(html);
   return result;

@@ -1,5 +1,6 @@
 import { getPostBySlug, getLatestPosts, getAllPosts, getRouteMap, getCategoryMap } from '../../../src/services/wpService';
 import { processPostContent } from '../../../src/utils/processContent';
+import { formatSEOText } from '../../../src/utils/seoFormatter';
 import { notFound } from 'next/navigation';
 import PostArticle from '../../../src/components/PostArticle';
 import { Metadata } from 'next';
@@ -8,8 +9,7 @@ interface PostPageProps {
   params: Promise<{ category: string; slug: string }>;
 }
 
-export const dynamic = 'force-static';
-export const revalidate = false;
+export const revalidate = 60; // Cập nhật sau mỗi 1 phút
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { category, slug } = await params;
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   if (!post) return { title: 'Post Not Found' };
 
   const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
-  const cleanExcerpt = post.excerpt?.rendered.replace(/<[^>]*>/g, '').substring(0, 160);
+  const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
 
   const postUrl = `https://aurahomeoffice.com/${category}/${slug}`;
@@ -98,7 +98,7 @@ export default async function PostPage({ params }: PostPageProps) {
       '@type': 'WebPage',
       '@id': postUrl,
     },
-    description: post.excerpt?.rendered.replace(/<[^>]*>/g, '').substring(0, 160)
+    description: formatSEOText(post.excerpt?.rendered || '', post.title.rendered)
   };
 
   // JSON-LD: BreadcrumbList

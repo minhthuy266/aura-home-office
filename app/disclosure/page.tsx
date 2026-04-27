@@ -72,19 +72,14 @@ export default function DisclosurePage() {
             <strong style={{ color: 'var(--color-text-primary)' }}>Official Amazon Statement:</strong> Aura Home Office is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com. As an Amazon Associate, we earn from qualifying purchases.
           </blockquote>
 
-          <h2>What does this mean for you?</h2>
+          <h2>Price &amp; Availability Notice</h2>
           <p>
-            Whenever you click on a link to a product we recommend and make a purchase, we may receive a small commission from the retailer. <strong style={{ color: 'var(--color-text-primary)' }}>This comes at no absolute extra cost to you.</strong> In fact, sometimes our partnerships allow us to share exclusive deals or discounts with our community.
+            We use the Amazon Product Advertising API to provide you with the most accurate information possible, including images, titles, and highlights. However, please note that Amazon.com prices and availability change frequently. We recommend checking the final price on the retailer's site before completing your purchase.
           </p>
 
           <h2>Our Editorial Integrity</h2>
           <p>
             Our recommendations are always based on one thing: <strong style={{ color: 'var(--color-text-primary)' }}>what is genuinely useful for the buyer.</strong> We spend considerable time researching and comparing gear so you don&apos;t have to. A product&apos;s affiliate status never influences our decision to recommend it. If we don&apos;t think a product is worth buying, we say so — regardless of whether it pays a commission or not.
-          </p>
-
-          <h2>Price &amp; Availability Notice</h2>
-          <p>
-            We use the Amazon Product Advertising API to provide you with the most accurate information possible, including images, titles, and highlights. However, please note that Amazon.com prices and availability change frequently. We recommend checking the final price on the retailer's site before completing your purchase.
           </p>
 
           <h2>Social Media Transparency</h2>

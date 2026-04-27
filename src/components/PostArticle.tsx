@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import type { WPPost } from '../types';
 import { TOCItem } from '../utils/processContent';
 import PostInteractive from './PostInteractive';
-import { formatSEOText } from '../utils/seoFormatter';
+import { formatSEOText, decodeHTMLEntities } from '../utils/seoFormatter';
 
 interface PostArticleProps {
   post: WPPost;
@@ -45,7 +45,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
     'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1400';
 
   // Clean title for display (replace placeholders in title too)
-  const cleanTitleForDisplay = post.title.rendered
+  const cleanTitleForDisplay = decodeHTMLEntities(post.title.rendered)
     .replace(
       /%keyword%/gi,
       post.title.rendered
@@ -80,7 +80,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: plainTitle,
-    description: post.excerpt?.rendered?.replace(/<[^>]*>/g, '').slice(0, 200) || '',
+    description: cleanExcerpt,
     image: imageUrl,
     url: postUrl,
     datePublished: post.date,
@@ -176,7 +176,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
           <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)' }}>
             <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Home</Link>
             <span style={{ color: 'var(--color-border)' }}>›</span>
-            <Link href={`/${categories[0]?.slug}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 700 }}>{categories[0]?.name}</Link>
+            <Link href={`/${categories[0]?.slug}`} style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 700 }}>{decodeHTMLEntities(categories[0]?.name)}</Link>
           </nav>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
@@ -264,7 +264,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
               >
                 BY{' '}
                 <strong style={{ color: 'var(--color-text-primary)' }}>
-                  {author.name}
+                  {decodeHTMLEntities(author.name)}
                 </strong>
               </span>
             </div>
@@ -417,6 +417,73 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
                 ))}
               </div>
             </div>
+
+            {/* ── Author Bio Section (End of Article) ── */}
+            <section style={{ 
+              marginTop: '80px', 
+              padding: '40px', 
+              background: 'var(--color-surface)', 
+              border: '1px solid var(--color-rule-hard)',
+              display: 'flex',
+              gap: '32px',
+              alignItems: 'flex-start'
+            }} className="flex-col md:flex-row">
+              {author?.avatar_urls && (
+                <img
+                  src={author.avatar_urls['96'] || author.avatar_urls['48']}
+                  alt={author.name}
+                  style={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    border: '4px solid white',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    flexShrink: 0
+                  }}
+                />
+              )}
+              <div style={{ flex: 1 }}>
+                <span style={{ 
+                  fontFamily: 'var(--font-mono)', 
+                  fontSize: '11px', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em', 
+                  color: 'var(--color-accent)',
+                  fontWeight: 600,
+                  display: 'block',
+                  marginBottom: '12px'
+                }}>
+                  About the Author
+                </span>
+                <h3 style={{ 
+                  fontFamily: 'var(--font-display)', 
+                  fontSize: '24px', 
+                  fontWeight: 800, 
+                  color: 'var(--color-text-primary)',
+                  marginBottom: '16px'
+                }}>
+                  {decodeHTMLEntities(author?.name)}
+                </h3>
+                <p style={{ 
+                  fontFamily: 'var(--font-body)', 
+                  fontSize: '16px', 
+                  lineHeight: '1.6', 
+                  color: 'var(--color-text-secondary)',
+                  marginBottom: '24px'
+                }}>
+                  {author?.description || `Expert reviewer at Aura Home Office, specializing in ergonomic workspace optimization and high-performance setup design. Dedicated to helping professionals build better working environments.`}
+                </p>
+                
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <Link href="#" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} className="hover:text-[var(--color-accent)]">
+                    <Twitter size={18} />
+                  </Link>
+                  <Link href="#" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} className="hover:text-[var(--color-accent)]">
+                    <Mail size={18} />
+                  </Link>
+                </div>
+              </div>
+            </section>
 
             {/* Tags Section — DESIGN.md §8 Component Patterns */}
             {tags.length > 0 && (

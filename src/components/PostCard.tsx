@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { WPPost } from '../types';
-import { formatSEOText } from '../utils/seoFormatter';
+import { formatSEOText, decodeHTMLEntities } from '../utils/seoFormatter';
 
 interface PostCardProps {
   post: WPPost;
@@ -34,7 +34,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(17,17,16,0.85) 0%, rgba(17,17,16,0.2) 60%, transparent 100%)' }} />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
           {categories.slice(0,1).map(cat => (
-            <span key={cat.id} className="kicker" style={{ color: 'rgba(245,243,240,0.7)', marginBottom: '12px' }}>{cat.name}</span>
+            <span key={cat.id} className="kicker" style={{ color: 'rgba(245,243,240,0.7)', marginBottom: '12px' }}>{decodeHTMLEntities(cat.name)}</span>
           ))}
           <h3 style={{
             fontFamily: 'var(--font-display)',
@@ -72,7 +72,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
         </Link>
         <div className="min-w-0 pr-1">
           {categories.slice(0,1).map(cat => (
-            <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)', marginBottom: '4px', display: 'block' }}>{cat.name}</span>
+            <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)', marginBottom: '4px', display: 'block' }}>{decodeHTMLEntities(cat.name)}</span>
           ))}
           <h3 style={{
             fontFamily: 'var(--font-display)',
@@ -117,7 +117,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
         <div className="flex flex-col justify-center">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             {categories.slice(0,1).map(cat => (
-              <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)' }}>{cat.name}</span>
+              <span key={cat.id} className="label-micro" style={{ color: 'var(--color-accent)' }}>{decodeHTMLEntities(cat.name)}</span>
             ))}
             {post._embedded?.['wp:term']?.[1]?.[0] && (
               <>
@@ -130,7 +130,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
                   letterSpacing: '0.05em',
                   color: 'var(--color-text-muted)',
                 }}>
-                  {post._embedded['wp:term'][1][0].name}
+                  {decodeHTMLEntities(post._embedded['wp:term'][1][0].name)}
                 </span>
               </>
             )}
@@ -186,7 +186,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
       </Link>
       <div className="flex flex-col flex-grow">
         {categories.slice(0,1).map(cat => (
-          <span key={cat.id} className="label-micro" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{cat.name}</span>
+          <span key={cat.id} className="label-micro" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{decodeHTMLEntities(cat.name)}</span>
         ))}
         <h3 style={{
           fontFamily: 'var(--font-display)',
