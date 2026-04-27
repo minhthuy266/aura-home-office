@@ -119,7 +119,7 @@ export default async function PostPage({ params }: PostPageProps) {
     }))
   } : null;
 
-  const { html: processedHtml, toc } = processPostContent(
+  const { html: processedHtml, toc, products } = processPostContent(
     post.content.rendered,
     post.title.rendered,
     routeMap,
@@ -128,11 +128,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   return (
     <>
-      {/* BreadcrumbList schema — Article schema is handled by PostArticle.tsx */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      {/* FAQ schema — Article & Breadcrumb schema is handled by PostArticle.tsx */}
       {faqJsonLd && (
         <script
           type="application/ld+json"
@@ -145,6 +141,7 @@ export default async function PostPage({ params }: PostPageProps) {
         latestPosts={latestPosts} 
         processedHtml={processedHtml}
         toc={toc}
+        products={products}
       />
     </>
   );

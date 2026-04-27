@@ -8,7 +8,7 @@ export interface WPPost {
   modified: string;
   _embedded?: {
     'wp:featuredmedia'?: Array<{ source_url: string; alt_text: string }>;
-    author?: Array<{ name: string; avatar_urls: Record<string, string>; description?: string }>;
+    author?: Array<{ id: number; name: string; avatar_urls: Record<string, string>; description?: string }>;
     'wp:term'?: Array<Array<{ id: number; name: string; slug: string }>>;
   };
   acf?: {
@@ -27,4 +27,16 @@ export interface WPCategory {
   name: string;
   slug: string;
   count: number;
+}
+
+export interface ProductData {
+  name: string;
+  url: string;
+  image: string;
+  score: string;
+  award?: string;
+  description?: string;
+  pros: string[];
+  cons: string[];
+  asin?: string;
 }
