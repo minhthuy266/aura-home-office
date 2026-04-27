@@ -36,7 +36,7 @@ export const metadata = {
     template: '%s | Aura Home Office',
   },
   description:
-    'Independent home office buying guide. We research standing desks, ergonomic chairs, monitor arms, and workspace gear so you can buy right the first time — without wasting money on the wrong gear.',
+    'Independent home office buying guide. We research standing desks, chairs, and gear so you can buy right the first time without wasting money on the wrong equipment.',
   keywords: [
     'home office buying guide',
     'best standing desk',
