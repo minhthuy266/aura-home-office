@@ -4,6 +4,7 @@ import { formatSEOText } from '../../../src/utils/seoFormatter';
 import { notFound } from 'next/navigation';
 import PostArticle from '../../../src/components/PostArticle';
 import { Metadata } from 'next';
+import { getAuthorForPost } from '../../../src/config/authors';
 
 interface PostPageProps {
   params: Promise<{ category: string; slug: string }>;
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       images: [featuredImage],
       type: 'article',
       publishedTime: post.date,
-      authors: [post._embedded?.author?.[0]?.name || 'Aura Editorial Team'],
+      authors: [getAuthorForPost(post.id, post._embedded?.author?.[0]?.id).name],
     },
     twitter: {
       card: 'summary_large_image',
@@ -74,32 +75,7 @@ export default async function PostPage({ params }: PostPageProps) {
   const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
 
-  // JSON-LD: Article
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: cleanTitle,
-    image: featuredImage,
-    datePublished: publishDate,
-    dateModified: modifiedDate,
-    author: {
-      '@type': 'Person',
-      name: post._embedded?.author?.[0]?.name || 'Aura Editorial Team',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Aura Home Office',
-      logo: {
-        '@type': 'ImageObject',
-        url: `${baseUrl}/favicon.ico`
-      }
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': postUrl,
-    },
-    description: formatSEOText(post.excerpt?.rendered || '', post.title.rendered)
-  };
+  // NOTE: Article JSON-LD is rendered directly by PostArticle.tsx to avoid duplicate schemas.
 
   // JSON-LD: BreadcrumbList
   const categoryName = post._embedded?.['wp:term']?.[0]?.[0]?.name || category;
@@ -152,10 +128,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {/* BreadcrumbList schema — Article schema is handled by PostArticle.tsx */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

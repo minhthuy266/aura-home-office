@@ -1,7 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
-import { Search, Target, ShieldCheck, Coffee, Check, ArrowRight } from 'lucide-react';
+import { Search, Target, ShieldCheck, Coffee } from 'lucide-react';
 import { Metadata } from 'next';
+import { AUTHORS } from '../../src/config/authors';
 
 export const metadata: Metadata = {
   title: 'About Aura Home Office — Independent Home Office Buying Guide',
@@ -464,6 +465,91 @@ export default function AboutPage() {
               <p style={{ ...styles.bodySmall, margin: 0 }}>{desk.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Meet the Team ── */}
+      <section style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-rule-hard)', borderBottom: '1px solid var(--color-rule-hard)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '100px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+            <span style={{ ...styles.monoKicker, display: 'block', marginBottom: '16px' }}>Meet the Team</span>
+            <h2 style={{ ...styles.headingSection, marginBottom: '16px' }}>The people behind Aura Home Office</h2>
+            <p style={{ ...styles.bodyText, color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
+              Three roles. One shared standard: research that explains what's actually worth buying.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {AUTHORS.map((member) => (
+              <Link
+                key={member.id}
+                href={`/author/${member.id}`}
+                style={{ textDecoration: 'none', display: 'block' }}
+                className="group"
+              >
+                <div style={{
+                  padding: '40px 32px',
+                  background: 'white',
+                  border: '1px solid var(--color-border)',
+                  textAlign: 'center',
+                  transition: 'border-color 0.2s ease',
+                }}
+                  className="group-hover:border-[var(--color-accent)]"
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '80px', height: '80px',
+                    borderRadius: '50%', overflow: 'hidden',
+                    margin: '0 auto 24px',
+                    border: '3px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                  }}>
+                    <img
+                      src={member.avatar}
+                      alt={`${member.name}, ${member.role}`}
+                      width={80} height={80}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+
+                  {/* Role kicker */}
+                  <span style={{ ...styles.monoKicker, display: 'block', marginBottom: '8px' }}>
+                    {member.role}
+                  </span>
+
+                  {/* Name */}
+                  <h3 style={{ ...styles.headingSub, marginBottom: '16px' }}>{member.name}</h3>
+
+                  {/* Short bio */}
+                  <p style={{ ...styles.bodySmall, margin: '0 0 24px' }}>
+                    {member.shortBio}
+                  </p>
+
+                  {/* Expertise chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginBottom: '24px' }}>
+                    {member.expertise.slice(0, 2).map((t) => (
+                      <span key={t} style={{
+                        fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600,
+                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                        color: 'var(--color-text-muted)',
+                        padding: '4px 8px',
+                        border: '1px solid var(--color-border-subtle)',
+                        background: 'var(--color-surface)',
+                      }}>{t}</span>
+                    ))}
+                  </div>
+
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    color: 'var(--color-accent)',
+                  }}>
+                    View profile →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

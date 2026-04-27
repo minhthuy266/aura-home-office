@@ -2,15 +2,16 @@ import React from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
+  Share2,
   Twitter,
   Mail,
-  Share2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WPPost } from '../types';
 import { TOCItem } from '../utils/processContent';
 import PostInteractive from './PostInteractive';
 import { formatSEOText, decodeHTMLEntities } from '../utils/seoFormatter';
+import { getAuthorForPost } from '../config/authors';
 
 interface PostArticleProps {
   post: WPPost;
@@ -37,7 +38,9 @@ interface PostArticleProps {
  */
 export default function PostArticle({ post, latestPosts, processedHtml, toc }: PostArticleProps) {
   const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-  const author = post._embedded?.author?.[0];
+  // Resolve author from central config — deterministic by post ID + optional WP author ID mapping
+  const wpAuthorId = post._embedded?.author?.[0]?.id as number | undefined;
+  const author = getAuthorForPost(post.id, wpAuthorId);
   const categories = post._embedded?.['wp:term']?.[0] || [];
   const tags = post._embedded?.['wp:term']?.[1] || [];
   const relatedPosts = latestPosts.filter((p) => p.id !== post.id).slice(0, 3);
@@ -75,29 +78,26 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
   };
   const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
 
-  // Article JSON-LD schema
+  // Article JSON-LD schema — Linked to Organization entity in RootLayout
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
+    '@id': `${postUrl}#article`,
     headline: plainTitle,
     description: cleanExcerpt,
     image: imageUrl,
     url: postUrl,
     datePublished: post.date,
-    dateModified: post.modified || post.date,
+    dateModified: post.modified && post.modified !== post.date ? post.modified : post.date,
     author: {
-      '@type': 'Organization',
-      name: 'Aura Home Office',
-      url: 'https://aurahomeoffice.com',
+      '@type': 'Person',
+      '@id': `https://aurahomeoffice.com/author/${author.id}/#person`,
+      name: author.name,
+      url: `https://aurahomeoffice.com/author/${author.id}`,
+      jobTitle: author.role,
     },
     publisher: {
-      '@type': 'Organization',
-      name: 'Aura Home Office',
-      url: 'https://aurahomeoffice.com',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://aurahomeoffice.com/og-image.jpg',
-      },
+      '@id': 'https://aurahomeoffice.com/#organization',
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
@@ -230,45 +230,43 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
             flexWrap: 'wrap',
           }}
         >
-          {author && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {author.avatar_urls &&
-                (author.avatar_urls['48'] ||
-                  author.avatar_urls['96'] ||
-                  author.avatar_urls['24']) && (
-                  <img
-                    src={
-                      author.avatar_urls['48'] ||
-                      author.avatar_urls['96'] ||
-                      author.avatar_urls['24']
-                    }
-                    alt={author.name}
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  />
-                )}
-              <span
+          {/* Byline — from authors config */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Link href={`/author/${author.id}`} style={{ flexShrink: 0 }}>
+              <img
+                src={author.avatar}
+                alt={`${author.name}, ${author.role}`}
+                width={28}
+                height={28}
                 style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-xs)',
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: 'var(--tracking-mono)',
-                  color: 'var(--color-text-muted)',
-                  fontWeight: 400,
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '1px solid var(--color-border)',
+                  display: 'block',
                 }}
+              />
+            </Link>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                textTransform: 'uppercase' as const,
+                letterSpacing: 'var(--tracking-mono)',
+                color: 'var(--color-text-muted)',
+                fontWeight: 400,
+              }}
+            >
+              BY{' '}
+              <Link
+                href={`/author/${author.id}`}
+                style={{ color: 'var(--color-text-primary)', fontWeight: 700, textDecoration: 'none' }}
               >
-                BY{' '}
-                <strong style={{ color: 'var(--color-text-primary)' }}>
-                  {decodeHTMLEntities(author.name)}
-                </strong>
-              </span>
-            </div>
-          )}
+                {author.name}
+              </Link>
+            </span>
+          </div>
           <time
             dateTime={post.date}
             style={{
@@ -418,68 +416,111 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc }: P
               </div>
             </div>
 
-            {/* ── Author Bio Section (End of Article) ── */}
-            <section style={{ 
-              marginTop: '80px', 
-              padding: '40px', 
-              background: 'var(--color-surface)', 
+            {/* ── About the Author (from config) ── */}
+            <section style={{
+              marginTop: '80px',
+              padding: '40px',
+              background: 'var(--color-surface)',
               border: '1px solid var(--color-rule-hard)',
               display: 'flex',
               gap: '32px',
               alignItems: 'flex-start'
             }} className="flex-col md:flex-row">
-              {author?.avatar_urls && (
+              {/* Avatar from config */}
+              <Link href={`/author/${author.id}`} style={{ flexShrink: 0 }}>
                 <img
-                  src={author.avatar_urls['96'] || author.avatar_urls['48']}
-                  alt={author.name}
+                  src={author.avatar}
+                  alt={`${author.name}, ${author.role}`}
+                  width={80}
+                  height={80}
                   style={{
-                    width: '100px',
-                    height: '100px',
+                    width: '80px',
+                    height: '80px',
                     borderRadius: '50%',
                     border: '4px solid white',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    flexShrink: 0
+                    display: 'block',
                   }}
                 />
-              )}
+              </Link>
               <div style={{ flex: 1 }}>
-                <span style={{ 
-                  fontFamily: 'var(--font-mono)', 
-                  fontSize: '11px', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.1em', 
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
                   color: 'var(--color-accent)',
                   fontWeight: 600,
                   display: 'block',
                   marginBottom: '12px'
                 }}>
-                  About the Author
+                  {author.role}
                 </span>
-                <h3 style={{ 
-                  fontFamily: 'var(--font-display)', 
-                  fontSize: '24px', 
-                  fontWeight: 800, 
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '24px',
+                  fontWeight: 800,
                   color: 'var(--color-text-primary)',
-                  marginBottom: '16px'
+                  marginBottom: '8px'
                 }}>
-                  {decodeHTMLEntities(author?.name)}
+                  {author.name}
                 </h3>
-                <p style={{ 
-                  fontFamily: 'var(--font-body)', 
-                  fontSize: '16px', 
-                  lineHeight: '1.6', 
+                <p style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '15px',
+                  lineHeight: '1.6',
                   color: 'var(--color-text-secondary)',
                   marginBottom: '24px'
                 }}>
-                  {author?.description || `Expert reviewer at Aura Home Office, specializing in ergonomic workspace optimization and high-performance setup design. Dedicated to helping professionals build better working environments.`}
+                  {author.bio}
                 </p>
-                
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <Link href="#" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} className="hover:text-[var(--color-accent)]">
-                    <Twitter size={18} />
+                {/* Expertise tags */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                  {author.expertise.map((topic) => (
+                    <span key={topic} style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      color: 'var(--color-text-muted)',
+                      padding: '4px 10px',
+                      border: '1px solid var(--color-border-subtle)',
+                      background: 'white',
+                    }}>
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <Link
+                    href={`/author/${author.id}`}
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.1em',
+                      color: 'var(--color-accent)',
+                      textDecoration: 'none',
+                      borderBottom: '1px solid var(--color-accent)',
+                      paddingBottom: '2px',
+                    }}
+                  >
+                    More by {author.name} →
                   </Link>
-                  <Link href="#" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} className="hover:text-[var(--color-accent)]">
-                    <Mail size={18} />
+                  <Link
+                    href="/disclosure"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.1em',
+                      color: 'var(--color-text-muted)',
+                      textDecoration: 'none',
+                      borderBottom: '1px solid var(--color-border)',
+                      paddingBottom: '2px',
+                    }}
+                  >
+                    Affiliate Disclosure →
                   </Link>
                 </div>
               </div>

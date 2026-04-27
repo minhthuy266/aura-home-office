@@ -47,7 +47,7 @@ export const metadata = {
     'desk accessories',
     'cable management',
   ],
-  authors: [{ name: 'Aura Home Office Editorial Team' }],
+  authors: [{ name: 'Aura Home Office Editorial Team' }, { name: 'Alex Carter' }, { name: 'Jordan Lee' }, { name: 'Morgan Davis' }],
   metadataBase: new URL('https://aurahomeoffice.com'),
   alternates: {
     canonical: 'https://aurahomeoffice.com',
@@ -120,6 +120,40 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+        {/* Organization Schema — Essential for E-E-A-T Entity Recognition */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              '@id': 'https://aurahomeoffice.com/#organization',
+              name: 'Aura Home Office',
+              url: 'https://aurahomeoffice.com',
+              logo: {
+                '@type': 'ImageObject',
+                '@id': 'https://aurahomeoffice.com/#logo',
+                url: 'https://aurahomeoffice.com/og-image.jpg',
+                contentUrl: 'https://aurahomeoffice.com/og-image.jpg',
+                width: 1200,
+                height: 630,
+                caption: 'Aura Home Office',
+              },
+              image: { '@id': 'https://aurahomeoffice.com/#logo' },
+              sameAs: [
+                'https://twitter.com/aurahomeoffice',
+                'https://www.linkedin.com/company/aura-home-office',
+                'https://www.pinterest.com/aurahomeoffice',
+              ],
+              contactPoint: {
+                '@type': 'ContactPoint',
+                email: 'hello@aurahomeoffice.com',
+                contactType: 'editorial',
+              },
+            }),
+          }}
+        />
+
         {/* WebSite Schema — enables Google Sitelinks Searchbox */}
         <script
           type="application/ld+json"
@@ -127,10 +161,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
+              '@id': 'https://aurahomeoffice.com/#website',
               name: 'Aura Home Office',
               url: 'https://aurahomeoffice.com',
               description:
                 'Independent home office buying guide covering standing desks, ergonomic chairs, monitor arms, and workspace gear.',
+              publisher: { '@id': 'https://aurahomeoffice.com/#organization' },
               potentialAction: {
                 '@type': 'SearchAction',
                 target: {
@@ -139,15 +175,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                     'https://aurahomeoffice.com/search?q={search_term_string}',
                 },
                 'query-input': 'required name=search_term_string',
-              },
-              publisher: {
-                '@type': 'Organization',
-                name: 'Aura Home Office',
-                url: 'https://aurahomeoffice.com',
-                logo: {
-                  '@type': 'ImageObject',
-                  url: 'https://aurahomeoffice.com/og-image.jpg',
-                },
               },
             }),
           }}
