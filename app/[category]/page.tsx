@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { WPPost } from '../../src/types';
+import { decodeHTMLEntities } from '../../src/utils/seoFormatter';
 
 // export const dynamic = 'force-static';
 export const revalidate = 60; // Revalidate every minute instead of hour for better testing
@@ -42,7 +43,7 @@ export async function generateMetadata({ params, searchParams }: {
   try {
     const { category, totalPages } = await getPostsByCategorySlug(categorySlug, page, 6);
     const rawName = category?.name || categorySlug.replace(/-/g, ' ');
-    const displayName = rawName.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+    const displayName = decodeHTMLEntities(rawName);
     
     const baseUrl = 'https://aurahomeoffice.com';
     let categoryUrl = `${baseUrl}/${categorySlug}`;
@@ -135,7 +136,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     totalPosts = result.totalPosts;
   }
   
-  const displayName = category.name.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+  const displayName = decodeHTMLEntities(category.name);
   const baseUrl = 'https://aurahomeoffice.com';
 
   // Featured and regular posts
@@ -164,7 +165,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         '@type': 'ListItem',
         position: i + 1,
         url: `${baseUrl}/${categorySlug}/${p.slug}`,
-        name: p.title.rendered.replace(/<[^>]*>/g, ''),
+        name: decodeHTMLEntities(p.title.rendered.replace(/<[^>]*>/g, '')),
       })),
     },
   };
@@ -507,7 +508,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                           lineHeight: 'var(--leading-snug)',
                           color: 'var(--color-text-primary)',
                           margin: 0,
-                        }}>{rp.title.rendered}</h5>
+                        }}>{decodeHTMLEntities(rp.title.rendered.replace(/<[^>]*>/g, ''))}</h5>
                         <time style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>{new Date(rp.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</time>
                       </div>
                     </Link>

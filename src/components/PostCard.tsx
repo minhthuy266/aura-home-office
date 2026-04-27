@@ -27,7 +27,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
         <img 
           src={featuredMedia?.source_url || defaultImage} 
           className="w-full h-full object-cover"
-          alt={post.title.rendered}
+          alt={decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''))}
           loading="lazy"
           style={{ borderRadius: 0 }}
         />
@@ -68,7 +68,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
     return (
       <article className="group flex gap-4 items-center" style={{ padding: '12px 0', borderBottom: '1px solid var(--color-rule-hard)' }}>
         <Link href={postUrl} className="shrink-0 img-zoom-hover" style={{ width: '72px', height: '72px', background: 'var(--color-surface)', borderRadius: 0 }}>
-          <img src={featuredMedia?.source_url || defaultImage} className="w-full h-full object-cover" alt={post.title.rendered} loading="lazy" style={{ borderRadius: 0 }} />
+          <img src={featuredMedia?.source_url || defaultImage} className="w-full h-full object-cover" alt={decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''))} loading="lazy" style={{ borderRadius: 0 }} />
         </Link>
         <div className="min-w-0 pr-1">
           {categories.slice(0,1).map(cat => (
@@ -110,7 +110,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
           <img 
             src={featuredMedia?.source_url || defaultImage} 
             className="w-full h-full object-cover" 
-            alt={post.title.rendered} 
+            alt={decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''))} 
             loading="lazy" 
           />
         </Link>
@@ -182,7 +182,7 @@ export default function PostCard({ post, isFeatured, isCompact, isHorizontal, in
       padding: 'var(--space-6)',
     }}>
       <Link href={postUrl} className="block img-zoom-hover" style={{ aspectRatio: '16/9', overflow: 'hidden', background: 'var(--color-surface)', position: 'relative', marginBottom: 'var(--space-4)', borderRadius: 0 }}>
-        <img src={featuredMedia?.source_url || defaultImage} alt={post.title.rendered} className="w-full h-full object-cover" loading="lazy" style={{ borderRadius: 0 }} />
+        <img src={featuredMedia?.source_url || defaultImage} alt={decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''))} className="w-full h-full object-cover" loading="lazy" style={{ borderRadius: 0 }} />
       </Link>
       <div className="flex flex-col flex-grow">
         {categories.slice(0,1).map(cat => (

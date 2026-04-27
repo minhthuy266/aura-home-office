@@ -5,7 +5,7 @@ import { getFeaturedPost, getLatestPosts, getPostsByTagSlug } from '@/src/servic
 import PostCard from '@/src/components/PostCard';
 import CategoryGrid from '@/src/components/CategoryGrid';
 import { ArrowRight } from 'lucide-react';
-import { formatSEOText } from '@/src/utils/seoFormatter';
+import { formatSEOText, decodeHTMLEntities } from '@/src/utils/seoFormatter';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -267,7 +267,7 @@ export default async function HomePage() {
                     <img 
                       src={image} 
                       className="w-full h-full object-cover" 
-                      alt={p.title.rendered}
+                      alt={decodeHTMLEntities(p.title.rendered.replace(/<[^>]*>/g, ''))}
                       loading="lazy"
                       width={300}
                       height={169}
