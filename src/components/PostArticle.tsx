@@ -50,22 +50,24 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const defaultPostImage =
     'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1400';
 
-  // Clean title for display (replace placeholders in title too)
-  const cleanTitleForDisplay = decodeHTMLEntities(post.title.rendered)
-    .replace(
-      /%keyword%/gi,
-      post.title.rendered
-        .replace(/<[^>]*>/g, '')
-        .replace(/The \d+ Best | of \d{4}/gi, '')
-        .trim(),
-    )
-    .replace(/%year%/gi, new Date().getFullYear().toString());
+  // Clean title/excerpt for display and schema. Body placeholders are handled in processPostContent.
+  const cleanTitleForDisplay = formatSEOText(
+    post.title.rendered,
+    post.title.rendered,
+    categories[0]?.name,
+    post.content.rendered,
+  );
 
   // Clean excerpt using the central SEO formatter (handles placeholders + filler removal)
-  const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
+  const cleanExcerpt = formatSEOText(
+    post.excerpt?.rendered || '',
+    post.title.rendered,
+    categories[0]?.name,
+    post.content.rendered,
+  );
 
   // Plain text title for schema
-  const plainTitle = decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''));
+  const plainTitle = decodeHTMLEntities(cleanTitleForDisplay.replace(/<[^>]*>/g, ''));
   const postUrl = `https://aurahomeoffice.com/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
   const imageUrl = featuredMedia?.source_url || defaultPostImage;
 
@@ -243,7 +245,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
             color: 'var(--color-text-primary)',
             marginBottom: '32px',
           }}
-          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+          dangerouslySetInnerHTML={{ __html: cleanTitleForDisplay }}
         />
 
         {/* Deck / Intro */}
@@ -388,7 +390,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
             alt={
               featuredMedia?.alt_text ||
               (post.title.rendered
-                ? post.title.rendered.replace(/<[^>]*>/g, '')
+                ? plainTitle
                 : 'Post image')
             }
             fill

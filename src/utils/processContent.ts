@@ -1,10 +1,11 @@
 /**
  * processContent.ts — Server-side content processor
  *
- * WordPress content is rendered as-is.
- * We do not inject, rewrite, sanitize, or otherwise mutate the HTML body.
+ * WordPress content is mostly rendered as-is.
+ * We only resolve editorial placeholders before sending the HTML to the article.
  */
 import * as cheerio from 'cheerio';
+import { replaceDynamicPlaceholders } from './placeholders';
 
 export interface TOCItem {
   id: string;
@@ -55,9 +56,14 @@ function extractToc(html: string): TOCItem[] {
   return toc;
 }
 
-export function processPostContent(contentHtml: string): ProcessedContent {
+export function processPostContent(contentHtml: string, title = ''): ProcessedContent {
+  const html = replaceDynamicPlaceholders(contentHtml, {
+    title,
+    contentHtml,
+  });
+
   return {
-    html: contentHtml,
-    toc: extractToc(contentHtml),
+    html,
+    toc: extractToc(html),
   };
 }

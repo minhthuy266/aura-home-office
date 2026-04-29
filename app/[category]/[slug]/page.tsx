@@ -18,8 +18,8 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   
   if (!post) return { title: 'Post Not Found' };
 
-  const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
-  const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
+  const cleanTitle = formatSEOText(post.title.rendered, post.title.rendered, category, post.content.rendered);
+  const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered, category, post.content.rendered);
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
   const author = getAuthorForPost(post.id, post.author);
 
@@ -70,7 +70,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const baseUrl = 'https://aurahomeoffice.com';
   const postUrl = `${baseUrl}/${category}/${slug}`;
-  const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
+  const cleanTitle = formatSEOText(post.title.rendered, post.title.rendered, category, post.content.rendered);
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
 
   // NOTE: Article JSON-LD is rendered directly by PostArticle.tsx to avoid duplicate schemas.
@@ -117,7 +117,7 @@ export default async function PostPage({ params }: PostPageProps) {
     }))
   } : null;
 
-  const { html: processedHtml, toc, products } = processPostContent(post.content.rendered);
+  const { html: processedHtml, toc, products } = processPostContent(post.content.rendered, post.title.rendered);
 
   return (
     <>

@@ -1,4 +1,5 @@
 import { WPPost, WPCategory } from '../types';
+import { replaceDynamicPlaceholders } from '../utils/placeholders';
 
 const API_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://cms.aurahomeoffice.com';
 const REVALIDATE_TIME = 60; // 1 minute cache for performance
@@ -9,6 +10,32 @@ const isConfigured = !!process.env.NEXT_PUBLIC_WORDPRESS_URL || true; // Force t
 
 // Mock data for fallback
 const MOCK_POSTS: WPPost[] = [];
+
+function resolvePostPlaceholders(post: WPPost): WPPost {
+  const title = post.title?.rendered || '';
+  const contentHtml = post.content?.rendered || '';
+  const context = { title, contentHtml };
+
+  return {
+    ...post,
+    title: {
+      ...post.title,
+      rendered: replaceDynamicPlaceholders(title, context),
+    },
+    excerpt: {
+      ...post.excerpt,
+      rendered: replaceDynamicPlaceholders(post.excerpt?.rendered || '', context),
+    },
+    content: {
+      ...post.content,
+      rendered: replaceDynamicPlaceholders(contentHtml, context),
+    },
+  };
+}
+
+function resolvePostsPlaceholders(posts: WPPost[]): WPPost[] {
+  return posts.map(resolvePostPlaceholders);
+}
 
 /**
  * Base fetcher for posts with common params.
@@ -39,7 +66,7 @@ export async function getPosts(page = 1, perPage = 10, categories?: number[], ta
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     
-    const posts = await res.json();
+    const posts = resolvePostsPlaceholders(await res.json());
     const totalPosts = parseInt(res.headers.get('X-WP-Total') || '0', 10);
     const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
     
@@ -79,7 +106,7 @@ export async function getAllPosts(): Promise<WPPost[]> {
         break;
       }
 
-      const posts: WPPost[] = await res.json();
+      const posts: WPPost[] = resolvePostsPlaceholders(await res.json());
       if (posts.length === 0) break;
 
       allPosts.push(...posts);
@@ -120,7 +147,7 @@ export async function getPostsByAuthorId(authorId: number, perPage = 10): Promis
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-    return await res.json();
+    return resolvePostsPlaceholders(await res.json());
   } catch (err) {
     console.error("Fetch Error (getPostsByAuthorId):", err);
     return [];
@@ -140,7 +167,7 @@ export async function getPostBySlug(slug: string): Promise<WPPost | null> {
       },
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const posts = await res.json();
+    const posts = resolvePostsPlaceholders(await res.json());
     return posts.length > 0 ? posts[0] : null;
   } catch (err) {
     console.error("Fetch Error:", err);
