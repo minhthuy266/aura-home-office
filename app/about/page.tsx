@@ -349,7 +349,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── Methodology & TrustScore ── */}
-      <section id="trustscore" style={{ background: 'var(--color-surface-dark)', color: 'var(--color-text-inverse)' }}>
+      <section id="methodology" style={{ background: 'var(--color-surface-dark)', color: 'var(--color-text-inverse)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '100px 24px' }}>
           <div className="grid lg:grid-cols-12 gap-16 items-start">
             <div className="lg:col-span-5">
@@ -475,7 +475,7 @@ export default function AboutPage() {
             <span style={{ ...styles.monoKicker, display: 'block', marginBottom: '16px' }}>Meet the Team</span>
             <h2 style={{ ...styles.headingSection, marginBottom: '16px' }}>The people behind Aura Home Office</h2>
             <p style={{ ...styles.bodyText, color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
-              Three roles. One shared standard: research that explains what's actually worth buying.
+              Three people. One shared standard: research that explains what's actually worth buying.
             </p>
           </div>
 
@@ -484,6 +484,7 @@ export default function AboutPage() {
               <Link
                 key={member.id}
                 href={`/author/${member.id}`}
+                prefetch={false}
                 style={{ textDecoration: 'none', display: 'block' }}
                 className="group"
               >

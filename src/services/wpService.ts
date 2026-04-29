@@ -2,6 +2,8 @@ import { WPPost, WPCategory } from '../types';
 
 const API_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://cms.aurahomeoffice.com';
 const REVALIDATE_TIME = 60; // 1 minute cache for performance
+const POSTS_CACHE_TAG = 'wp-posts';
+const TAXONOMIES_CACHE_TAG = 'wp-taxonomies';
 
 const isConfigured = !!process.env.NEXT_PUBLIC_WORDPRESS_URL || true; // Force true for demo if not set
 
@@ -29,7 +31,12 @@ export async function getPosts(page = 1, perPage = 10, categories?: number[], ta
       url.searchParams.set('tags', tags.join(','));
     }
 
-    const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(url.toString(), {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [POSTS_CACHE_TAG],
+      },
+    });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     
     const posts = await res.json();
@@ -60,7 +67,12 @@ export async function getAllPosts(): Promise<WPPost[]> {
       url.searchParams.set('status', 'publish');
 
       console.log(`[WP SERVICE] Fetching all posts page ${page} for Route Map...`);
-      const res = await fetch(url.toString(), { next: { revalidate: REVALIDATE_TIME } });
+      const res = await fetch(url.toString(), {
+        next: {
+          revalidate: REVALIDATE_TIME,
+          tags: [POSTS_CACHE_TAG],
+        },
+      });
 
       if (!res.ok) {
         console.error(`[WP SERVICE] Error fetching page ${page}: ${res.status}`);
@@ -84,12 +96,49 @@ export async function getAllPosts(): Promise<WPPost[]> {
 }
 
 /**
+ * Fetches posts for a specific author directly from WordPress.
+ * Used by author profile pages so they always reflect the live WP author count.
+ */
+export async function getPostsByAuthorId(authorId: number, perPage = 10): Promise<WPPost[]> {
+  if (!isConfigured) return MOCK_POSTS;
+
+  try {
+    const url = new URL(`${API_URL}/wp-json/wp/v2/posts`);
+    url.searchParams.set('_embed', '1');
+    url.searchParams.set('author', authorId.toString());
+    url.searchParams.set('page', '1');
+    url.searchParams.set('per_page', perPage.toString());
+    url.searchParams.set('orderby', 'date');
+    url.searchParams.set('order', 'desc');
+    url.searchParams.set('status', 'publish');
+
+    const res = await fetch(url.toString(), {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [POSTS_CACHE_TAG, `wp-author:${authorId}`],
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+    return await res.json();
+  } catch (err) {
+    console.error("Fetch Error (getPostsByAuthorId):", err);
+    return [];
+  }
+}
+
+/**
  * Fetches a single post by its slug.
  */
 export async function getPostBySlug(slug: string): Promise<WPPost | null> {
   if (!isConfigured) return MOCK_POSTS.find(p => p.slug === slug) || null;
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/posts?slug=${slug}&_embed=1`, { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/posts?slug=${slug}&_embed=1`, {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [POSTS_CACHE_TAG],
+      },
+    });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const posts = await res.json();
     return posts.length > 0 ? posts[0] : null;
@@ -105,7 +154,12 @@ export async function getPostBySlug(slug: string): Promise<WPPost | null> {
 export async function getCategories(): Promise<WPCategory[]> {
   if (!isConfigured) return [];
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?per_page=100`, { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?per_page=100`, {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [TAXONOMIES_CACHE_TAG],
+      },
+    });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -120,7 +174,12 @@ export async function getCategories(): Promise<WPCategory[]> {
 export async function getCategoryBySlug(slug: string): Promise<WPCategory | null> {
   if (!isConfigured) return null;
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?slug=${slug}`, { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/categories?slug=${slug}`, {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [TAXONOMIES_CACHE_TAG],
+      },
+    });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const categories = await res.json();
     return categories.length > 0 ? categories[0] : null;
@@ -148,7 +207,12 @@ export async function getPostsByCategorySlug(categorySlug: string, page = 1, per
 export async function getTagBySlug(slug: string): Promise<WPCategory | null> {
   if (!isConfigured) return null;
   try {
-    const res = await fetch(`${API_URL}/wp-json/wp/v2/tags?slug=${slug}`, { next: { revalidate: REVALIDATE_TIME } });
+    const res = await fetch(`${API_URL}/wp-json/wp/v2/tags?slug=${slug}`, {
+      next: {
+        revalidate: REVALIDATE_TIME,
+        tags: [TAXONOMIES_CACHE_TAG],
+      },
+    });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const tags = await res.json();
     return tags.length > 0 ? tags[0] : null;

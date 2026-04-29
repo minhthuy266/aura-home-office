@@ -12,7 +12,7 @@ import type { WPPost, ProductData } from '../types';
 import { TOCItem } from '../utils/processContent';
 import PostInteractive from './PostInteractive';
 import { formatSEOText, decodeHTMLEntities } from '../utils/seoFormatter';
-import { getAuthorForPost } from '../config/authors';
+import { getAuthorForPost, getReviewerForPost } from '../config/authors';
 
 interface PostArticleProps {
   post: WPPost;
@@ -40,9 +40,10 @@ interface PostArticleProps {
  */
 export default function PostArticle({ post, latestPosts, processedHtml, toc, products }: PostArticleProps) {
   const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-  // Resolve author from central config — deterministic by post ID + optional WP author ID mapping
-  const wpAuthorId = post._embedded?.author?.[0]?.id;
+  // Resolve author from central config — deterministic by WP author ID with a legacy fallback
+  const wpAuthorId = post.author;
   const author = getAuthorForPost(post.id, wpAuthorId);
+  const reviewer = getReviewerForPost(post.id, author.id);
   const categories = post._embedded?.['wp:term']?.[0] || [];
   const tags = post._embedded?.['wp:term']?.[1] || [];
   const relatedPosts = latestPosts.filter((p) => p.id !== post.id).slice(0, 3);
@@ -64,7 +65,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
 
   // Plain text title for schema
-  const plainTitle = post.title.rendered.replace(/<[^>]*>/g, '');
+  const plainTitle = decodeHTMLEntities(post.title.rendered.replace(/<[^>]*>/g, ''));
   const postUrl = `https://aurahomeoffice.com/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
   const imageUrl = featuredMedia?.source_url || defaultPostImage;
 
@@ -81,7 +82,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
 
   // Article JSON-LD schema — Linked to Organization entity in RootLayout
-  const articleSchema = {
+  const articleSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     '@id': `${postUrl}#article`,
@@ -106,6 +107,16 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
       '@id': postUrl,
     },
   };
+
+  if (reviewer) {
+    articleSchema.reviewedBy = {
+      '@type': 'Person',
+      '@id': `https://aurahomeoffice.com/author/${reviewer.id}/#person`,
+      name: reviewer.name,
+      url: `https://aurahomeoffice.com/author/${reviewer.id}`,
+      jobTitle: reviewer.role,
+    };
+  }
 
   // BreadcrumbList JSON-LD schema
   const breadcrumbSchema = {
@@ -159,42 +170,27 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
           priceCurrency: 'USD',
           availability: 'https://schema.org/InStock'
         },
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: p.score,
-          bestRating: '10',
-          worstRating: '1',
-          ratingCount: Math.floor(Math.random() * 200) + 50
-        },
-        review: {
-          '@type': 'Review',
-          author: { '@type': 'Person', name: author.name },
-          reviewRating: {
-            '@type': 'Rating',
-            ratingValue: p.score,
-            bestRating: '10'
-          },
-          reviewBody: `The ${p.name} is a top choice for home offices, especially recognized as ${p.award || 'a premium pick'}.`
-        }
       }
     }))
   } : null;
+
+  const serializeJsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* ── SEO Schema: Article, Breadcrumb, and Product List ── */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbSchema) }}
       />
       {itemListSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListSchema) }}
         />
       )}
 
@@ -283,7 +279,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
         >
           {/* Byline — from authors config */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Link href={`/author/${author.id}`} style={{ flexShrink: 0 }}>
+            <Link href={`/author/${author.id}`} prefetch={false} style={{ flexShrink: 0 }}>
               <img
                 src={author.avatar}
                 alt={`${author.name}, ${author.role}`}
@@ -312,12 +308,52 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
               BY{' '}
               <Link
                 href={`/author/${author.id}`}
+                prefetch={false}
                 style={{ color: 'var(--color-text-primary)', fontWeight: 700, textDecoration: 'none' }}
               >
                 {author.name}
               </Link>
             </span>
           </div>
+          {reviewer && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Link href={`/author/${reviewer.id}`} prefetch={false} style={{ flexShrink: 0 }}>
+                <img
+                  src={reviewer.avatar}
+                  alt={`${reviewer.name}, ${reviewer.role}`}
+                  width={28}
+                  height={28}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1px solid var(--color-border)',
+                    display: 'block',
+                  }}
+                />
+              </Link>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 'var(--tracking-mono)',
+                  color: 'var(--color-text-muted)',
+                  fontWeight: 400,
+                }}
+              >
+                REVIEWED BY{' '}
+                <Link
+                  href={`/author/${reviewer.id}`}
+                  prefetch={false}
+                  style={{ color: 'var(--color-text-primary)', fontWeight: 700, textDecoration: 'none' }}
+                >
+                  {reviewer.name}
+                </Link>
+              </span>
+            </div>
+          )}
           <time
             dateTime={post.date}
             style={{
@@ -479,7 +515,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
               alignItems: 'flex-start'
             }} className="flex-col md:flex-row">
               {/* Avatar from config */}
-              <Link href={`/author/${author.id}`} style={{ flexShrink: 0 }}>
+              <Link href={`/author/${author.id}`} prefetch={false} style={{ flexShrink: 0 }}>
                 <img
                   src={author.avatar}
                   alt={`${author.name}, ${author.role}`}
@@ -544,6 +580,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <Link
                     href={`/author/${author.id}`}
+                    prefetch={false}
                     style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: '11px',

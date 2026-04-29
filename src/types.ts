@@ -4,6 +4,7 @@ export interface WPPost {
   excerpt: { rendered: string };
   content: { rendered: string };
   slug: string;
+  author: number;
   date: string;
   modified: string;
   _embedded?: {

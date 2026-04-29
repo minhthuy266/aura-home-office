@@ -47,7 +47,6 @@ export const metadata = {
     'desk accessories',
     'cable management',
   ],
-  authors: [{ name: 'Aura Home Office Editorial Team' }, { name: 'Alex Carter' }, { name: 'Jordan Lee' }, { name: 'Morgan Davis' }],
   metadataBase: new URL('https://aurahomeoffice.com'),
   alternates: {
     canonical: 'https://aurahomeoffice.com',

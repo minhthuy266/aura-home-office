@@ -22,8 +22,12 @@ interface TOCItem {
 export default function PostInteractive({ toc }: { toc: TOCItem[] }) {
   const progressRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<string>('');
-  const tocLinksRef = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  const tocLinksRef = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
+
+  const getArticleHeadings = () =>
+    Array.from(document.querySelectorAll<HTMLElement>('article.prose-premium h2, article.prose-premium h3'))
+      .filter((el) => el.dataset.toc !== 'false');
 
   // Scroll spy — progress bar + TOC highlight
   useEffect(() => {
@@ -43,8 +47,10 @@ export default function PostInteractive({ toc }: { toc: TOCItem[] }) {
           const headerOffset = 250;
           let currentId = '';
 
-          for (const item of toc) {
-            const element = document.getElementById(item.id);
+          const articleHeadings = getArticleHeadings();
+          for (let i = 0; i < toc.length; i += 1) {
+            const item = toc[i];
+            const element = articleHeadings[i];
             if (element) {
               const top = element.getBoundingClientRect().top;
               if (top <= headerOffset) {
@@ -84,21 +90,20 @@ export default function PostInteractive({ toc }: { toc: TOCItem[] }) {
   }, [toc]);
 
   const scrollToHeading = (id: string, isMobile: boolean = false) => {
-    if (isMobile) {
-      setIsMobileTocOpen(false);
-      setTimeout(() => {
-        const el = document.getElementById(id);
-        if (el) {
-          const y = el.getBoundingClientRect().top + window.pageYOffset - 100;
-          window.scrollTo({ top: y, behavior: 'smooth' });
-        }
-      }, 10);
-    } else {
-      const el = document.getElementById(id);
+    const scroll = () => {
+      const index = toc.findIndex((item) => item.id === id);
+      const el = index >= 0 ? getArticleHeadings()[index] : undefined;
       if (el) {
-        const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - (isMobile ? 100 : 120);
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
+    };
+
+    if (isMobile) {
+      setIsMobileTocOpen(false);
+      setTimeout(scroll, 10);
+    } else {
+      scroll();
     }
   };
 
@@ -121,128 +126,132 @@ export default function PostInteractive({ toc }: { toc: TOCItem[] }) {
         }}
       />
 
-      {/* Desktop TOC — Left Sidebar */}
-      <aside className="lg:col-span-2 lg:sticky lg:top-32 order-1 px-4 lg:px-0">
-        <div
-          className="hidden lg:block scrollbar-hide"
-          style={{
-            maxHeight: 'calc(100vh - 140px)',
-            overflowY: 'auto',
-            paddingBottom: '16px',
-          }}
-        >
-          {/* TOC Label — JetBrains Mono */}
-          <span
+      {toc.length > 0 && (
+        <aside className="lg:col-span-2 lg:sticky lg:top-32 order-1 px-4 lg:px-0">
+          <div
+            className="hidden lg:block scrollbar-hide"
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 700,
-              letterSpacing: 'var(--tracking-ribbon)',
-              textTransform: 'uppercase' as const,
-              color: 'var(--color-text-muted)',
-              display: 'block',
-              marginBottom: '16px',
+              maxHeight: 'calc(100vh - 140px)',
+              overflowY: 'auto',
+              paddingBottom: '16px',
             }}
           >
-            CONTENTS
-          </span>
-          <nav style={{ borderLeft: '1px solid var(--color-border-subtle)' }}>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {toc.map((item) => (
-                <li key={item.id} style={{ position: 'relative' }}>
-                  <a
-                    href={`#${item.id}`}
-                    ref={(el) => {
-                      if (el) tocLinksRef.current.set(item.id, el);
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollToHeading(item.id);
-                    }}
+            {/* TOC Label — JetBrains Mono */}
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 700,
+                letterSpacing: 'var(--tracking-ribbon)',
+                textTransform: 'uppercase' as const,
+                color: 'var(--color-text-muted)',
+                display: 'block',
+                marginBottom: '16px',
+              }}
+            >
+              CONTENTS
+            </span>
+            <nav style={{ borderLeft: '1px solid var(--color-border-subtle)' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {toc.map((item) => (
+                  <li key={item.id} style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      ref={(el) => {
+                        if (el) tocLinksRef.current.set(item.id, el);
+                      }}
+                      onClick={() => scrollToHeading(item.id)}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '7px 0 7px ' + (item.level === 3 ? '24px' : '12px'),
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: item.level === 3 ? 'var(--text-xs)' : 'var(--text-sm)',
+                        lineHeight: 1.5,
+                        color: 'var(--color-text-muted)',
+                        borderLeft: '2px solid transparent',
+                        borderTop: 'none',
+                        borderRight: 'none',
+                        borderBottom: 'none',
+                        marginLeft: '-1px',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {item.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+
+          {/* Mobile TOC toggle */}
+          <div className="lg:hidden mb-6">
+            <button
+              onClick={() => setIsMobileTocOpen(!isMobileTocOpen)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'var(--font-ui)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+                Table of Contents
+              </span>
+              <ChevronDown
+                size={16}
+                style={{ transform: isMobileTocOpen ? 'rotate(180deg)' : 'none' }}
+              />
+            </button>
+            {isMobileTocOpen && toc.length > 0 && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  background: 'var(--color-surface)',
+                  borderTop: '2px solid var(--color-rule-section)',
+                  borderBottom: '1px solid var(--color-border)',
+                  padding: '8px',
+                }}
+              >
+                {toc.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToHeading(item.id, true)}
                     style={{
                       display: 'block',
-                      padding: '7px 0 7px ' + (item.level === 3 ? '24px' : '12px'),
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      paddingLeft: item.level === 3 ? '24px' : '12px',
                       fontFamily: 'var(--font-ui)',
-                      fontSize: item.level === 3 ? 'var(--text-xs)' : 'var(--text-sm)',
-                      lineHeight: 1.5,
-                      color: 'var(--color-text-muted)',
-                      textDecoration: 'none',
-                      borderLeft: '2px solid transparent',
-                      marginLeft: '-1px',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-secondary)',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
                     }}
                   >
                     {item.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        {/* Mobile TOC toggle */}
-        <div className="lg:hidden mb-6">
-          <button
-            onClick={() => setIsMobileTocOpen(!isMobileTocOpen)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 16px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              fontFamily: 'var(--font-ui)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
-              Table of Contents
-            </span>
-            <ChevronDown
-              size={16}
-              style={{ transform: isMobileTocOpen ? 'rotate(180deg)' : 'none' }}
-            />
-          </button>
-          {isMobileTocOpen && toc.length > 0 && (
-            <div
-              style={{
-                marginTop: '4px',
-                background: 'var(--color-surface)',
-                borderTop: '2px solid var(--color-rule-section)',
-                borderBottom: '1px solid var(--color-border)',
-                padding: '8px',
-              }}
-            >
-              {toc.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => scrollToHeading(item.id, true)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '8px 12px',
-                    paddingLeft: item.level === 3 ? '24px' : '12px',
-                    fontFamily: 'var(--font-ui)',
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-secondary)',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {item.text}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </aside>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
     </>
   );
 }

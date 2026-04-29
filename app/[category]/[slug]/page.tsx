@@ -1,4 +1,4 @@
-import { getPostBySlug, getLatestPosts, getAllPosts, getRouteMap, getCategoryMap } from '../../../src/services/wpService';
+import { getPostBySlug, getLatestPosts, getAllPosts } from '../../../src/services/wpService';
 import { processPostContent } from '../../../src/utils/processContent';
 import { formatSEOText } from '../../../src/utils/seoFormatter';
 import { notFound } from 'next/navigation';
@@ -21,12 +21,14 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
   const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered);
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+  const author = getAuthorForPost(post.id, post.author);
 
   const postUrl = `https://aurahomeoffice.com/${category}/${slug}`;
 
   return {
     title: cleanTitle,
     description: cleanExcerpt,
+    authors: [{ name: author.name, url: `https://aurahomeoffice.com/author/${author.id}` }],
     alternates: {
       canonical: postUrl,
     },
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       images: [featuredImage],
       type: 'article',
       publishedTime: post.date,
-      authors: [getAuthorForPost(post.id, post._embedded?.author?.[0]?.id).name],
+      authors: [author.name],
     },
     twitter: {
       card: 'summary_large_image',
@@ -65,13 +67,9 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   const latestPosts = await getLatestPosts(6);
-  const routeMap = await getRouteMap();
-  const categoryMap = await getCategoryMap();
 
   const baseUrl = 'https://aurahomeoffice.com';
   const postUrl = `${baseUrl}/${category}/${slug}`;
-  const publishDate = new Date(post.date).toISOString();
-  const modifiedDate = new Date(post.modified).toISOString();
   const cleanTitle = post.title.rendered.replace(/<[^>]*>/g, '');
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
 
@@ -119,12 +117,7 @@ export default async function PostPage({ params }: PostPageProps) {
     }))
   } : null;
 
-  const { html: processedHtml, toc, products } = processPostContent(
-    post.content.rendered,
-    post.title.rendered,
-    routeMap,
-    categoryMap
-  );
+  const { html: processedHtml, toc, products } = processPostContent(post.content.rendered);
 
   return (
     <>

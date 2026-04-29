@@ -1,5 +1,3 @@
-import { getLatestPosts, getCategories } from '@/src/services/wpService';
-
 export async function GET() {
   const baseUrl = 'https://aurahomeoffice.com';
   const now = new Date().toISOString();
@@ -17,6 +15,10 @@ export async function GET() {
   </sitemap>
   <sitemap>
     <loc>${baseUrl}/category-sitemap.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/author-sitemap.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>
 </sitemapindex>`;
