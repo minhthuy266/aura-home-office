@@ -6,6 +6,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Search Results',
   description: 'Search for articles, guides, and professional reviews on Aura Home Office.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 interface SearchPageProps {

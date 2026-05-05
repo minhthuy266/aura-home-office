@@ -118,7 +118,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-PHXM2WJG');`,
           }}
         />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+        {/* Bootstrap Icons — lazy loaded to avoid render-blocking */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          media="print"
+          // @ts-ignore — onLoad is valid for lazy-loading CSS
+          onLoad="this.media='all'"
+        />
+        <noscript>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+        </noscript>
         {/* Organization Schema — Essential for E-E-A-T Entity Recognition */}
         <script
           type="application/ld+json"

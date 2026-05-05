@@ -70,8 +70,11 @@ export async function generateMetadata({ params, searchParams }: {
     return {
       title: `Best ${displayName} Reviews & Buying Guides 2026${titleSuffix}`,
       description: description,
-      alternates: { 
+      alternates: {
         canonical: categoryUrl,
+        // rel="prev" / rel="next" — tells Bing & Google this is a paginated series, not duplicate content
+        ...(prevUrl && { prev: prevUrl }),
+        ...(nextUrl && { next: nextUrl }),
       },
     };
   } catch (e) {

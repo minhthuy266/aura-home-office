@@ -17,27 +17,6 @@ export const metadata: Metadata = {
   },
 };
 
-const websiteJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Aura Home Office',
-  url: 'https://aurahomeoffice.com',
-  description: 'Independent home office buying guide. Practical research on standing desks, ergonomic chairs, monitor arms, and workspace gear.',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://aurahomeoffice.com/search?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
-  },
-};
-
-const organizationJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'Aura Home Office',
-  url: 'https://aurahomeoffice.com',
-  logo: 'https://aurahomeoffice.com/favicon.ico',
-  sameAs: [],
-};
 
 export default async function HomePage() {
   const featuredPost = await getFeaturedPost();
@@ -60,8 +39,6 @@ export default async function HomePage() {
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section style={{

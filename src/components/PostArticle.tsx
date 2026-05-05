@@ -83,10 +83,17 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   };
   const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
 
+  // Smart Article type detection for Rich Results
+  // Bing awards better placement to specific schema types vs generic 'Article'
+  const isReview = tags.some((t: { slug: string }) =>
+    ['buying-guide', 'review', 'best-picks', 'hands-on-tested', 'showroom-checked'].includes(t.slug)
+  ) || /\b(best|review|vs\.|comparison|buying guide)\b/i.test(plainTitle);
+  const articleType = isReview ? 'ReviewNewsArticle' : 'Article';
+
   // Article JSON-LD schema — Linked to Organization entity in RootLayout
   const articleSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': articleType,
     '@id': `${postUrl}#article`,
     headline: plainTitle,
     description: cleanExcerpt,
