@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { getFeaturedPost, getLatestPosts, getPostsByTagSlug } from '@/src/services/wpService';
 import PostCard from '@/src/components/PostCard';
@@ -132,13 +133,14 @@ export default async function HomePage() {
                 borderRadius: 0,
                 overflow: 'hidden',
               }} className="img-zoom-hover">
-                <img 
+                <Image
                   src="https://images.unsplash.com/photo-1593062096033-9a26b09da705?q=80&w=1600" 
                   className="w-full h-full object-cover" 
                   alt="Premium ergonomic home office setup with monitor and desk"
                   width={800}
                   height={600}
-                  loading="eager"
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   style={{ borderRadius: 0 }}
                 />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,16,0.5), transparent)' }} />
@@ -303,7 +305,7 @@ export default async function HomePage() {
                     />
 
                     {/* Byline — JetBrains Mono */}
-                    <time style={{
+                    <time dateTime={p.date} style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: 'var(--text-xs)',
                       fontWeight: 400,
@@ -350,7 +352,7 @@ export default async function HomePage() {
                 Find Your Focus.
               </h2>
             </div>
-            <Link href="/categories" style={{
+            <Link href="/reviews" style={{
               fontFamily: 'var(--font-ui)',
               fontSize: 'var(--text-sm)',
               fontWeight: 600,
@@ -361,7 +363,7 @@ export default async function HomePage() {
               gap: '6px',
               whiteSpace: 'nowrap',
             }}>
-              All Categories <ArrowRight size={14} />
+              All Reviews <ArrowRight size={14} />
             </Link>
           </div>
           <CategoryGrid />
@@ -485,7 +487,7 @@ export default async function HomePage() {
                 marginTop: '12px',
               }}>
                 No spam. Unsubscribe any time.{' '}
-                <Link href="/privacy-policy" style={{ color: 'rgba(245,243,240,0.6)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                <Link href="/privacy" style={{ color: 'rgba(245,243,240,0.6)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                   Privacy Policy
                 </Link>
               </p>

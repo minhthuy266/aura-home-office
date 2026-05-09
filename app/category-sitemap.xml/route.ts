@@ -1,11 +1,15 @@
 import { getCategories } from '@/src/services/wpService';
 
+function escapeXml(value: string) {
+  return value.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c] || c));
+}
+
 export async function GET() {
   const baseUrl = 'https://aurahomeoffice.com';
   const categories = await getCategories();
 
-  const categoryUrls = categories.map((cat) => ({
-    url: `${baseUrl}/${cat.slug}`,
+  const categoryUrls = categories.filter((cat) => cat.count > 0).map((cat) => ({
+    url: escapeXml(`${baseUrl}/${cat.slug}`),
     lastModified: new Date().toISOString(),
     changeFrequency: 'weekly',
     priority: 0.6,

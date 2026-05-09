@@ -1,4 +1,4 @@
-import { getPostBySlug, getLatestPosts, getAllPosts } from '../../../src/services/wpService';
+import { getPostBySlug, getLatestPosts, getSitemapPosts } from '../../../src/services/wpService';
 import { processPostContent } from '../../../src/utils/processContent';
 import { formatSEOText } from '../../../src/utils/seoFormatter';
 import { notFound } from 'next/navigation';
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export async function generateStaticParams() {
-  const posts = await getAllPosts();
+  const posts = await getSitemapPosts();
   return posts.map((post) => ({
     category: post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized',
     slug: post.slug,
@@ -68,24 +68,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const latestPosts = await getLatestPosts(6);
 
-  const baseUrl = 'https://aurahomeoffice.com';
-  const postUrl = `${baseUrl}/${category}/${slug}`;
-  const cleanTitle = formatSEOText(post.title.rendered, post.title.rendered, category, post.content.rendered);
-  const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
-
-  // NOTE: Article JSON-LD is rendered directly by PostArticle.tsx to avoid duplicate schemas.
-
-  // JSON-LD: BreadcrumbList
-  const categoryName = post._embedded?.['wp:term']?.[0]?.[0]?.name || category;
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
-      { '@type': 'ListItem', position: 2, name: categoryName, item: `${baseUrl}/${category}` },
-      { '@type': 'ListItem', position: 3, name: cleanTitle, item: postUrl }
-    ]
-  };
+  // Article and Breadcrumb JSON-LD are rendered by PostArticle.tsx to keep one source of truth.
 
   // JSON-LD: FAQPage — extract Q&A from WP content
   const faqEntries: { question: string; answer: string }[] = [];

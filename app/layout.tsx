@@ -59,14 +59,14 @@ export const metadata = {
     siteName: 'Aura Home Office',
     locale: 'en_US',
     type: 'website',
-    images: ['https://aurahomeoffice.com/og-image.jpg'],
+    images: ['https://aurahomeoffice.com/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Aura Home Office | Home Office Buying Guide',
     description:
       'Research-based reviews on standing desks, ergonomic chairs, and workspace gear for real home offices.',
-    images: ['https://aurahomeoffice.com/og-image.jpg'],
+    images: ['https://aurahomeoffice.com/og-image.png'],
   },
   icons: {
     icon: '/icon.svg',
@@ -142,8 +142,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               logo: {
                 '@type': 'ImageObject',
                 '@id': 'https://aurahomeoffice.com/#logo',
-                url: 'https://aurahomeoffice.com/og-image.jpg',
-                contentUrl: 'https://aurahomeoffice.com/og-image.jpg',
+                url: 'https://aurahomeoffice.com/og-image.png',
+                contentUrl: 'https://aurahomeoffice.com/og-image.png',
                 width: 1200,
                 height: 630,
                 caption: 'Aura Home Office',
@@ -156,7 +156,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               ],
               contactPoint: {
                 '@type': 'ContactPoint',
-                email: 'hello@aurahomeoffice.com',
+                email: 'contact@aurahomeoffice.com',
                 contactType: 'editorial',
               },
             }),

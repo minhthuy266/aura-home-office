@@ -3,13 +3,28 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
-  description: 'Read the Privacy Policy of Aura Home Office. Learn how we collect, use, store, and protect your personal data when you visit our website.',
+  title: 'Privacy Policy — Aura Home Office',
+  description: 'Read the Aura Home Office Privacy Policy, including analytics, cookies, affiliate links, third-party retailers, and contact information.',
+  alternates: {
+    canonical: 'https://aurahomeoffice.com/privacy',
+  },
 };
 
 export default function PrivacyPage() {
+  const pageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Privacy Policy',
+    url: 'https://aurahomeoffice.com/privacy',
+    description: 'Privacy Policy for Aura Home Office.',
+    publisher: {
+      '@id': 'https://aurahomeoffice.com/#organization',
+    },
+  };
+
   return (
     <main style={{ minHeight: '100vh', paddingTop: 'var(--page-pt, 160px)', paddingBottom: '96px', background: 'var(--color-bg)' }} className="[--page-pt:120px] md:[--page-pt:160px]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema) }} />
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 var(--space-6)' }}>
         
         {/* Editorial Header */}
@@ -24,50 +39,64 @@ export default function PrivacyPage() {
             maxWidth: '600px',
             margin: '0 auto',
           }}>
-            How we collect, use, and protect your data across the Aura Home Office platform.
+            How Aura Home Office handles analytics, cookies, affiliate links, third-party services, and contact information.
           </p>
         </header>
 
         {/* Content Section */}
         <section className="prose-editorial">
           <p>
-            At Aura Home Office, we respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.
+            Aura Home Office is an editorial website. This policy explains what information may be collected when you visit the site, how that information is used, and how to contact us with privacy questions.
           </p>
 
-          <h2>Data We Collect</h2>
+          <h2>Information We May Collect</h2>
           <p>
-            We may collect, use, store and transfer different kinds of personal data about you which we have grouped together as follows:
+            We may collect limited information in the following categories:
           </p>
           <ul>
-            <li><strong style={{ color: 'var(--color-text-primary)' }}>Identity Data</strong> includes first name, last name, username or similar identifier.</li>
-            <li><strong style={{ color: 'var(--color-text-primary)' }}>Contact Data</strong> includes email address and telephone numbers.</li>
-            <li><strong style={{ color: 'var(--color-text-primary)' }}>Technical Data</strong> includes internet protocol (IP) address, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform, and other technology on the devices you use to access this website.</li>
-            <li><strong style={{ color: 'var(--color-text-primary)' }}>Usage Data</strong> includes information about how you use our website, products and services.</li>
+            <li><strong style={{ color: 'var(--color-text-primary)' }}>Technical data</strong> such as browser type, device type, pages viewed, referring pages, approximate location, and other analytics signals.</li>
+            <li><strong style={{ color: 'var(--color-text-primary)' }}>Usage data</strong> such as article views, clicks, search queries on the site, and interactions with links or forms.</li>
+            <li><strong style={{ color: 'var(--color-text-primary)' }}>Contact data</strong> such as your email address and message content if you contact us directly.</li>
           </ul>
 
           <h2>How We Use Your Data</h2>
           <p>
-            We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:
+            We use information to operate the site, understand which content is useful, respond to messages, improve articles, maintain security, and measure affiliate link performance.
           </p>
-          <ul>
-            <li>Where we need to perform the contract we are about to enter into or have entered into with you.</li>
-            <li>Where it is necessary for our legitimate interests (or those of a third party) and your interests and fundamental rights do not override those interests.</li>
-            <li>Where we need to comply with a legal obligation.</li>
-          </ul>
 
           <h2>Cookies and Tracking</h2>
           <p>
-            You can set your browser to refuse all or some browser cookies, or to alert you when websites set or access cookies. If you disable or refuse cookies, please note that some parts of this website may become inaccessible or not function properly. We use basic analytics tools to understand how our users interact with our content, which allows us to improve the reading experience.
+            We may use cookies, Google Analytics 4, Google Tag Manager, advertising tags, and affiliate tracking links. These tools help us understand site usage and may help retailers attribute purchases to affiliate links. You can limit or block cookies through your browser settings.
           </p>
 
           <h2>Third-Party Links</h2>
           <p>
-            This website may include links to third-party websites, plug-ins and applications. Clicking on those links or enabling those connections may allow third parties to collect or share data about you. We do not control these third-party websites and are not responsible for their privacy statements. When you leave our website, we encourage you to read the privacy policy of every website you visit.
+            This website links to retailers, manufacturers, analytics providers, and other third-party websites. Those services have their own privacy policies and data practices. We do not control third-party sites after you leave Aura Home Office.
+          </p>
+
+          <h2>Affiliate Links</h2>
+          <p>
+            Some outbound links are affiliate links. If you click an affiliate link, the retailer or affiliate network may use cookies or similar tracking to attribute a purchase.
+          </p>
+
+          <h2>Data Retention</h2>
+          <p>
+            We keep contact messages only as long as reasonably needed to respond, maintain records, or improve editorial quality. Analytics and affiliate reporting data may be retained by third-party providers according to their own policies.
+          </p>
+
+          <h2>Privacy Rights</h2>
+          <p>
+            Depending on where you live, including certain U.S. states such as California, you may have rights to request access to, correction of, deletion of, or information about personal data associated with you. You may also have the right to opt out of certain data sharing or targeted advertising activities. To make a privacy request, contact us at <a href="mailto:contact@aurahomeoffice.com">contact@aurahomeoffice.com</a>.
+          </p>
+
+          <h2>Do Not Sell or Share</h2>
+          <p>
+            Aura Home Office does not sell personal information for money. Some analytics, advertising, or affiliate tools may be considered "sharing" under certain privacy laws. You can limit tracking through browser controls, privacy extensions, and available platform opt-out tools.
           </p>
 
           <h2>Contact Us</h2>
           <p>
-            If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:hello@aurahomeoffice.com">hello@aurahomeoffice.com</a>.
+            If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:contact@aurahomeoffice.com">contact@aurahomeoffice.com</a>.
           </p>
 
           <p style={{ 
@@ -78,7 +107,7 @@ export default function PrivacyPage() {
             textTransform: 'uppercase',
             letterSpacing: 'var(--tracking-mono)'
           }}>
-            Last updated: April 19, 2026
+            Last updated: May 9, 2026
           </p>
         </section>
       </div>

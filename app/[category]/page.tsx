@@ -8,6 +8,7 @@ import { decodeHTMLEntities } from '../../src/utils/seoFormatter';
 
 // export const dynamic = 'force-static';
 export const revalidate = 60; // Revalidate every minute instead of hour for better testing
+const currentYear = new Date().getFullYear();
 
 interface CategoryPageProps {
   params: Promise<{ category: string }>;
@@ -52,7 +53,7 @@ export async function generateMetadata({ params, searchParams }: {
     // Full Dynamic Description Mapping
     const descMap: Record<string, string> = {
       'furniture': 'Elevate your workspace with our deep-dive reviews into premium office furniture, from designer desks to minimalist storage solutions.',
-      'standing-desks': 'The ultimate guide to the best standing desks in 2026. We analyze stability, motor noise, and long-term durability for peak performance.',
+      'standing-desks': 'The ultimate guide to the best standing desks for home offices. We analyze stability, motor noise, and long-term durability signals.',
       'ergonomic-chairs': 'Meticulously tested ergonomic chairs designed to protect your posture and enhance comfort during long-form coding and creative work.',
       'gaming-pcs': 'Power meets aesthetics. We rank the top pre-built gaming rigs that balance raw performance with home office design.',
       'setup': 'Inspirational home office setup guides and cinematic reveals of high-performance workspaces from around the world.',
@@ -68,7 +69,7 @@ export async function generateMetadata({ params, searchParams }: {
     const nextUrl = page < totalPages ? `${baseUrl}/${categorySlug}?page=${page + 1}` : undefined;
 
     return {
-      title: `Best ${displayName} Reviews & Buying Guides 2026${titleSuffix}`,
+      title: `Best ${displayName} Reviews & Buying Guides ${currentYear}${titleSuffix}`,
       description: description,
       alternates: {
         canonical: categoryUrl,
@@ -141,6 +142,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   
   const displayName = decodeHTMLEntities(category.name);
   const baseUrl = 'https://aurahomeoffice.com';
+  const pageUrl = `${baseUrl}/${categorySlug}${currentPage > 1 ? `?page=${currentPage}` : ''}`;
 
   // Featured and regular posts
   const featuredPost = posts[0];
@@ -151,7 +153,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
-      { '@type': 'ListItem', position: 2, name: displayName, item: `${baseUrl}/${categorySlug}` },
+      { '@type': 'ListItem', position: 2, name: displayName, item: pageUrl },
     ],
   };
 
@@ -160,7 +162,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     '@type': 'CollectionPage',
     name: `Best ${displayName} Reviews & Buying Guides`,
     description: `Expert analysis and deep-dive reviews for ${displayName.toLowerCase()}.`,
-    url: `${baseUrl}/${categorySlug}`,
+    url: pageUrl,
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: totalPosts,

@@ -64,7 +64,7 @@ export function formatPostContent(html: string): string {
   processedHtml = processedHtml.replace(/ target="_blank"/g, '');
   processedHtml = processedHtml.replace(
     /<a href="(http[^"]+)"/g, 
-    '<a href="$1" target="_blank" rel="noopener noreferrer nofollow"'
+    '<a href="$1" target="_blank" rel="nofollow sponsored noopener noreferrer"'
   );
   
   return processedHtml;

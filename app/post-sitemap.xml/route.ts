@@ -1,16 +1,20 @@
-import { getLatestPosts } from '@/src/services/wpService';
+import { getSitemapPosts } from '@/src/services/wpService';
+
+function escapeXml(value: string) {
+  return value.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c] || c));
+}
 
 export async function GET() {
   const baseUrl = 'https://aurahomeoffice.com';
-  const posts = await getLatestPosts(100);
+  const posts = await getSitemapPosts();
 
   const postUrls = posts.map((post) => ({
-    url: `${baseUrl}/${post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${post.slug}`,
-    lastModified: new Date(post.modified).toISOString(),
+    url: escapeXml(`${baseUrl}/${post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${post.slug}`),
+    lastModified: new Date(post.modified || post.date).toISOString(),
     changeFrequency: 'weekly',
     priority: 0.8,
-    image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null,
-    title: post.title.rendered.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c] || c)),
+    image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url ? escapeXml(post._embedded['wp:featuredmedia'][0].source_url) : null,
+    title: escapeXml(post.title.rendered.replace(/<[^>]*>/g, '')),
   }));
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

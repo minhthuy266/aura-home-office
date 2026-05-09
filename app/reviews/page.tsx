@@ -8,9 +8,11 @@ import { Star, TrendingUp, Tags } from 'lucide-react';
 export const dynamic = 'force-static';
 export const revalidate = 3600;
 
+const currentYear = new Date().getFullYear();
+
 export const metadata: Metadata = {
-  title: 'Best Home Office Reviews & Buying Guides 2026',
-  description: 'Independent, expert-led home office reviews and ergonomic gear analysis. We meticulously test standing desks, chairs, and workspace artifacts to help you build a high-performance office.',
+  title: `Best Home Office Reviews & Buying Guides ${currentYear}`,
+  description: 'Independent home office reviews and ergonomic gear analysis. We research standing desks, chairs, and workspace products to help you build a better home office.',
   alternates: { canonical: 'https://aurahomeoffice.com/reviews' },
 };
 
@@ -21,6 +23,39 @@ export default async function ReviewsHubPage() {
   const featuredPost = allPosts?.[0];
   const listPosts = allPosts?.slice(1, 5) || []; 
   const feedPosts = allPosts?.slice(5) || [];
+  const baseUrl = 'https://aurahomeoffice.com';
+  const reviewPosts = allPosts || [];
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+      { '@type': 'ListItem', position: 2, name: 'Reviews', item: `${baseUrl}/reviews` },
+    ],
+  };
+  const collectionJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${baseUrl}/reviews#webpage`,
+    url: `${baseUrl}/reviews`,
+    name: `Best Home Office Reviews & Buying Guides ${currentYear}`,
+    description: 'Independent home office reviews and buying guides from Aura Home Office.',
+    isPartOf: { '@id': `${baseUrl}/#website` },
+    publisher: { '@id': `${baseUrl}/#organization` },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: reviewPosts.length,
+      itemListElement: reviewPosts.slice(0, 15).map((post, index) => {
+        const categorySlug = post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized';
+        return {
+          '@type': 'ListItem',
+          position: index + 1,
+          url: `${baseUrl}/${categorySlug}/${post.slug}`,
+          name: post.title.rendered.replace(/<[^>]*>/g, ''),
+        };
+      }),
+    },
+  };
 
   return (
     <main style={{ 
@@ -29,6 +64,8 @@ export default async function ReviewsHubPage() {
       paddingTop: 'var(--page-pt, 160px)', 
       paddingBottom: '96px' 
     }} className="[--page-pt:120px] md:[--page-pt:160px]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 var(--space-6)' }}>
         
         {/* ─── Breadcrumb ─── */}
@@ -152,7 +189,7 @@ export default async function ReviewsHubPage() {
                       <h5 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }} className="group-hover:text-accent transition-colors">How to choose the perfect ergonomic chair for back pain</h5>
                    </Link>
                    <Link href="/guides" className="group">
-                      <h5 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }} className="group-hover:text-accent transition-colors">Standing Desk vs. Seated: What the science says in 2026</h5>
+                      <h5 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }} className="group-hover:text-accent transition-colors">Standing Desk vs. Seated: What the science says now</h5>
                    </Link>
                 </div>
               </div>

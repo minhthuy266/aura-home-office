@@ -358,14 +358,14 @@ export default function AboutPage() {
                 Aura TrustScore™ Methodology
               </h2>
               <p style={{ ...styles.bodyText, color: 'rgba(255,255,255,0.7)', marginBottom: '40px' }}>
-                The Aura TrustScore™ is a proprietary scoring system developed by our editorial team. It ranges from 0 to 10 and is calculated based on our structured research framework. This score is independent of any manufacturer or retailer and reflects the overall value based on specifications, durability, price-to-performance, and owner feedback.
+                The Aura TrustScore™ is an editorial scoring system developed by our team. It ranges from 0 to 10 and is based on our structured research framework. The score is independent of any manufacturer or retailer and reflects our view of specifications, expected durability, price-to-performance, and owner feedback patterns.
               </p>
               
               <ul style={{ display: 'flex', flexDirection: 'column', gap: '24px', listStyle: 'none', padding: 0 }}>
                 {[
-                  { title: 'Expert Analysis', desc: 'We aggregate long-term feedback from professionals and industry veterans.' },
+                  { title: 'Expert Analysis', desc: 'We review available product details, owner feedback patterns, and category-specific buying factors.' },
                   { title: 'Build Quality', desc: 'We scrutinize materials, manufacturer reliability, and long-term durability.' },
-                  { title: 'Ergonomic Performance', desc: 'We evaluate how effectively the product improves workspace health and comfort.' },
+                  { title: 'Ergonomic Performance', desc: 'We evaluate adjustability, fit, support features, and practical comfort signals for home office use.' },
                   { title: 'Value for Money', desc: 'We compare the feature-to-price ratio against current market alternatives.' }
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: '16px' }}>
@@ -383,8 +383,8 @@ export default function AboutPage() {
                 <span style={{ ...styles.monoKicker, color: 'var(--color-accent)', display: 'block', marginBottom: '32px' }}>What our ratings mean</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   {[
-                    { range: '9.0 – 10', label: 'Gold Standard', desc: 'Exceptional quality across the board. Highly recommended for long-term office use.' },
-                    { range: '7.5 – 8.9', label: 'Recommended', desc: 'Strong performer with great value. A solid investment for most home offices.' },
+                    { range: '9.0 – 10', label: 'Gold Standard', desc: 'Very strong on the available evidence. A leading option for the right workspace and budget.' },
+                    { range: '7.5 – 8.9', label: 'Recommended', desc: 'Strong performer with useful features and clear fit for many home offices.' },
                     { range: '6.0 – 7.4', label: 'Functional', desc: 'Meets expectations well, though some trade-offs in materials or features exist.' },
                     { range: '4.0 – 5.9', label: 'Average', desc: 'Functional but often outclassed by better options in the same price range.' },
                     { range: '0 – 3.9', label: 'Poor', desc: 'Significant drawbacks or durability concerns. Not recommended for daily work.' }
@@ -475,7 +475,7 @@ export default function AboutPage() {
             <span style={{ ...styles.monoKicker, display: 'block', marginBottom: '16px' }}>Meet the Team</span>
             <h2 style={{ ...styles.headingSection, marginBottom: '16px' }}>The people behind Aura Home Office</h2>
             <p style={{ ...styles.bodyText, color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
-              Three people. One shared standard: research that explains what's actually worth buying.
+              Three editorial roles. One shared standard: research that explains what is worth considering and what trade-offs to expect.
             </p>
           </div>
 
@@ -607,12 +607,12 @@ export default function AboutPage() {
               For feedback, product experiences, collaboration requests, corrections, or questions about our reviews, email us at:
             </p>
           </div>
-          <a href="mailto:hello@aurahomeoffice.com" style={{ 
+          <a href="mailto:contact@aurahomeoffice.com" style={{ 
             fontFamily: 'var(--font-ui)', fontSize: '18px', fontWeight: 600,
             color: 'var(--color-text-primary)', textDecoration: 'none',
             borderBottom: '2px solid var(--color-accent)', paddingBottom: '2px'
           }}>
-            hello@aurahomeoffice.com
+            contact@aurahomeoffice.com
           </a>
         </div>
       </section>

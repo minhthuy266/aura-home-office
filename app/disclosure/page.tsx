@@ -5,13 +5,13 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Affiliate Disclosure — Aura Home Office',
   description:
-    'Read our affiliate disclosure to understand how Aura Home Office is funded through reader-supported links, and our commitment to honest, unbiased research.',
+    'Read how Aura Home Office uses affiliate links, how commissions work, and how we keep editorial recommendations independent.',
   alternates: {
     canonical: 'https://aurahomeoffice.com/disclosure',
   },
   openGraph: {
     title: 'Affiliate Disclosure — Aura Home Office',
-    description: 'How Aura Home Office earns commissions and why it never affects our recommendations.',
+    description: 'How Aura Home Office earns commissions and keeps recommendations independent.',
     url: 'https://aurahomeoffice.com/disclosure',
     type: 'website',
   },
@@ -38,8 +38,7 @@ export default function DisclosurePage() {
             }),
           }}
         />
-        
-        {/* Editorial Header */}
+
         <header style={{ marginBottom: '80px', textAlign: 'center' }}>
           <span className="kicker">Transparency</span>
           <h1 className="heading-hero" style={{ marginBottom: 'var(--space-6)' }}>Affiliate Disclosure</h1>
@@ -48,17 +47,16 @@ export default function DisclosurePage() {
             fontSize: 'var(--text-md)',
             color: 'var(--color-text-secondary)',
             lineHeight: 'var(--leading-relaxed)',
-            maxWidth: '600px',
+            maxWidth: '620px',
             margin: '0 auto',
           }}>
-            Transparency and trust are the foundation of Aura Home Office. Here is everything you need to know about how we fund our research.
+            Aura Home Office is reader-supported. This page explains how affiliate links work and how we keep recommendations independent.
           </p>
         </header>
 
-        {/* Content Section */}
         <section className="prose-editorial">
           <p>
-            At Aura Home Office, we believe in being 100% transparent with our readers. Our mission is to help you build the perfect workspace, and to keep our research independent and high-quality, we participate in various affiliate marketing programs.
+            Some links on Aura Home Office are affiliate links. If you click one of those links and make a qualifying purchase, we may earn a commission at no extra cost to you.
           </p>
 
           <blockquote style={{
@@ -69,33 +67,43 @@ export default function DisclosurePage() {
             color: 'var(--color-text-body)',
             fontFamily: 'var(--font-body)',
           }}>
-            <strong style={{ color: 'var(--color-text-primary)' }}>Official Amazon Statement:</strong> Aura Home Office is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com. As an Amazon Associate, we earn from qualifying purchases.
+            <strong style={{ color: 'var(--color-text-primary)' }}>Amazon disclosure:</strong> As an Amazon Associate, Aura Home Office earns from qualifying purchases.
           </blockquote>
 
-          <h2>Price &amp; Availability Notice</h2>
+          <h2>How Affiliate Links Work</h2>
           <p>
-            We use the Amazon Product Advertising API to provide you with the most accurate information possible, including images, titles, and highlights. However, please note that Amazon.com prices and availability change frequently. We recommend checking the final price on the retailer's site before completing your purchase.
+            Affiliate links help fund our research, hosting, tools, and editorial work. We may participate in Amazon Associates and other retailer or affiliate programs. A retailer may pay us when a reader buys through a tracked link.
           </p>
 
-          <h2>Our Editorial Integrity</h2>
+          <h2>Editorial Independence</h2>
           <p>
-            Our recommendations are always based on one thing: <strong style={{ color: 'var(--color-text-primary)' }}>what is genuinely useful for the buyer.</strong> We spend considerable time researching and comparing gear so you don&apos;t have to. A product&apos;s affiliate status never influences our decision to recommend it. If we don&apos;t think a product is worth buying, we say so — regardless of whether it pays a commission or not.
+            Affiliate relationships do not decide our rankings, conclusions, or product trade-off notes. Brands and retailers cannot pay to receive a positive verdict, hide buyer complaints, remove downsides, or control our editorial recommendations.
           </p>
 
-          <h2>Social Media Transparency</h2>
+          <h2>Prices and Availability</h2>
           <p>
-            When you see us sharing gear on Instagram, Twitter, or other social platforms, we maintain the same level of honesty. Any post containing affiliate links will be clearly marked with indicators like <strong>#ad</strong> or <strong>#commissionsearned</strong>.
+            Product prices, availability, shipping terms, discounts, and listing details can change without notice. We may reference product information available at the time of research, but the retailer page is the final source for current price and availability.
           </p>
 
-          <p style={{ 
-            marginTop: '60px', 
-            fontFamily: 'var(--font-mono)', 
-            fontSize: 'var(--text-xs)', 
+          <h2>Research Limits</h2>
+          <p>
+            Most Aura Home Office recommendations are research-based unless clearly labeled otherwise. If a product was not hands-on tested, we do not want the article to imply that it was. We rely on product specifications, listing details, warranty information, and recurring owner feedback patterns where available.
+          </p>
+
+          <h2>Questions or Corrections</h2>
+          <p>
+            If you spot an outdated product detail, unclear disclosure, or possible error, contact us at <a href="mailto:contact@aurahomeoffice.com">contact@aurahomeoffice.com</a>.
+          </p>
+
+          <p style={{
+            marginTop: '60px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
             color: 'var(--color-text-muted)',
             textTransform: 'uppercase',
-            letterSpacing: 'var(--tracking-mono)'
+            letterSpacing: 'var(--tracking-mono)',
           }}>
-            Last updated: April 18, 2026
+            Last updated: May 9, 2026
           </p>
         </section>
       </div>

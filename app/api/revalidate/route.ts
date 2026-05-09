@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { AUTHORS, LEGACY_WP_AUTHOR_IDS } from '@/src/config/authors';
+import { submitToIndexNow } from '@/src/utils/indexNow';
 
 const DEFAULT_PATHS = [
   '/',
@@ -28,6 +29,7 @@ type RevalidatePayload = {
   secret?: string;
   paths?: string[];
   tags?: string[];
+  urls?: string[];
 };
 
 function invalidatePath(path: string) {
@@ -81,10 +83,13 @@ async function handleRevalidate(request: NextRequest) {
     revalidateTag(tag, 'max');
   }
 
+  const indexNow = await submitToIndexNow(body.urls || paths);
+
   return NextResponse.json({
     revalidated: true,
     paths: Array.from(paths),
     tags: Array.from(tags),
+    indexNow,
     now: Date.now(),
   });
 }

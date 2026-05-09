@@ -3,9 +3,28 @@ import PostCard from '../../../src/components/PostCard';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
+import { Metadata } from 'next';
 
 interface TagPageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const tag = await getTagBySlug(slug);
+  const tagName = tag?.name || slug.replace(/-/g, ' ');
+
+  return {
+    title: `${tagName} Articles`,
+    description: `Browse Aura Home Office articles tagged ${tagName}.`,
+    alternates: {
+      canonical: `https://aurahomeoffice.com/tag/${slug}`,
+    },
+    robots: {
+      index: false,
+      follow: true,
+    },
+  };
 }
 
 export default async function TagPage({ params }: TagPageProps) {

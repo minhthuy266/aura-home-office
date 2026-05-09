@@ -278,6 +278,50 @@ export async function getLatestPosts(perPage = 10): Promise<WPPost[]> {
 }
 
 /**
+ * Fetches lightweight post records for XML sitemaps.
+ * Keeps each WP response below Next.js data-cache limits while still including
+ * category and featured-image data needed for canonical URLs and image sitemaps.
+ */
+export async function getSitemapPosts(): Promise<WPPost[]> {
+  const allPosts: WPPost[] = [];
+  let page = 1;
+  const perPage = 20;
+
+  while (true) {
+    try {
+      const url = new URL(`${API_URL}/wp-json/wp/v2/posts`);
+      url.searchParams.set('_embed', 'wp:term,wp:featuredmedia');
+      url.searchParams.set('page', page.toString());
+      url.searchParams.set('per_page', perPage.toString());
+      url.searchParams.set('status', 'publish');
+
+      const res = await fetch(url.toString(), {
+        next: {
+          revalidate: REVALIDATE_TIME,
+          tags: [POSTS_CACHE_TAG],
+        },
+      });
+
+      if (!res.ok) break;
+
+      const posts = resolvePostsPlaceholders(await res.json());
+      if (posts.length === 0) break;
+
+      allPosts.push(...posts);
+
+      const totalPages = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
+      if (page >= totalPages) break;
+      page++;
+    } catch (err) {
+      console.error("Fetch Error (getSitemapPosts):", err);
+      break;
+    }
+  }
+
+  return allPosts;
+}
+
+/**
  * Fetches the post intended for the Hero/Featured slot.
  * Logic: Looks for 'featured' tag first, fallbacks to the most recent post.
  */

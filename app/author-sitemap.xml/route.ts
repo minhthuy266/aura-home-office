@@ -1,9 +1,9 @@
 import { AUTHORS, getAuthorForPost } from '@/src/config/authors';
-import { getAllPosts } from '@/src/services/wpService';
+import { getSitemapPosts } from '@/src/services/wpService';
 
 export async function GET() {
   const baseUrl = 'https://aurahomeoffice.com';
-  const allPosts = await getAllPosts();
+  const allPosts = await getSitemapPosts();
   const latestModifiedByAuthor = new Map<string, string>();
 
   for (const post of allPosts) {
