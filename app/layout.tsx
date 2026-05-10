@@ -1,4 +1,5 @@
 import './globals.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Playfair_Display, Source_Serif_4, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
@@ -118,17 +119,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-PHXM2WJG');`,
           }}
         />
-        {/* Bootstrap Icons — lazy loaded to avoid render-blocking */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-          media="print"
-          // @ts-ignore — onLoad is valid for lazy-loading CSS
-          onLoad="this.media='all'"
-        />
-        <noscript>
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-        </noscript>
         {/* Organization Schema — Essential for E-E-A-T Entity Recognition */}
         <script
           type="application/ld+json"
