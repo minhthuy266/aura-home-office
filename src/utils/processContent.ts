@@ -45,6 +45,24 @@ function slugifyHeading(value: string) {
     .slice(0, 80);
 }
 
+const dollarAmountPattern = '\\$\\s?\\d[\\d,]*(?:\\.\\d{2})?';
+const optionalPriceNounPattern = '(?:\\s+(?:price\\s+point|price\\s+range|range))?';
+const hardPriceClaimPatterns: Array<[RegExp, string]> = [
+  [new RegExp(`\\b(?:for\\s+)?under[\\s-]+(${dollarAmountPattern})${optionalPriceNounPattern}\\b`, 'gi'), 'around the $1 price range'],
+  [new RegExp(`\\bbelow\\s+(${dollarAmountPattern})${optionalPriceNounPattern}\\b`, 'gi'), 'around the $1 price range'],
+  [new RegExp(`\\bless\\s+than\\s+(${dollarAmountPattern})${optionalPriceNounPattern}\\b`, 'gi'), 'around the $1 price range'],
+  [new RegExp(`\\b(?:for\\s+)?under\\s+check\\s+current\\s+price\\b`, 'gi'), 'near the current Amazon price'],
+  [new RegExp(`\\bbelow\\s+check\\s+current\\s+price\\b`, 'gi'), 'near the current Amazon price'],
+  [new RegExp(`\\bless\\s+than\\s+check\\s+current\\s+price\\b`, 'gi'), 'near the current Amazon price'],
+];
+
+function softenHardPriceClaims(value: string): string {
+  return hardPriceClaimPatterns.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    value,
+  );
+}
+
 function prepareHtml(html: string): { html: string; toc: TOCItem[] } {
   const $ = cheerio.load(html, null, false);
   const toc: TOCItem[] = [];
@@ -84,11 +102,12 @@ function prepareHtml(html: string): { html: string; toc: TOCItem[] } {
       .replace(/\bEditor's Pick\b/gi, '')
       .replace(/\bLimited Time\b/gi, '')
       .replace(/\bTop Rated\b/gi, '')
-      .replace(/\$\s?\d[\d,]*(?:\.\d{2})?/g, 'check current price')
       .replace(/\bguaranteed\b/gi, 'not assured')
       .replace(/\bquiet motor operation\b/gi, 'motor noise');
 
-    if (cleaned !== current) node.data = cleaned;
+    const trustCleaned = softenHardPriceClaims(cleaned);
+
+    if (trustCleaned !== current) node.data = trustCleaned;
   });
 
   $('h2, h3').each((index, el) => {
