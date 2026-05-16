@@ -12,6 +12,66 @@ interface PostPageProps {
 
 export const revalidate = 60; // Cập nhật sau mỗi 1 phút
 
+function stripTitle(value: string): string {
+  return value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+const currentYear = new Date().getUTCFullYear();
+
+function normalizeMetadataTitle(title: string): string {
+  let normalized = stripTitle(title)
+    .replace(/\s*\|\s*Aura(?:\s+Home\s+Office)?\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const numberedBestMatch = normalized.match(/^The\s+(\d+)\s+Best\s+(.+?)\s+of\s+20\d{2}$/i);
+  if (numberedBestMatch) {
+    normalized = `${numberedBestMatch[1]} Best ${numberedBestMatch[2]} in ${currentYear}`;
+  }
+
+  if (normalized.length > 62 && /^(\d+\s+)?best\b/i.test(normalized) && normalized.includes(':')) {
+    normalized = normalized.split(':')[0].trim();
+  }
+
+  if (!/\b20\d{2}\b/.test(normalized) && /^(\d+\s+)?best\b/i.test(normalized)) {
+    const withYear = `${normalized} (${currentYear})`;
+    if (withYear.length <= 62) normalized = withYear;
+  }
+
+  if (normalized.length > 70) {
+    normalized = normalized
+      .replace(/\s+[-–—|:]\s+.*$/, '')
+      .replace(/\s+That\s+.*$/i, '')
+      .trim();
+  }
+
+  return normalized;
+}
+
+function normalizeMetadataDescription(title: string, excerpt: string): string {
+  let normalized = excerpt.replace(/\s+/g, ' ').trim();
+  const normalizedTitle = normalizeMetadataTitle(title);
+  const bestTopicMatch = normalizedTitle.match(/^(?:\d+\s+)?Best\s+(.+?)(?:\s+\(?20\d{2}\)?|\s+in\s+20\d{2})?$/i);
+
+  normalized = normalized
+    .replace(/^Compare\s+best\b/i, 'Compare the best')
+    .replace(/\bin\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/gi, 'in $2')
+    .replace(/\bof\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/gi, 'of $2');
+
+  if (bestTopicMatch) {
+    const topic = bestTopicMatch[1].trim();
+    const singularTopic = topic.replace(/s\b/i, '');
+    if (singularTopic !== topic) {
+      normalized = normalized.replace(
+        new RegExp(`\\bbest\\s+${singularTopic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+        `best ${topic.toLowerCase()}`,
+      );
+    }
+  }
+
+  return normalized;
+}
+
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { category, slug } = await params;
   const post = await getPostBySlug(slug);
@@ -20,21 +80,23 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 
   const cleanTitle = formatSEOText(post.title.rendered, post.title.rendered, category, post.content.rendered);
   const cleanExcerpt = formatSEOText(post.excerpt?.rendered || '', post.title.rendered, category, post.content.rendered);
+  const metadataTitle = normalizeMetadataTitle(cleanTitle);
+  const metadataDescription = normalizeMetadataDescription(cleanTitle, cleanExcerpt);
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
   const author = getAuthorForPost(post.id, post.author);
 
   const postUrl = `https://aurahomeoffice.com/${category}/${slug}`;
 
   return {
-    title: cleanTitle,
-    description: cleanExcerpt,
+    title: metadataTitle,
+    description: metadataDescription,
     authors: [{ name: author.name, url: `https://aurahomeoffice.com/author/${author.id}` }],
     alternates: {
       canonical: postUrl,
     },
     openGraph: {
-      title: cleanTitle,
-      description: cleanExcerpt,
+      title: metadataTitle,
+      description: metadataDescription,
       url: postUrl,
       images: [featuredImage],
       type: 'article',
@@ -43,8 +105,8 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
     },
     twitter: {
       card: 'summary_large_image',
-      title: cleanTitle,
-      description: cleanExcerpt,
+      title: metadataTitle,
+      description: metadataDescription,
       images: [featuredImage],
     },
   };
@@ -100,7 +162,9 @@ export default async function PostPage({ params }: PostPageProps) {
     }))
   } : null;
 
-  const { html: processedHtml, toc, products } = processPostContent(post.content.rendered, post.title.rendered);
+  const { html: processedHtml, toc, products } = processPostContent(post.content.rendered, post.title.rendered, {
+    fallbackUpdatedAt: post.modified || post.date,
+  });
 
   return (
     <>

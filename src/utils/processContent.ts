@@ -32,6 +32,10 @@ export interface ProductData {
   asin?: string;
 }
 
+export interface ProcessContentOptions {
+  fallbackUpdatedAt?: string;
+}
+
 function stripHtmlToText(html: string): string {
   return cheerio.load(html, null, false).text().replace(/\s+/g, ' ').trim();
 }
@@ -63,7 +67,83 @@ function softenHardPriceClaims(value: string): string {
   );
 }
 
-function prepareHtml(html: string): { html: string; toc: TOCItem[] } {
+function formatUpdatedDate(value?: string): string {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+function fillMissingProductUpdateDates($: cheerio.CheerioAPI, fallbackUpdatedAt?: string) {
+  const formattedDate = formatUpdatedDate(fallbackUpdatedAt);
+  if (!formattedDate) return;
+
+  $('.acms-list__update').each((_, el) => {
+    const update = $(el);
+    const label = update.children('span').first();
+
+    if (label.length && /^updated:\s*$/i.test(label.text().replace(/\s+/g, ' ').trim())) {
+      label.text(`Updated: ${formattedDate}`);
+    }
+
+    const tooltip = update.children('.acms-list__update-tooltip').first();
+    if (tooltip.length && /^last update on\s*(?:\/.*)?$/i.test(tooltip.text().replace(/\s+/g, ' ').trim())) {
+      tooltip.text(
+        `Last update on ${formattedDate} / Affiliate links / Images, Product Titles, and Product Highlights from Amazon Product Advertising API.`,
+      );
+    }
+  });
+}
+
+function shortenProductTitle(value: string): string {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  if (clean.length <= 72) return clean;
+
+  const split = clean.match(/^(.{28,72}?)(?:\s+(?:with|for|featuring|including|compatible with|fits)\b|[,|-])/i);
+  if (split?.[1]) return split[1].trim();
+
+  const words = clean.split(' ');
+  return words.slice(0, Math.min(words.length, 7)).join(' ').trim();
+}
+
+function extractProducts($: cheerio.CheerioAPI): ProductData[] {
+  const products: ProductData[] = [];
+
+  $('.acms-product-card, .acms-product-item, .acms-list__item, .wp-block-product-card').each((_, el) => {
+    const item = $(el);
+    const titleEl = item.find('.acms-list__title, .acms-product-title, .product-title, h3, h4').first();
+    const rawName = stripHtmlToText(titleEl.html() || titleEl.text());
+    if (!rawName) return;
+
+    const link = titleEl.find('a[href]').first().attr('href') || item.find('a[href]').first().attr('href') || '';
+    const image = item.find('img').first().attr('src') || item.find('img').first().attr('data-src') || '';
+    const score = stripHtmlToText(item.find('.acms-score, .acms-list__score, .score').first().html() || '');
+    const description = stripHtmlToText(
+      item.find('.acms-list__desc, .acms-product-description, .product-description, p').first().html() || '',
+    );
+
+    products.push({
+      name: shortenProductTitle(rawName),
+      url: link,
+      image,
+      score,
+      description,
+      pros: [],
+      cons: [],
+    });
+  });
+
+  return products;
+}
+
+function prepareHtml(html: string, options: ProcessContentOptions = {}): { html: string; toc: TOCItem[] } {
   const $ = cheerio.load(html, null, false);
   const toc: TOCItem[] = [];
   const usedHeadingIds = new Map<string, number>();
@@ -110,6 +190,40 @@ function prepareHtml(html: string): { html: string; toc: TOCItem[] } {
     if (trustCleaned !== current) node.data = trustCleaned;
   });
 
+  fillMissingProductUpdateDates($, options.fallbackUpdatedAt);
+
+  $('.acms-list__title, .acms-product-title, .product-title').each((_, el) => {
+    const heading = $(el);
+    if (!/^h[1-6]$/i.test(el.tagName)) return;
+
+    const link = heading.find('a').first();
+    const originalText = stripHtmlToText(heading.html() || '');
+    const shortTitle = shortenProductTitle(originalText);
+    if (shortTitle && shortTitle !== originalText) {
+      if (link.length) {
+        link.text(shortTitle);
+      } else {
+        heading.text(shortTitle);
+      }
+    }
+  });
+
+  const authorNames = new Set(['Alex Carter', 'Jordan Lee', 'Morgan Davis']);
+  $('h2, h3, h4').each((_, el) => {
+    const heading = $(el);
+    const text = stripHtmlToText(heading.html() || '');
+    if (!authorNames.has(text)) return;
+
+    const authorName = $('<p></p>');
+    const attrs = el.attribs || {};
+    Object.entries(attrs).forEach(([key, value]) => {
+      if (!/^id$/i.test(key)) authorName.attr(key, value);
+    });
+    authorName.addClass('author-name');
+    authorName.text(text);
+    heading.replaceWith(authorName);
+  });
+
   $('h2, h3').each((index, el) => {
     if ($(el).attr('data-toc') === 'false') return;
 
@@ -132,15 +246,21 @@ function prepareHtml(html: string): { html: string; toc: TOCItem[] } {
   return { html: $.html(), toc };
 }
 
-export function processPostContent(contentHtml: string, title = ''): ProcessedContent {
+export function processPostContent(
+  contentHtml: string,
+  title = '',
+  options: ProcessContentOptions = {},
+): ProcessedContent {
   const html = replaceDynamicPlaceholders(contentHtml, {
     title,
     contentHtml,
   });
-  const prepared = prepareHtml(html);
+  const prepared = prepareHtml(html, options);
+  const $ = cheerio.load(prepared.html, null, false);
 
   return {
     html: prepared.html,
     toc: prepared.toc,
+    products: extractProducts($),
   };
 }

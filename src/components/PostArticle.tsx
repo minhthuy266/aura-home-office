@@ -70,6 +70,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const plainTitle = decodeHTMLEntities(cleanTitleForDisplay.replace(/<[^>]*>/g, ''));
   const postUrl = `https://aurahomeoffice.com/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
   const imageUrl = featuredMedia?.source_url || defaultPostImage;
+  const lastUpdatedAt = post.modified || post.date;
 
   // Evidence label from tags (tag slugs: research-based, hands-on-tested, showroom-checked, owner-feedback-based)
   const evidenceTag = tags.find((t: { slug: string }) =>
@@ -84,11 +85,10 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
 
   // Smart Article type detection for Rich Results
-  // Bing awards better placement to specific schema types vs generic 'Article'
   const isReview = tags.some((t: { slug: string }) =>
     ['buying-guide', 'review', 'best-picks', 'hands-on-tested', 'showroom-checked'].includes(t.slug)
   ) || /\b(best|review|vs\.|comparison|buying guide)\b/i.test(plainTitle);
-  const articleType = isReview ? 'ReviewNewsArticle' : 'Article';
+  const articleType = isReview ? ['Article', 'Review'] : 'Article';
 
   // Article JSON-LD schema — Linked to Organization entity in RootLayout
   const articleSchema: Record<string, unknown> = {
@@ -167,18 +167,22 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
       item: {
         '@type': 'Product',
         name: p.name,
-        image: p.image,
-        url: p.url,
+        ...(p.image ? { image: p.image } : {}),
+        ...(p.url ? { url: p.url } : {}),
         brand: {
           '@type': 'Brand',
           name: p.name.split(' ')[0]
         },
-        offers: {
-          '@type': 'Offer',
-          url: p.url,
-          priceCurrency: 'USD',
-          availability: 'https://schema.org/InStock'
-        },
+        ...(p.url
+          ? {
+              offers: {
+                '@type': 'Offer',
+                url: p.url,
+                priceCurrency: 'USD',
+                availability: 'https://schema.org/InStock'
+              },
+            }
+          : {}),
       }
     }))
   } : null;
@@ -364,7 +368,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
             </div>
           )}
           <time
-            dateTime={post.date}
+            dateTime={lastUpdatedAt}
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 'var(--text-xs)',
@@ -374,7 +378,7 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
               fontWeight: 400,
             }}
           >
-            LAST UPDATED: {format(new Date(post.date), 'MMMM yyyy').toUpperCase()}
+            LAST UPDATED: {format(new Date(lastUpdatedAt), 'MMMM yyyy').toUpperCase()}
           </time>
         </div>
       </header>
