@@ -34,7 +34,7 @@ const mono = JetBrains_Mono({
 export const metadata = {
   title: {
     default: 'Aura Home Office | Home Office Buying Guide',
-    template: '%s | Aura Home Office',
+    template: '%s | Aura',
   },
   description:
     'Independent home office buying guide. We research standing desks, chairs, and gear so you can buy right the first time without wasting money on the wrong equipment.',
