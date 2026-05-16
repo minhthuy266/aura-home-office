@@ -113,6 +113,18 @@ function shortenProductTitle(value: string): string {
   return words.slice(0, Math.min(words.length, 7)).join(' ').trim();
 }
 
+const productBlockSelector = [
+  '.acms-list',
+  '.acms-list__item',
+  '.acms-product-card',
+  '.acms-product-item',
+  '.wp-block-product-card',
+].join(', ');
+
+function isInsideProductBlock($: cheerio.CheerioAPI, el: Parameters<cheerio.CheerioAPI>[0]): boolean {
+  return $(el).closest(productBlockSelector).length > 0;
+}
+
 function extractProducts($: cheerio.CheerioAPI): ProductData[] {
   const products: ProductData[] = [];
 
@@ -206,6 +218,9 @@ function prepareHtml(html: string, options: ProcessContentOptions = {}): { html:
         heading.text(shortTitle);
       }
     }
+
+    heading.removeAttr('id');
+    heading.attr('data-toc', 'false');
   });
 
   const authorNames = new Set(['Alex Carter', 'Jordan Lee', 'Morgan Davis']);
@@ -226,6 +241,10 @@ function prepareHtml(html: string, options: ProcessContentOptions = {}): { html:
 
   $('h2, h3').each((index, el) => {
     if ($(el).attr('data-toc') === 'false') return;
+    if (isInsideProductBlock($, el)) {
+      $(el).removeAttr('id');
+      return;
+    }
 
     const text = stripHtmlToText($(el).html() || '');
     if (!text) return;

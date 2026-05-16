@@ -1,0 +1,1909 @@
+{
+  "name": "Aura - Single Webhook Per-ASIN Pipeline v4 Crawbase",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aura-keyword-trigger",
+        "options": {}
+      },
+      "name": "Trigger: Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        24576,
+        7312
+      ],
+      "webhookId": "aura-keyword-webhook",
+      "id": "8ee0cf1e-840f-411b-8196-9755b897ddbc"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        24576,
+        7472
+      ],
+      "id": "a58c4766-9b8d-4874-aabb-64a0120d63d1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Keywords",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "name": "Sheet: Get Pending Keyword",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        24752,
+        7472
+      ],
+      "id": "ba7c1ef0-6f0f-4e3f-be86-4b269284cc8c",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "VkP8v18fXnTFj85g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize input payload from Webhook, Telegram, or Google Sheet schedule.\nlet source;\nlet triggered_by = 'schedule';\n\nfunction clean(value) {\n  return String(value ?? '').trim();\n}\n\nfunction slugify(value) {\n  return clean(value)\n    .toLowerCase()\n    .replace(/&/g, ' and ')\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n}\n\ntry {\n  source = $('Trigger: Webhook').first().json.body || {};\n  triggered_by = 'webhook';\n} catch (e) {\n  const rows = $('Sheet: Get Pending Keyword').all().map(item => item.json || {});\n  const blockedStatuses = new Set(['completed', 'done', 'published', 'processing', 'running', 'skip', 'skipped', 'failed', 'error']);\n  source = rows.find(row => {\n    const keyword = clean(row.keyword);\n    const status = clean(row.status).toLowerCase();\n    return keyword && !blockedStatuses.has(status);\n  });\n\n  if (!source) {\n    return [];\n  }\n}\n\nconst sourcePayload = source && typeof source === 'object'\n  ? JSON.parse(JSON.stringify(source))\n  : {};\n\nfunction firstValue(...values) {\n  return values.find(value => value !== undefined && value !== null && clean(value) !== '');\n}\n\nconst sourceProductPayload = {\n  asin_code: clean(firstValue(source.asin_code, source.asin, source.ASIN)),\n  asin_title: clean(firstValue(source.asin_title, source.title, source.product_title)),\n  asin_brand: clean(firstValue(source.asin_brand, source.brand)),\n  asin_category: clean(firstValue(source.asin_category, source.category_name, source.category)),\n  asin_price: clean(firstValue(source.asin_price, source.price)),\n  asin_rating: clean(firstValue(source.asin_rating, source.rating)),\n  asin_reviews_count: source.asin_reviews_count ?? source.reviews_count ?? source.review_count ?? 0,\n  asin_description: clean(firstValue(source.asin_description, source.description)),\n  asin_features: source.asin_features || source.features || '',\n  asin_specifications: Array.isArray(source.asin_specifications) ? source.asin_specifications : [],\n  asin_top_reviews: Array.isArray(source.asin_top_reviews) ? source.asin_top_reviews : []\n};\n\nconst sourceArticlePayload = {\n  post_id: source.post_id || source.postId || source.id || '',\n  keyword: clean(firstValue(source.keyword, source.article_keyword, source.focus_keyword)),\n  category_name: clean(firstValue(source.category_name, source.category)),\n  products_count: source.products_count ?? source.asin_count ?? source.count ?? '',\n  products: source.products || '',\n  related_posts: source.related_posts || '',\n  existing_title: source.existing_title || source.title || '',\n  existing_content: source.existing_content || source.content || '',\n  price_range: source.price_range || '',\n  price_min: source.price_min || '',\n  price_max: source.price_max || '',\n  brand_list: source.brand_list || '',\n  review_count: source.review_count || '',\n  review_count_formatted: source.review_count_formatted || '',\n  shortcode_list: source.shortcode_list || '',\n  shortcode_grid: source.shortcode_grid || '',\n  shortcode_card: source.shortcode_card || ''\n};\n\nconst keyword = clean(firstValue(\n  source.keyword,\n  source.article_keyword,\n  source.parent_keyword,\n  source.focus_keyword,\n  source.existing_title,\n  source.asin_title,\n  source.title\n));\nif (!keyword) {\n  if (triggered_by === 'schedule') {\n    return [];\n  }\n  throw new Error('Pipeline Error: No keyword found in input payload.');\n}\n\nfunction parseAsinList(value) {\n  if (!value) return [];\n  const raw = Array.isArray(value)\n    ? value\n    : (String(value).match(/B[0-9A-Z]{9}/gi) || String(value).split(/[ ,\\n]+/));\n  const seen = new Set();\n  return raw\n    .map(a => clean(a).toUpperCase())\n    .filter(a => /^B[0-9A-Z]{9}$/.test(a))\n    .filter(a => {\n      if (seen.has(a)) return false;\n      seen.add(a);\n      return true;\n    });\n}\n\nconst categories = [\n  'Standing Desks',\n  'Ergonomic Chairs',\n  'Desk Converters',\n  'Desk Storage',\n  'Footrests & Mats',\n  'Monitor Arms',\n  'Desk Lighting',\n  'Cable Management',\n  'Keyboards & Mice',\n  'Desk Accessories',\n  'Ergonomics & Health',\n  'Workspace Ideas',\n  'Productivity'\n];\n\nfunction normalizeCategory(value) {\n  const input = clean(value).toLowerCase();\n  if (!input) return '';\n  return categories.find(category => category.toLowerCase() === input) || '';\n}\n\nfunction inferCategory(value) {\n  const text = clean(value).toLowerCase();\n  const rules = [\n    ['Standing Desks', ['standing desk', 'sit stand', 'sit-stand', 'height adjustable desk', 'electric desk']],\n    ['Ergonomic Chairs', ['ergonomic chair', 'office chair', 'desk chair', 'computer chair', 'chair']],\n    ['Desk Converters', ['desk converter', 'standing desk converter', 'desk riser', 'sit stand converter']],\n    ['Desk Storage', ['desk storage', 'file cabinet', 'drawer', 'shelf', 'cabinet', 'organizer']],\n    ['Footrests & Mats', ['footrest', 'foot rest', 'anti fatigue', 'standing mat', 'desk mat']],\n    ['Monitor Arms', ['monitor arm', 'monitor mount', 'dual monitor', 'monitor stand']],\n    ['Desk Lighting', ['desk lamp', 'lamp', 'light', 'lighting', 'zoom meeting', 'video light', 'soft light']],\n    ['Cable Management', ['cable', 'cord', 'wire management', 'cable tray']],\n    ['Keyboards & Mice', ['keyboard', 'mouse', 'mice', 'trackball']],\n    ['Ergonomics & Health', ['posture', 'back pain', 'wrist rest', 'ergonomic setup', 'health']],\n    ['Workspace Ideas', ['workspace idea', 'home office idea', 'office setup', 'small space', 'layout', 'decor']],\n    ['Productivity', ['productivity', 'focus', 'workflow', 'time management']]\n  ];\n\n  for (const [category, needles] of rules) {\n    if (needles.some(needle => text.includes(needle))) {\n      return category;\n    }\n  }\n\n  return 'Desk Accessories';\n}\n\nconst asins = parseAsinList(firstValue(source.asins, source.asin_list, source.article_asins, source.asin_code, source.asin, source.shortcode_list, source.shortcode_grid, source.shortcode_card, source.products));\nconst rawCategory = normalizeCategory(firstValue(source.category, source.category_name, source.asin_category));\nconst category = rawCategory || inferCategory(keyword);\nconst category_inferred = !rawCategory;\nconst rawAsinCount = source.asin_count ?? source.asinCount ?? source.products_count ?? source.productsCount ?? source.max_asins ?? source.maxAsins ?? source.limit ?? source.count;\nconst parsedAsinCount = parseInt(rawAsinCount, 10);\nconst asin_count = Math.max(1, Math.min(\n  Number.isFinite(parsedAsinCount) ? parsedAsinCount : (asins.length || 8),\n  15\n));\nconst keyword_queue_id = clean(source.keyword_queue_id || source.keywordQueueId || source.queue_id || source.queueId || source.row_id || source.rowId || source.row_number || source.row_index || '');\nconst providedRequestId = clean(source.request_id || source.requestId);\nconst providedRunId = clean(source.job_group_id || source.jobGroupId || source.run_id || source.runId || providedRequestId);\nconst job_started_at = new Date().toISOString();\nconst job_group_id = providedRunId || [slugify(keyword), job_started_at.replace(/[-:.TZ]/g, '').slice(0, 14)].filter(Boolean).join('-');\n\nlet author_id = 7;\nlet author_name = 'Morgan Davis';\nlet author_persona = 'Product Review Editor focusing on practical buying guides, honest trade-off summaries, editorial standards, and definitive verdicts to help buyers make better decisions.';\n\nconst alexCategories = ['Standing Desks', 'Desk Converters', 'Monitor Arms', 'Cable Management', 'Keyboards & Mice'];\nconst jordanCategories = ['Ergonomic Chairs', 'Desk Storage', 'Footrests & Mats', 'Desk Lighting', 'Desk Accessories', 'Ergonomics & Health', 'Workspace Ideas', 'Productivity'];\n\nif (alexCategories.includes(category)) {\n  author_id = 5;\n  author_name = 'Alex Carter';\n  author_persona = 'Research Lead focusing on product research, deep technical specs, dimensions, weight capacity, frame design, and rigorous hardware comparisons.';\n} else if (jordanCategories.includes(category)) {\n  author_id = 6;\n  author_name = 'Jordan Lee';\n  author_persona = 'Workspace Editor focusing on real-world home office fit, ergonomics, room dimensions, cable clutter, aesthetics, and daily routine impact in small spaces.';\n}\n\nreturn [{\n  json: {\n    keyword,\n    category,\n    category_inferred,\n    category_name: sourceArticlePayload.category_name || category,\n    queue_payload_type: sourceProductPayload.asin_code ? 'asin_product' : (sourceArticlePayload.post_id || sourceArticlePayload.products ? 'article' : 'keyword'),\n    source_payload: sourcePayload,\n    source_product_payload: sourceProductPayload,\n    source_article_payload: sourceArticlePayload,\n    post_id: sourceArticlePayload.post_id,\n    existing_title: sourceArticlePayload.existing_title,\n    existing_content: sourceArticlePayload.existing_content,\n    related_posts: sourceArticlePayload.related_posts,\n    products: sourceArticlePayload.products,\n    asins,\n    asin_count,\n    job_group_id,\n    run_id: job_group_id,\n    keyword_queue_id,\n    parent_keyword: keyword,\n    article_keyword: keyword,\n    job_started_at,\n    row_index: source.row_index || source.row_number || null,\n    sheet_status: clean(source.status),\n    triggered_by,\n    notify_channel: source.notify_channel || source.notifyChannel || '',\n    chat_id: source.chat_id || source.chatId || source.telegram_chat_id || source.telegramChatId || '',\n    telegram_chat_id: source.telegram_chat_id || source.telegramChatId || source.chat_id || source.chatId || '',\n    telegram_message_id: source.telegram_message_id || source.telegramMessageId || '',\n    request_id: providedRequestId || job_group_id,\n    requested_by: source.requested_by || source.requestedBy || '',\n    notes: clean(source.notes),\n    source: source.source || triggered_by,\n    author_id,\n    author_name,\n    author_persona\n  }\n}];"
+      },
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24880,
+        7296
+      ],
+      "id": "38f7ef4e-fb91-47f1-8ddf-f0d09ce00fc7"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.crawlbase.com/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Setup Global Config').first().json.crawbase_token || $('Setup Global Config').first().json.crawbase_js_token }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ 'https://www.amazon.com/s?k=' + encodeURIComponent($json.search_query || $json.keyword) + '&page=' + ($json.search_page || 1) }}"
+            },
+            {
+              "name": "country",
+              "value": "US"
+            },
+            {
+              "name": "ajax_wait",
+              "value": "true"
+            },
+            {
+              "name": "page_wait",
+              "value": "5000"
+            },
+            {
+              "name": "scraper",
+              "value": "amazon-serp"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "name": "Crawbase: Search ASINs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        26192,
+        7296
+      ],
+      "id": "51e15ad1-2174-4331-a643-4945c2fea778",
+      "retryOnFail": true,
+      "waitBetweenTries": 15000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Input').first().json;\nconst requestedLimit = Math.max(1, Math.min(parseInt(input.asin_count, 10) || 8, 15));\nconst scrapeLimit = input.asins && input.asins.length > 0\n  ? requestedLimit\n  : Math.max(requestedLimit, Math.min(15, requestedLimit + 5));\nconst limit = requestedLimit;\n\nfunction uniqueValidAsins(values) {\n  const seen = new Set();\n  return values\n    .map(a => String(a || '').trim().toUpperCase())\n    .filter(a => /^B[0-9A-Z]{9}$/.test(a))\n    .filter(a => {\n      if (seen.has(a)) return false;\n      seen.add(a);\n      return true;\n    });\n}\n\nfunction fatalAsinSearchError(message, extra = {}) {\n  return [{\n    json: {\n      ...input,\n      asins: [],\n      asin_count: limit,\n      asins_source: 'crawbase_search_failed',\n      _fatal_error: true,\n      _fatal_node: 'Parse ASINs',\n      _fatal_stage: 'asin_search',\n      _fatal_message: String(message || 'ASIN search failed'),\n      _fatal_extra: extra,\n      _fatal_action: 'Provide ASINs manually, simplify the keyword, or check Crawbase structured Amazon search.'\n    }\n  }];\n}\n\nif (input.asins && input.asins.length > 0) {\n  const asins = uniqueValidAsins(input.asins).slice(0, limit);\n  if (!asins.length) {\n    return fatalAsinSearchError('No valid ASINs provided in input payload.');\n  }\n  return [{ json: { ...input, asins, asin_count: limit, asins_source: 'provided' } }];\n}\n\nfunction parseBody(data) {\n  const rawBody = typeof data === 'string' ? data : (data.body ?? data.data ?? data.message ?? '');\n\n  if (typeof rawBody === 'string' && /<!doctype html|<html/i.test(rawBody)) {\n    return { parsed: null, rawBody, html: true };\n  }\n\n  let parsed = data;\n  if (typeof rawBody === 'string' && rawBody.trim().startsWith('{')) {\n    try {\n      parsed = JSON.parse(rawBody);\n    } catch (error) {\n      parsed = data;\n    }\n  }\n\n  return { parsed, rawBody, html: false };\n}\n\nconst pageInputs = $input.all().map(item => item.json || {});\nconst parsedPages = pageInputs.map(parseBody);\n\nif (parsedPages.some(page => page.html) && !parsedPages.some(page => page.parsed && typeof page.parsed === 'object')) {\n  return fatalAsinSearchError('Crawbase search returned Amazon HTML instead of structured JSON. Check Crawlbase scraper=amazon-serp, token type, and query.', {\n    search_query: $('Setup Global Config').first().json.search_query || input.keyword\n  });\n}\n\nconst resultBuckets = [\n  'results',\n  'organic_results',\n  'search_results',\n  'products',\n  'ads',\n  'amazons_choice',\n  'sponsored_results'\n];\n\nfunction unwrapStructured(value) {\n  if (!value) return {};\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string' && value.trim().startsWith('{')) {\n    try { return JSON.parse(value); } catch (e) { return {}; }\n  }\n  if (typeof value !== 'object') return {};\n  if (value.body && typeof value.body === 'object') return value.body;\n  if (value.data && typeof value.data === 'object') return value.data;\n  if (typeof value.body === 'string' && value.body.trim().startsWith('{')) {\n    try { return JSON.parse(value.body); } catch (e) {}\n  }\n  if (typeof value.data === 'string' && value.data.trim().startsWith('{')) {\n    try { return JSON.parse(value.data); } catch (e) {}\n  }\n  return value;\n}\n\nconst results = parsedPages.flatMap(page => {\n  const parsed = unwrapStructured(page.parsed || {});\n  if (Array.isArray(parsed)) return parsed;\n  return resultBuckets.flatMap(key => Array.isArray(parsed[key]) ? parsed[key] : []);\n});\n\nfunction asinFromRecord(record) {\n  const direct = record.asin || record.asin_number || record.parent_asin || record.product_asin || record.asin_id;\n  if (direct) return direct;\n\n  const url = String(record.url || record.link || record.product_url || '');\n  const match = url.match(/(?:\\/dp\\/|\\/gp\\/product\\/|[?&](?:asin|creativeASIN)=)(B[0-9A-Z]{9})/i);\n  return match ? match[1] : '';\n}\n\nconst searchQuery = ($('Setup Global Config').first().json.search_query || input.keyword || '').toLowerCase();\nconst stopWords = new Set(['best', 'top', 'cheap', 'review', 'reviews', 'for', 'with', 'and', 'home', 'office']);\nconst words = searchQuery.split(/\\s+/).filter(w => w.length > 2 && !stopWords.has(w));\n\nconst records = results\n  .map(record => ({ record, asin: asinFromRecord(record) }))\n  .filter(item => item.asin);\n\nconst filteredRecords = records.filter(({ record }) => {\n  const name = String(record.name || record.title || '').toLowerCase();\n  return words.length === 0 || words.some(word => name.includes(word));\n});\n\nconst filteredAsins = uniqueValidAsins(filteredRecords.map(item => item.asin));\nconst allAsins = uniqueValidAsins(records.map(item => item.asin));\nconst sourceAsins = filteredAsins.concat(allAsins.filter(asin => !filteredAsins.includes(asin)));\nconst asins = sourceAsins.slice(0, scrapeLimit);\n\nif (asins.length === 0) {\n  const keys = Array.from(new Set(parsedPages.flatMap(page => Object.keys(page.parsed || {})))).slice(0, 12).join(', ');\n  return fatalAsinSearchError('No relevant ASINs found for: ' + input.keyword, {\n    search_query: $('Setup Global Config').first().json.search_query || input.keyword,\n    crawbase_keys: keys,\n    pages_checked: String(pageInputs.length)\n  });\n}\n\nif (asins.length < requestedLimit) {\n  return fatalAsinSearchError('Only found ' + asins.length + ' ASINs, but asin_count requested ' + requestedLimit + '.', {\n    search_query: $('Setup Global Config').first().json.search_query || input.keyword,\n    found_asin_count: String(asins.length),\n    requested_asin_count: String(requestedLimit),\n    pages_checked: String(pageInputs.length),\n    search_result_records: String(records.length),\n    search_filtered_records: String(filteredRecords.length)\n  });\n}\n\nreturn [{\n  json: {\n    ...input,\n    asins,\n    asin_count: requestedLimit,\n    scrape_target_count: scrapeLimit,\n    asins_source: 'crawbase_search',\n    found_asin_count: asins.length,\n    search_pages_checked: pageInputs.length,\n    search_result_records: records.length,\n    search_filtered_records: filteredRecords.length\n  }\n}];"
+      },
+      "name": "Parse ASINs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26320,
+        7296
+      ],
+      "id": "ee6f767e-f72b-4eeb-94c2-d18d8c2716e9"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "asins",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "name": "Split ASINs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        26528,
+        7296
+      ],
+      "id": "b4c4ff6f-0fb7-49e9-aaa4-8aeabe0a14b4"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.crawlbase.com/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Setup Global Config').first().json.crawbase_token || $('Setup Global Config').first().json.crawbase_js_token }}"
+            },
+            {
+              "name": "url",
+              "value": "=https://www.amazon.com/dp/{{ $json.asins }}"
+            },
+            {
+              "name": "country",
+              "value": "US"
+            },
+            {
+              "name": "ajax_wait",
+              "value": "true"
+            },
+            {
+              "name": "page_wait",
+              "value": "5000"
+            },
+            {
+              "name": "scraper",
+              "value": "amazon-product-details"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "name": "Crawbase: Scrape ASIN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        26736,
+        7296
+      ],
+      "id": "a55bac9d-f02e-4870-979e-b221df99ab7e",
+      "retryOnFail": true,
+      "waitBetweenTries": 15000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalize = $('Normalize Input').first().json || {};\nconst keyword = normalize.keyword;\nconst category = normalize.category;\nconst splitAsins = $('Split ASINs').all();\nconst asinList = splitAsins.map(item => item.json?.asins).filter(Boolean);\nconst asinListString = asinList.join(',');\n\nfunction clean(value) {\n  return String(value ?? '')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction decodeHtml(value) {\n  return clean(value)\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#34;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/&apos;/g, \"'\")\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>');\n}\n\nfunction stripTags(value) {\n  return decodeHtml(String(value || '').replace(/<script[\\s\\S]*?<\\/script>/gi, ' ').replace(/<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' '));\n}\n\nfunction firstValue(...values) {\n  return values.find(value => value !== undefined && value !== null && clean(value) !== '');\n}\n\nfunction compactText(value, max = 4000) {\n  const text = clean(value);\n  return text.length > max ? text.slice(0, max).replace(/\\s+\\S*$/, '').trim() : text;\n}\n\nfunction specName(key) {\n  return clean(key).replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());\n}\n\nfunction specValue(value) {\n  if (value === undefined || value === null) return '';\n  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return clean(value);\n  if (Array.isArray(value)) return value.map(specValue).filter(Boolean).join(', ');\n  if (typeof value === 'object') {\n    if (value.stars || value.count) return [value.stars, value.count].filter(Boolean).join(' ');\n    return '';\n  }\n  return clean(value);\n}\n\nfunction specsFromProductInformation(productInformation) {\n  if (!productInformation || typeof productInformation !== 'object') return [];\n  return Object.entries(productInformation)\n    .map(([key, value]) => ({ name: specName(key), value: specValue(value) }))\n    .filter(entry => entry.name && entry.value)\n    .slice(0, 80);\n}\n\nfunction specsFromSource(value) {\n  if (!Array.isArray(value)) return [];\n  return value\n    .map(entry => ({\n      name: clean(entry?.name || entry?.label || entry?.key),\n      value: clean(entry?.value)\n    }))\n    .filter(entry => entry.name && entry.value)\n    .slice(0, 80);\n}\n\nfunction featureArray(value) {\n  if (Array.isArray(value)) return value.map(clean).filter(Boolean);\n  return String(value || '')\n    .split(/\\n+/)\n    .map(line => clean(line.replace(/^[-*]\\s*/, '')))\n    .filter(Boolean);\n}\n\nfunction reviewArray(value) {\n  if (!Array.isArray(value)) return [];\n  return value\n    .map(review => ({\n      title: clean(review.title || review.review_title || ''),\n      rating: clean(review.rating || review.stars || ''),\n      author: clean(review.author || review.profile_name || ''),\n      date: clean(review.date || review.review_date || ''),\n      review: compactText(review.review || review.text || review.content || '', 1200)\n    }))\n    .filter(review => review.review)\n    .slice(0, 5);\n}\n\nfunction reviewString(reviews) {\n  return reviews\n    .map(review => [review.title, review.rating, review.review].filter(Boolean).join('\\n'))\n    .join('\\n---\\n');\n}\n\nfunction matchFirst(text, patterns) {\n  for (const pattern of patterns) {\n    const match = String(text || '').match(pattern);\n    if (match && match[1]) return decodeHtml(match[1]);\n  }\n  return '';\n}\n\nfunction parseCrawbaseHtml(html, asin) {\n  const title = matchFirst(html, [\n    /<span[^>]+id=[\"']productTitle[\"'][^>]*>([\\s\\S]*?)<\\/span>/i,\n    /<meta[^>]+property=[\"']og:title[\"'][^>]+content=[\"']([^\"']+)[\"']/i,\n    /<title[^>]*>([\\s\\S]*?)<\\/title>/i,\n  ]).replace(/\\s*:\\s*Amazon\\.com.*$/i, '');\n\n  let brand = matchFirst(html, [\n    /<a[^>]+id=[\"']bylineInfo[\"'][^>]*>([\\s\\S]*?)<\\/a>/i,\n    /<tr[^>]*>\\s*<th[^>]*>\\s*Brand\\s*<\\/th>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>/i,\n    /<span[^>]*>\\s*Brand\\s*<\\/span>\\s*<span[^>]*>([\\s\\S]*?)<\\/span>/i,\n  ]);\n  brand = stripTags(brand).replace(/^Visit the\\s+/i, '').replace(/\\s+Store$/i, '');\n\n  const price = matchFirst(html, [\n    /<span[^>]+class=[\"'][^\"']*a-price[^\"']*[\"'][^>]*>[\\s\\S]*?<span[^>]+class=[\"']a-offscreen[\"'][^>]*>([^<]+)<\\/span>/i,\n    /<meta[^>]+name=[\"']twitter:data1[\"'][^>]+content=[\"']([^\"']+)[\"']/i,\n    /<span[^>]+id=[\"']priceblock_[^\"']+[\"'][^>]*>([^<]+)<\\/span>/i,\n  ]);\n\n  const rating = matchFirst(html, [\n    /<span[^>]+class=[\"'][^\"']*a-icon-alt[^\"']*[\"'][^>]*>([0-9.]+\\s*out of\\s*5 stars)<\\/span>/i,\n    /([0-9.]+)\\s*out of\\s*5 stars/i,\n  ]).replace(/\\s*out of\\s*5 stars/i, '');\n\n  const reviewsText = matchFirst(html, [\n    /<span[^>]+id=[\"']acrCustomerReviewText[\"'][^>]*>([^<]+)<\\/span>/i,\n    /([0-9,]+)\\s+ratings?/i,\n  ]);\n  const reviews_count = parseInt(String(reviewsText).replace(/[^0-9]/g, ''), 10) || 0;\n\n  const image_url = matchFirst(html, [\n    /<img[^>]+id=[\"']landingImage[\"'][^>]+data-old-hires=[\"']([^\"']+)[\"']/i,\n    /<img[^>]+id=[\"']landingImage[\"'][^>]+src=[\"']([^\"']+)[\"']/i,\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i,\n  ]);\n\n  const bulletsBlock = matchFirst(html, [\n    /<div[^>]+id=[\"']feature-bullets[\"'][^>]*>([\\s\\S]*?)<\\/div>\\s*<\\/div>/i,\n    /<ul[^>]+class=[\"'][^\"']*a-unordered-list[^\"']*a-vertical[^\"']*a-spacing-mini[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/ul>/i,\n  ]);\n  const features_array = Array.from(String(bulletsBlock || '').matchAll(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi))\n    .map(match => stripTags(match[1]))\n    .filter(line => line && !/^make sure this fits/i.test(line))\n    .slice(0, 12);\n\n  const specs = [];\n  for (const tableMatch of String(html || '').matchAll(/<tr[^>]*>\\s*<(?:th|td)[^>]*>([\\s\\S]*?)<\\/(?:th|td)>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>\\s*<\\/tr>/gi)) {\n    const name = stripTags(tableMatch[1]).replace(/:$/, '');\n    const value = stripTags(tableMatch[2]);\n    if (name && value && name.length < 80 && value.length < 300) specs.push({ name, value });\n  }\n\n  for (const bulletMatch of String(html || '').matchAll(/<li[^>]*>\\s*<span[^>]*class=[\"'][^\"']*a-list-item[^\"']*[\"'][^>]*>\\s*<span[^>]*>([\\s\\S]*?)<\\/span>\\s*<span[^>]*>([\\s\\S]*?)<\\/span>/gi)) {\n    const name = stripTags(bulletMatch[1]).replace(/:$/, '');\n    const value = stripTags(bulletMatch[2]);\n    if (name && value && name.length < 80 && value.length < 300) specs.push({ name, value });\n  }\n\n  const seenSpecs = new Set();\n  const specifications_array = specs.filter(entry => {\n    const key = entry.name.toLowerCase() + '=' + entry.value.toLowerCase();\n    if (seenSpecs.has(key)) return false;\n    seenSpecs.add(key);\n    return true;\n  }).slice(0, 80);\n\n  const description = matchFirst(html, [\n    /<div[^>]+id=[\"']productDescription[\"'][^>]*>([\\s\\S]*?)<\\/div>/i,\n    /<div[^>]+id=[\"']aplus[\"'][^>]*>([\\s\\S]*?)<\\/div>/i,\n  ]);\n\n  return {\n    asin,\n    name: title,\n    title,\n    brand,\n    pricing: price,\n    average_rating: rating,\n    total_reviews: reviews_count,\n    image_url,\n    description: compactText(stripTags(description), 4000),\n    feature_bullets: features_array,\n    product_information: {\n      asin,\n      brand_name: brand,\n      customer_reviews: rating ? { stars: rating } : undefined,\n      ...Object.fromEntries(specifications_array.map(entry => [entry.name, entry.value])),\n    },\n    high_res_images: image_url ? [image_url] : [],\n    reviews: [],\n    _crawler_provider: 'crawbase',\n  };\n}\n\nfunction bodyFromResponse(data) {\n  if (typeof data === 'string') return data;\n  return data.body ?? data.data ?? data.html ?? data.response ?? data.text ?? '';\n}\n\nfunction parseJsonBody(value) {\n  if (typeof value !== 'string') return null;\n  const text = value.trim();\n  if (!text || !/^[{[]/.test(text)) return null;\n  try {\n    return JSON.parse(text);\n  } catch (e) {\n    return null;\n  }\n}\n\nreturn $input.all().map((item, index) => {\n  const rawData = item.json || {};\n  const splitItem = splitAsins[index]?.json || {};\n  const sourceProduct = normalize.source_product_payload || splitItem.source_product_payload || {};\n  const sourceAsin = sourceProduct.asin_code || sourceProduct.asin || '';\n  const fallbackAsin = sourceAsin || splitItem.asins || 'UNKNOWN';\n  const rawBody = bodyFromResponse(rawData);\n  const parsedJsonBody = parseJsonBody(rawBody);\n  const data = parsedJsonBody || (rawBody && typeof rawBody === 'object'\n    ? rawBody\n    : (typeof rawBody === 'string' && /<html|<!doctype html|id=[\"']productTitle[\"']/i.test(rawBody)\n      ? parseCrawbaseHtml(rawBody, fallbackAsin)\n      : rawData));\n\n  const asin = data.product_information?.asin || data.asin || sourceAsin || splitItem.asins || 'UNKNOWN';\n  const title = clean(firstValue(data.name, data.title, sourceProduct.asin_title, sourceProduct.title));\n  const productCategory = clean(firstValue(\n    data.category,\n    data.product_category,\n    Array.isArray(data.categories) ? data.categories.join(' > ') : '',\n    sourceProduct.asin_category,\n    category\n  ));\n  const tracking = {\n    keyword,\n    parent_keyword: normalize.parent_keyword || keyword,\n    article_keyword: normalize.article_keyword || keyword,\n    category,\n    category_name: normalize.category_name || category,\n    product_category: productCategory,\n    queue_payload_type: normalize.queue_payload_type || '',\n    source_payload: normalize.source_payload || {},\n    source_product_payload: sourceProduct,\n    source_article_payload: normalize.source_article_payload || {},\n    post_id: normalize.post_id || '',\n    job_group_id: splitItem.job_group_id || normalize.job_group_id || '',\n    run_id: splitItem.run_id || normalize.run_id || normalize.job_group_id || '',\n    keyword_queue_id: splitItem.keyword_queue_id || normalize.keyword_queue_id || '',\n    request_id: splitItem.request_id || normalize.request_id || '',\n    asin_index: index + 1,\n    asin_total: asinList.length || splitAsins.length || 0,\n    asin_list: asinListString,\n    article_asins: asinListString\n  };\n\n  if (rawData.error || data.error || !title) {\n    return {\n      json: {\n        ...tracking,\n        asin,\n        status: 'skipped',\n        error: rawData.error || data.error || 'Missing core product name in Crawbase payload',\n        title: '',\n        brand: '',\n        rating: '',\n        reviews_count: 0,\n        price: '',\n        image_url: '',\n        description: '',\n        features: '',\n        features_array: [],\n        specifications: '',\n        specifications_array: [],\n        top_reviews: '',\n        top_reviews_array: []\n      }\n    };\n  }\n\n  const specsArray = specsFromProductInformation(data.product_information);\n  const scraperSpecs = specsFromSource(data.specifications || data.product_specifications || data.product_details);\n  const sourceSpecs = specsFromSource(sourceProduct.asin_specifications);\n  const specificationsArray = specsArray.length ? specsArray : (scraperSpecs.length ? scraperSpecs : sourceSpecs);\n  const featuresArray = featureArray(firstValue(data.feature_bullets, data.features, sourceProduct.asin_features));\n  const reviewsArray = reviewArray(Array.isArray(data.reviews) && data.reviews.length ? data.reviews : sourceProduct.asin_top_reviews);\n\n  const imageUrl = data.image_url || data.main_image || data.image || ((Array.isArray(data.high_res_images) && data.high_res_images.length > 0)\n    ? data.high_res_images[0]\n    : (Array.isArray(data.images) && data.images.length > 0 ? data.images[0] : ''));\n\n  let brand = clean(firstValue(data.product_information?.brand_name, data.brand, sourceProduct.asin_brand));\n  brand = brand.replace(/Visit the /i, '').replace(/ Store/i, '').trim();\n\n  const description = compactText(firstValue(data.full_description, data.description, sourceProduct.asin_description), 4000);\n  const features = featuresArray.join('\\n');\n  const specifications = specificationsArray.map(entry => entry.name + ': ' + entry.value).join('\\n');\n  const topReviews = reviewString(reviewsArray);\n\n  return {\n    json: {\n      ...tracking,\n      asin,\n      asin_code: asin,\n      status: 'success',\n      title,\n      asin_title: title,\n      brand,\n      asin_brand: brand,\n      rating: firstValue(data.average_rating, data.rating, data.product_information?.customer_reviews?.stars, sourceProduct.asin_rating) || '',\n      reviews_count: firstValue(data.total_reviews, data.total_ratings, data.reviews_count, data.review_count, sourceProduct.asin_reviews_count) || 0,\n      price: firstValue(data.pricing, data.price, data.list_price, sourceProduct.asin_price) || '',\n      image_url: imageUrl,\n      description,\n      asin_description: description,\n      features,\n      asin_features: features,\n      features_array: featuresArray,\n      specifications,\n      asin_specifications: specificationsArray,\n      specifications_array: specificationsArray,\n      top_reviews: topReviews,\n      asin_top_reviews: reviewsArray,\n      top_reviews_array: reviewsArray,\n      crawler_provider: data._crawler_provider || 'crawbase'\n    }\n  };\n});"
+      },
+      "name": "Parse Product Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26944,
+        7296
+      ],
+      "id": "0b7d7ec5-2c0c-4b8d-8a40-ab6e7e259579"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 337498495,
+          "mode": "list",
+          "cachedResultName": "Aura_Category_Rules",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ/edit#gid=337498495"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Category",
+              "lookupValue": "={{ $json.category }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Lookup Category Rules",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        25696,
+        7296
+      ],
+      "id": "8ce74b92-fc32-472a-a660-31f2ebf58c7c",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "VkP8v18fXnTFj85g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $input.item.json;\nconst config = $('Setup Global Config').first().json;\nlet categoryRules = {};\ntry {\n  categoryRules = $('Lookup Category Rules').first().json || {};\n} catch (e) {\n  categoryRules = {};\n}\n\nconst originalAsins = $('Parse ASINs').first().json.asins || [];\nconst specific_claims = d['Specific Claims'] || categoryRules['Specific Claims'] || '';\nconst specific_rules  = d['Specific Rules']  || categoryRules['Specific Rules']  || '';\nconst specific_specs  = d['Specific Specs']  || categoryRules['Specific Specs']  || '';\n\nconst prompt = `You write buyer-focused product reviews for Aura Home Office, an independent home office buying guide for American shoppers.\n\nOUTPUT: One valid raw JSON object. First char {. Last char }.\nNo markdown syntax anywhere. Do not use **, ##, backticks, or markdown bullets inside JSON strings.\nNo text before or after. No trailing commas.\nAll string values must be valid JSON strings. Escape any double quote that appears inside a string.\nIn custom_tabs content strings, use only these simple HTML tags: <p>, <ul>, <li>, <strong>, <em>, <br>. Do not add HTML attributes, classes, styles, onclicks, tables, links, or unescaped quotation marks inside HTML strings.\n\n## CLAIM RULES\n${specific_claims}\n\nNever use hype: best seller, top rated, premium, ultimate, game-changer, guaranteed, revolutionize.\nNever fake personal use: I used, I tested, after two weeks, in my hands, in my experience.\nNever use test, tested, hands-on, lab-tested, or personally tested unless explicit first-party testing data is provided.\nNever disclose AI or apologize for limits. Write like a strict editor summarizing product evidence.\n\n## REVIEW DATA RULES\nUse ONLY listing specs, product details, and Top Reviews when Top Reviews is non-empty.\nDO NOT hallucinate, infer, or guess specifications.\nIf a requested spec is missing from the product data, explicitly write \"Not specified\".\nIf Top Reviews has useful patterns: use \"Owner feedback points to...\" / \"Several reviewers mention...\"\nIf Top Reviews is empty: do not mention reviews, owner feedback, missing reviews, no reviews, unverified comfort claims, or absent buyer feedback. Base the review only on listing specs, product details, and concrete specs buyers should verify.\nIf product data is sparse, say what buyers should verify instead of inventing specs.\n\n=== CATEGORY SPECIFIC FOCUS ===\n${specific_rules}\n\n## SEO AND RETENTION RULES\n1. custom_title must contain the exact product type keyword. Max 150 chars.\n2. short_review must mention product type in the first sentence.\n3. Explain who should buy it and who should skip it explicitly.\n4. Make every point concrete enough for comparison against other ASINs.\n5. Avoid generic AI phrasing: moreover, furthermore, in conclusion, important to note, when it comes to, delving into, seamless.\n6. Keep best_for, skip_if, decision_note, and setup_context to one short sentence each.\n7. Create a short_product_name that is 2-6 words. Do not copy the full Amazon title.\n8. Create a product_label in Title Case, e.g. Best Overall, Best Budget, Best For Dual Monitors, Best For Small Desks.\n9. Pros and cons must be short bullet fragments under 10 words each.\n10. Do not invent price or value claims. If price data is missing, write \"Check current price\" or focus on specs.\n11. Write for conversion without hype: identify the buyer's real job-to-be-done, the purchase objection, and the reason this product is worth clicking over similar options.\n12. Every comparison_summary field must help the macro article sell: best_for should name a buyer situation, skip_if should remove a bad-fit buyer, main_strength should be the click reason, and main_weakness should be the honest objection.\n13. decision_note must be decisive and useful: \"Buy this if...\", \"Compare it if...\", or \"Skip it if...\". Do not write a vague summary.\n14. evidence_points should include proof-like details from specs or owner feedback when provided, not marketing adjectives.\n\n## PRODUCT DATA\nASIN: ${d.asin}\nTitle: ${d.title}\nBrand: ${d.brand}\nRating: ${d.rating}/5\nDescription: ${d.description}\nFeatures: ${d.features}\nSpecifications: ${d.specifications}\nTop Reviews: ${d.top_reviews}\n\n## KEY SPECS TO EXTRACT\n${specific_specs}\n\n## AURA SCORE RULES\nReturn score as a number from 0 to 10 with one decimal using Aura's public rating scale:\n- 9.0-10.0 Gold Standard: very strong on the available evidence and a leading option for the right workspace and budget.\n- 7.5-8.9 Recommended: strong performer with useful features and clear fit for many home offices.\n- 6.0-7.4 Functional: meets expectations well, though some trade-offs in materials or features exist.\n- 4.0-5.9 Average: functional but often outclassed by better options in the same price range.\n- 0-3.9 Poor: significant drawbacks or durability concerns. Not recommended for daily work.\n\nAura score is a shortlist score, not a harsh catalog-quality score.\nUse this formula:\n- If Amazon rating is available: score = Amazon rating + 5.0.\n- Round to one decimal.\n- Cap score at 9.9.\n- Example: 4.5/5 becomes 9.5/10. 4.3/5 becomes 9.3/10. 5.0/5 becomes 9.9/10.\n- If Amazon rating is missing but the product data is usable, use a reasonable shortlist score between 8.1 and 8.8 based on evidence completeness, setup fit, and trade-offs.\n- Do not give every usable product the same fallback score. Vary scores slightly so the shortlist reflects meaningful comparison judgment.\nMissing specs, sparse listing data, or missing Top Reviews should affect claim_confidence, missing_specs, and score_rationale, not automatically drag the score below 8.1 for a usable shortlisted product.\n\n## OUTPUT FORMAT\n{\n  \"short_product_name\": \"2-6 words. Brand + model or clean product name. No keyword stuffing.\",\n  \"product_label\": \"Title Case buying label, e.g. Best Overall or Best For Dual Monitors.\",\n  \"custom_title\": \"Max 150 chars. Exact product type + main use case + key differentiator. No hype.\",\n  \"short_review\": \"2-3 sentences. What it is, who it fits, one honest trade-off.\",\n  \"evidence_basis\": \"Research-based using listing specs and product details. Mention buyer feedback only when Top Reviews is non-empty.\",\n  \"source_basis\": \"One of: listing specs + owner feedback, listing specs only, sparse listing data.\",\n  \"claim_confidence\": \"high, medium, or low based on data completeness.\",\n  \"score\": \"Number 0-10 with one decimal, e.g. 7.8 or 8.4. Must follow the Aura Score Rules.\",\n  \"score_label\": \"Gold Standard, Recommended, Functional, Average, or Poor.\",\n  \"score_rationale\": \"One sentence explaining why this score fits the available evidence.\",\n  \"missing_specs\": [\"Important missing specs buyers should verify. Use [] if none.\"],\n  \"selling_points\": [\"5 items exactly. Concrete benefit with home office context.\"],\n  \"pros\": [\"5-6 items. Under 10 words each. Concrete advantage from product data.\"],\n  \"cons\": [\"2-3 items. Under 10 words each. Honest limitation from specs.\"],\n  \"comparison_summary\": {\n    \"comparison_angle\": \"Short buying label tied to buyer intent, e.g. Best for dual monitors, Best renter-friendly pick, or Best for heavy cable bundles.\",\n    \"best_for\": \"1 short sentence naming the buyer situation, workspace constraint, or setup where this product is easiest to recommend.\",\n    \"skip_if\": \"1 short sentence naming the buyer who should avoid it because of fit, mounting, capacity, comfort, or missing specs.\",\n    \"main_strength\": \"The strongest click reason from specs or Top Reviews when provided. Make it concrete enough to compare.\",\n    \"main_weakness\": \"The main purchase objection or buying risk a cautious shopper would notice.\",\n    \"key_specs\": [\"3-5 concise specs that affect buying decisions. Use 'Not specified' if missing.\"],\n    \"evidence_points\": [\"3 proof-like bullets from specs or Top Reviews when provided. Avoid adjectives without evidence.\"],\n    \"decision_note\": \"One decisive sentence that starts with Buy, Compare, or Skip and explains why.\",\n    \"setup_context\": \"The specific home-office setup where this product makes the most sense.\"\n  },\n  \"custom_tabs\": [\n    {\"title\": \"Why It Stands Out\", \"content\": \"<p><strong>Main reason to consider it:</strong> 2-3 sentences.</p><p><strong>What that means daily:</strong> How key feature helps in WFH setup.</p>\", \"icon\": \"bi-stars\"},\n    {\"title\": \"Before You Buy\", \"content\": \"<p><strong>Check before buying:</strong> Intro.</p><ul><li><strong>Concern 1:</strong> Why it matters.</li><li><strong>Concern 2:</strong> What to verify.</li><li><strong>Concern 3:</strong> What to confirm.</li></ul>\", \"icon\": \"bi-chat-square-text\"},\n    {\"title\": \"Key Specifications\", \"content\": \"<p><strong>Core specs:</strong></p><ul><li>Spec 1</li><li>Spec 2</li></ul><p><strong>Verify before ordering:</strong> fit, weight, dimensions.</p>\", \"icon\": \"bi-list-check\"},\n    {\"title\": \"Best Setup & Trade-Offs\", \"content\": \"<p><strong>Best setup:</strong> Realistic workspace.</p><p><strong>Best for:</strong> Specific buyer type.</p><p><strong>Skip it if:</strong> Who should look elsewhere.</p><p><strong>Bottom line:</strong> Buy, skip, or compare.</p>\", \"icon\": \"bi-exclamation-triangle\"}\n  ]\n}\n\nVERIFY: Valid JSON with properly escaped quotes in all strings. Include short_product_name, product_label, source_basis, claim_confidence, score, score_label, score_rationale, and missing_specs. 5 selling_points, 5-6 pros, 2-3 cons, 4 tabs, comparison_summary complete. No fake price claims. No fake testing. No markdown. Use \"Not specified\" for missing specs.`;\n\nreturn { json: { ...config, ...d, asins: originalAsins, specific_claims, specific_rules, specific_specs, micro_prompt: prompt } };"
+      },
+      "name": "Build Micro Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27152,
+        7264
+      ],
+      "id": "e980a00a-db39-45be-a3c6-44511923516d"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const llm = $input.item.json;\nconst raw = llm.content?.[0]?.text || '';\nconst usage = llm.usage || { input_tokens: 0, output_tokens: 0 };\nconst model = llm.model || 'unknown';\nfunction estimateAiCost(modelName, tokenUsage) {\n  const lower = String(modelName || '').toLowerCase();\n  let inputPerMillion = 1;\n  let outputPerMillion = 5;\n  if (lower.includes('sonnet')) {\n    inputPerMillion = 3;\n    outputPerMillion = 15;\n  } else if (lower.includes('haiku')) {\n    inputPerMillion = 1;\n    outputPerMillion = 5;\n  } else if (lower.includes('gpt-4o-mini')) {\n    inputPerMillion = 0.15;\n    outputPerMillion = 0.6;\n  } else if (lower.includes('gpt-4o')) {\n    inputPerMillion = 2.5;\n    outputPerMillion = 10;\n  } else if (lower.includes('gemini')) {\n    inputPerMillion = 0.35;\n    outputPerMillion = 1.05;\n  }\n  const inputTokens = Number(tokenUsage.input_tokens || tokenUsage.prompt_tokens || 0);\n  const outputTokens = Number(tokenUsage.output_tokens || tokenUsage.completion_tokens || 0);\n  return Number(((inputTokens * inputPerMillion + outputTokens * outputPerMillion) / 1000000).toFixed(6));\n}\nconst ai_cost_estimate = estimateAiCost(model, usage);\n\nlet review;\nlet pipeline_status = llm._llm_error ? 'failed' : 'success';\nlet error_msg = llm._llm_error || '';\n\nfunction fallbackReview(reason) {\n  return {\n    short_product_name: 'Review unavailable',\n    product_label: 'Review Unavailable',\n    custom_title: 'Review data unavailable',\n    short_review: 'This product review is temporarily unavailable due to a processing error.',\n    evidence_basis: 'Unavailable due to processing error.',\n    source_basis: 'Unavailable due to processing error.',\n    claim_confidence: 'low',\n    score: 0,\n    score_label: 'Poor',\n    score_rationale: 'Review unavailable, so Aura cannot assign a positive evidence score.',\n    missing_specs: [],\n    selling_points: ['N/A', 'N/A', 'N/A', 'N/A', 'N/A'],\n    pros: ['N/A', 'N/A', 'N/A'],\n    cons: ['N/A', 'N/A'],\n    comparison_summary: {\n      comparison_angle: 'Review unavailable',\n      best_for: 'N/A',\n      skip_if: 'N/A',\n      main_strength: 'N/A',\n      main_weakness: reason || 'LLM review unavailable',\n      key_specs: [],\n      evidence_points: [],\n      decision_note: 'Skip until the review is regenerated.',\n      setup_context: 'N/A'\n    },\n    custom_tabs: []\n  };\n}\n\nconst originalData = $('Build Micro Prompt').all()[$itemIndex].json;\n\nfunction cleanText(value) {\n  return String(value ?? '')\n    .replace(/\\*\\*/g, '')\n    .replace(/^#+\\s*/gm, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction cleanHtml(value) {\n  return String(value ?? '')\n    .replace(/\\*\\*/g, '')\n    .replace(/^#+\\s*/gm, '')\n    .replace(/<([a-z0-9]+)(?:\\s+[^>]*)?>/gi, (match, tag) => {\n      const allowed = new Set(['p', 'ul', 'li', 'strong', 'em', 'br']);\n      return allowed.has(String(tag).toLowerCase()) ? '<' + tag.toLowerCase() + '>' : '';\n    })\n    .replace(/<\\/([a-z0-9]+)>/gi, (match, tag) => {\n      const allowed = new Set(['p', 'ul', 'li', 'strong', 'em']);\n      return allowed.has(String(tag).toLowerCase()) ? '</' + tag.toLowerCase() + '>' : '';\n    })\n    .trim();\n}\n\nfunction oneSentence(value, fallback) {\n  const text = cleanText(value || fallback || '');\n  const match = text.match(/^(.+?[.!?])\\s/);\n  return (match ? match[1] : text).slice(0, 220).trim();\n}\n\nfunction normalizeTab(tab, fallback) {\n  return {\n    title: cleanText(tab?.title || fallback.title),\n    content: cleanHtml(tab?.content || fallback.content),\n    icon: cleanText(tab?.icon || fallback.icon)\n  };\n}\n\nfunction scoreLabel(score) {\n  if (score >= 9) return 'Gold Standard';\n  if (score >= 7.5) return 'Recommended';\n  if (score >= 6) return 'Functional';\n  if (score >= 4) return 'Average';\n  return 'Poor';\n}\n\ntry {\n  let clean = raw.replace(/^\\`\\`\\`json\\s*/i, '').replace(/\\`\\`\\`\\s*$/i, '').trim();\n  const firstBrace = clean.indexOf('{');\n  const lastBrace = clean.lastIndexOf('}');\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {\n    clean = clean.slice(firstBrace, lastBrace + 1);\n  }\n  review = JSON.parse(clean);\n\n  review.short_product_name = cleanText(review.short_product_name || originalData?.brand || originalData?.title || 'Product');\n  if (review.short_product_name.length > 70) review.short_product_name = review.short_product_name.split(/[,|-]/)[0].slice(0, 70).trim();\n  review.product_label = cleanText(review.product_label || review.comparison_summary?.comparison_angle || 'Comparison Pick');\n  review.custom_title = review.custom_title || originalData?.title || 'Product review';\n  review.short_review = review.short_review || 'This product fits a specific home-office use case, but buyers should compare its specs and limitations before ordering.';\n  review.evidence_basis = review.evidence_basis || 'Based on listing specs and product details.';\n  review.source_basis = cleanText(review.source_basis || 'listing specs only');\n  review.claim_confidence = ['high', 'medium', 'low'].includes(String(review.claim_confidence || '').toLowerCase()) ? String(review.claim_confidence).toLowerCase() : 'medium';\n  let normalizedScore = Number(review.score);\n  if (!Number.isFinite(normalizedScore)) {\n    normalizedScore = 0;\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Missing or invalid score'].filter(Boolean).join('; ');\n  }\n  if (normalizedScore > 10) normalizedScore = normalizedScore / 10;\n  if (normalizedScore > 0 && normalizedScore <= 1) normalizedScore = normalizedScore * 10;\n  normalizedScore = Math.max(0, Math.min(10, Math.round(normalizedScore * 10) / 10));\n  function parseRatingValue(value) {\n    const match = String(value || '').match(/[0-9]+(?:\\.[0-9]+)?/);\n    return match ? Number(match[0]) : null;\n  }\n\n  const ratingValue = parseRatingValue(originalData.rating);\n  const hasUsableProductData = !!(originalData.title && originalData.status === 'success');\n  if (hasUsableProductData && Number.isFinite(ratingValue)) {\n    normalizedScore = Math.max(0, Math.min(9.9, Math.round((ratingValue + 5) * 10) / 10));\n  } else if (hasUsableProductData) {\n    normalizedScore = Math.max(normalizedScore, 8.5);\n  }\n\n  function fallbackShortlistScore(seedValue, indexValue) {\n    const seed = String(seedValue || '');\n    let hash = Number(indexValue || 0) * 17;\n    for (let i = 0; i < seed.length; i++) hash = (hash + seed.charCodeAt(i) * (i + 3)) % 997;\n    const options = [8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8];\n    return options[Math.abs(hash) % options.length];\n  }\n\n  if (hasUsableProductData && !Number.isFinite(ratingValue)) {\n    normalizedScore = fallbackShortlistScore(originalData.asin || originalData.title, originalData.asin_index);\n  }\n\n  review.score = normalizedScore;\n  review.score_label = scoreLabel(normalizedScore);\n  review.score_rationale = cleanText(review.score_rationale || 'Score uses the Amazon rating plus Aura shortlist adjustment, with listing limitations reflected in confidence and missing specs.');\n  review.missing_specs = Array.isArray(review.missing_specs) ? review.missing_specs.map(cleanText).filter(Boolean).slice(0, 8) : [];\n\n  if (!Array.isArray(review.selling_points) || review.selling_points.length !== 5) {\n    review.selling_points = Array.isArray(review.selling_points) ? review.selling_points.slice(0, 5) : [];\n    while (review.selling_points.length < 5) review.selling_points.push('Verify the listing details before buying.');\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Normalized selling_points length'].filter(Boolean).join('; ');\n  }\n  if (!Array.isArray(review.pros) || review.pros.length < 5 || review.pros.length > 6) {\n    review.pros = Array.isArray(review.pros) ? review.pros.slice(0, 6) : [];\n    while (review.pros.length < 5) review.pros.push('Useful for the right setup.');\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Normalized pros length'].filter(Boolean).join('; ');\n  }\n  if (!Array.isArray(review.cons) || review.cons.length < 2 || review.cons.length > 3) {\n    review.cons = Array.isArray(review.cons) ? review.cons.slice(0, 3) : [];\n    while (review.cons.length < 2) review.cons.push('Confirm fit and specifications before ordering.');\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Normalized cons length'].filter(Boolean).join('; ');\n  }\n  if (!Array.isArray(review.custom_tabs)) {\n    review.custom_tabs = [];\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Normalized custom_tabs'].filter(Boolean).join('; ');\n  }\n  const fallbackTabs = [\n    { title: 'Why It Stands Out', content: '<p><strong>Main reason to consider it:</strong> Verify the product details and fit for your workspace.</p>', icon: 'bi-stars' },\n    { title: 'Before You Buy', content: '<p><strong>Check before buying:</strong> Confirm dimensions, fit, and setup requirements.</p><ul><li><strong>Concern 1:</strong> Check compatibility.</li><li><strong>Concern 2:</strong> Verify dimensions.</li><li><strong>Concern 3:</strong> Confirm installation needs.</li></ul>', icon: 'bi-chat-square-text' },\n    { title: 'Key Specifications', content: '<p><strong>Core specs:</strong></p><ul><li>Not specified</li><li>Not specified</li></ul><p><strong>Verify before ordering:</strong> fit, weight, dimensions.</p>', icon: 'bi-list-check' },\n    { title: 'Best Setup & Trade-Offs', content: '<p><strong>Best setup:</strong> A home-office workspace where the product fits the available space.</p><p><strong>Best for:</strong> Buyers who can verify the specs before ordering.</p><p><strong>Skip it if:</strong> You need confirmed specs that are missing from the listing.</p><p><strong>Bottom line:</strong> Compare before buying.</p>', icon: 'bi-exclamation-triangle' }\n  ];\n  review.custom_tabs = review.custom_tabs.slice(0, 4).map((tab, index) => normalizeTab(tab, fallbackTabs[index]));\n  while (review.custom_tabs.length < 4) {\n    review.custom_tabs.push(fallbackTabs[review.custom_tabs.length]);\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Padded custom_tabs to 4'].filter(Boolean).join('; ');\n  }\n  if (!review.comparison_summary || typeof review.comparison_summary !== 'object') {\n    review.comparison_summary = {};\n    pipeline_status = pipeline_status === 'success' ? 'partial' : pipeline_status;\n    error_msg = [error_msg, 'Added missing comparison_summary'].filter(Boolean).join('; ');\n  }\n} catch(e) {\n  pipeline_status = 'failed';\n  error_msg = error_msg ? error_msg + '; ' + e.message : 'Micro JSON parse/validate failed: ' + e.message;\n  review = fallbackReview(e.message);\n}\n\nif (originalData.status && originalData.status !== 'success') {\n  pipeline_status = 'failed';\n  error_msg = error_msg\n    ? error_msg + '; Product scrape status: ' + originalData.status\n    : 'Product scrape status: ' + originalData.status;\n  review = fallbackReview(originalData.error || 'Product data unavailable');\n}\n\nconst summary = review.comparison_summary || {};\nconst normalizedKeySpecs = Array.isArray(summary.key_specs)\n  ? summary.key_specs.map(spec => cleanText(spec || 'Not specified')).filter(Boolean).slice(0, 5)\n  : [];\nwhile (normalizedKeySpecs.length < 3) normalizedKeySpecs.push('Not specified');\n\nconst normalizedEvidencePoints = Array.isArray(summary.evidence_points)\n  ? summary.evidence_points.map(point => cleanText(point)).filter(Boolean).slice(0, 3)\n  : [];\nwhile (normalizedEvidencePoints.length < 3) normalizedEvidencePoints.push('Verify against listing specs before buying.');\n\nreturn {\n  json: {\n    asin: originalData.asin,\n    keyword: originalData.keyword,\n    parent_keyword: originalData.parent_keyword || originalData.keyword,\n    article_keyword: originalData.article_keyword || originalData.keyword,\n    category: originalData.category,\n    category_name: originalData.category_name || originalData.category,\n    product_category: originalData.product_category || originalData.category,\n    queue_payload_type: originalData.queue_payload_type || '',\n    source_payload: originalData.source_payload || {},\n    source_product_payload: originalData.source_product_payload || {},\n    source_article_payload: originalData.source_article_payload || {},\n    post_id: originalData.post_id || '',\n    job_group_id: originalData.job_group_id || '',\n    run_id: originalData.run_id || originalData.job_group_id || '',\n    keyword_queue_id: originalData.keyword_queue_id || '',\n    request_id: originalData.request_id || '',\n    asin_index: originalData.asin_index || null,\n    asin_total: originalData.asin_total || null,\n    asin_list: originalData.asin_list || '',\n    article_asins: originalData.article_asins || originalData.asin_list || '',\n    title: originalData.title,\n    brand: originalData.brand,\n    price: originalData.price,\n    rating: originalData.rating,\n    reviews_count: originalData.reviews_count,\n    image_url: originalData.image_url,\n    description: originalData.description,\n    features: originalData.features,\n    specifications: originalData.specifications,\n    top_reviews: originalData.top_reviews,\n    features_array: Array.isArray(originalData.features_array) ? originalData.features_array : [],\n    specifications_array: Array.isArray(originalData.specifications_array) ? originalData.specifications_array : [],\n    asin_specifications: Array.isArray(originalData.asin_specifications) ? originalData.asin_specifications : (Array.isArray(originalData.specifications_array) ? originalData.specifications_array : []),\n    top_reviews_array: Array.isArray(originalData.top_reviews_array) ? originalData.top_reviews_array : [],\n    asin_top_reviews: Array.isArray(originalData.asin_top_reviews) ? originalData.asin_top_reviews : (Array.isArray(originalData.top_reviews_array) ? originalData.top_reviews_array : []),\n    asin_code: originalData.asin_code || originalData.asin,\n    asin_title: originalData.asin_title || originalData.title,\n    asin_brand: originalData.asin_brand || originalData.brand,\n    asin_description: originalData.asin_description || originalData.description,\n    asin_features: originalData.asin_features || originalData.features,\n    short_product_name: review.short_product_name,\n    product_label: review.product_label,\n    source_basis: review.source_basis,\n    claim_confidence: review.claim_confidence,\n    score: review.score,\n    score_label: review.score_label,\n    score_rationale: review.score_rationale,\n    missing_specs: review.missing_specs,\n    review,\n    comparison_summary: {\n      comparison_angle: cleanText(summary.comparison_angle || 'Comparison pick'),\n      best_for: oneSentence(summary.best_for, 'Best for buyers who can verify fit and specifications before ordering.'),\n      skip_if: oneSentence(summary.skip_if, 'Skip it if the listing does not confirm the specs you need.'),\n      main_strength: cleanText(summary.main_strength || 'Useful for the right home-office setup.'),\n      main_weakness: cleanText(summary.main_weakness || 'Some important details may need verification.'),\n      key_specs: normalizedKeySpecs,\n      evidence_points: normalizedEvidencePoints,\n      decision_note: oneSentence(summary.decision_note, 'Compare it against alternatives before buying.'),\n      setup_context: oneSentence(summary.setup_context, 'Best suited to a home-office setup where the dimensions and mounting style fit.')\n    },\n    ai_usage: usage,\n    ai_model: model,\n    ai_cost: ai_cost_estimate,\n    ai_cost_estimate,\n    ai_job_type: 'asin_enhancement',\n    _pipeline_status: pipeline_status,\n    _error_log: error_msg\n  }\n};"
+      },
+      "name": "Validate ASIN Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27984,
+        7264
+      ],
+      "id": "c989e368-b5cc-45e5-93c2-c857733fef4e"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "name": "Collect All Reviews",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        29280,
+        7264
+      ],
+      "id": "502466e8-8592-401c-8b17-001dfee5df8e"
+    },
+    {
+      "parameters": {
+        "jsCode": "let collected = [];\ntry {\n  collected = $('Collect All Reviews').first().json.data || $('Collect All Reviews').all().map(i => i.json);\n} catch (e) {\n  throw new Error('Pipeline Error: Failed to extract data from Collect All Reviews node.');\n}\n\nconst requestedProductCount = Math.max(1, Math.min(parseInt($('Normalize Input').first().json.asin_count, 10) || 8, 15));\nconst items = collected.filter(item =>\n  item &&\n  item.asin &&\n  item.title &&\n  item._pipeline_status !== 'failed' &&\n  item.ai_short_review !== 'This product review is temporarily unavailable due to a processing error.'\n).slice(0, requestedProductCount);\n\nif (!items.length) {\n  throw new Error('Pipeline Exception: No successful ASIN reviews found for article generation.');\n}\n\nif (items.length < requestedProductCount) {\n  const diagnostics = collected.map((item, index) => ({\n    index,\n    asin: item?.asin || 'UNKNOWN',\n    title: item?.title || '',\n    status: item?._pipeline_status || item?.status || 'missing',\n    error: item?._error_log || item?.error || ''\n  }));\n  throw new Error('Pipeline Exception: Only ' + items.length + ' successful ASIN reviews available, but asin_count requested ' + requestedProductCount + '. Diagnostics: ' + JSON.stringify(diagnostics).substring(0, 1200));\n}\n\nlet normalizeData = null;\ntry {\n  normalizeData = $('Normalize Input').first().json;\n} catch (e) {\n  throw new Error('Pipeline Error: Failed to extract data from Normalize Input node.');\n}\n\nif (!normalizeData || typeof normalizeData !== 'object') {\n  throw new Error('Pipeline Error: Normalize Input node returned no data.');\n}\n\nconst keyword = String(normalizeData.keyword || '').trim();\nif (!keyword) {\n  throw new Error('Pipeline Error: keyword is missing or empty.');\n}\n\nconst category = normalizeData.category;\nconst author_name = normalizeData.author_name;\nconst author_persona = normalizeData.author_persona;\nconst author_id = normalizeData.author_id;\nconst job_group_id = normalizeData.job_group_id || normalizeData.run_id || normalizeData.request_id || '';\nconst run_id = normalizeData.run_id || job_group_id;\nconst keyword_queue_id = normalizeData.keyword_queue_id || '';\nconst request_id = normalizeData.request_id || job_group_id;\nconst productCount = items.length;\nlet categoryRules = {};\ntry {\n  categoryRules = $('Lookup Category Rules').first().json || {};\n} catch (e) {\n  categoryRules = {};\n}\nconst specific_claims = categoryRules['Specific Claims'] || '';\nconst specific_rules = categoryRules['Specific Rules'] || '';\nconst specific_specs = categoryRules['Specific Specs'] || '';\n\nfunction titleCase(value) {\n  const small = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'per', 'the', 'to', 'vs', 'via', 'with', 'without', 'under']);\n  const acronyms = new Set(['ai', 'cpu', 'gpu', 'led', 'usb', 'us', 'usa', 'uk', 'pc', 'mac', 'wfh', 'xl', 'tkl']);\n  return String(value || '').toLowerCase().split(/\\s+/).filter(Boolean).map((word, index, arr) => {\n    const plain = word.replace(/[^a-z0-9]/g, '');\n    if (acronyms.has(plain)) return plain.toUpperCase();\n    if (index > 0 && index < arr.length - 1 && small.has(plain)) return plain;\n    return word.split('-').map(part => {\n      const stripped = part.replace(/[^a-z0-9]/g, '');\n      if (acronyms.has(stripped)) return stripped.toUpperCase();\n      return part ? part.charAt(0).toUpperCase() + part.slice(1) : part;\n    }).join('-');\n  }).join(' ');\n}\n\nfunction topicWithoutBest(value) {\n  return String(value || '')\n    .replace(/^(best|top|good)\\s+/i, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction cleanResearchIntent(value) {\n  return String(value || '')\n    .replace(/\\b(reddit|wirecutter|quora|forum|forums|discussion|discussions)\\b/gi, '')\n    .replace(/\\b(review|reviews|recommendation|recommendations|opinion|opinions)\\b/gi, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction searchIntent(value) {\n  const text = String(value || '').toLowerCase();\n  if (/\\b(reddit|wirecutter|forum|forums|quora)\\b/.test(text)) return 'validation';\n  if (/\\b(vs|versus|compare|comparison)\\b/.test(text)) return 'comparison';\n  if (/\\b(cheap|budget|affordable)\\b|\\bunder\\s+\\$?\\d{2,5}\\b/.test(text)) return 'budget';\n  if (/^how\\s+to\\b|\\bhow do i\\b|\\bideas?\\b|\\bsetup\\b/.test(text)) return 'guide';\n  return 'commercial';\n}\n\nfunction reorderHomeOfficeTopic(value, categoryName) {\n  const cleaned = cleanResearchIntent(value).toLowerCase();\n\n  if (categoryName === 'Cable Management') {\n    if (/\\bunder\\s+desk\\b/.test(cleaned) && /\\btray|trays|organizer|organizers|cord|cable\\b/.test(cleaned)) return 'Under-Desk Cable Management Trays and Cord Organizers';\n    if (/\\bunder\\s+desk\\b/.test(cleaned)) return 'Under-Desk Cable Management';\n    if (/\\bstanding desk\\b/.test(cleaned)) return 'Standing Desk Cable Management';\n    if (/\\bdesk\\b/.test(cleaned)) return 'Desk Cable Management';\n    if (/\\bcord\\b/.test(cleaned)) return 'Cord Management for Home Office Desks';\n    return 'Cable Management for Home Office Desks';\n  }\n\n  if (categoryName === 'Desk Lighting' && /\\bzoom|video|meeting|meetings\\b/.test(cleaned)) {\n    return 'Desk Lighting for Zoom Meetings';\n  }\n\n  if (categoryName === 'Monitor Arms' && /\\bdual monitor|two monitors\\b/.test(cleaned)) {\n    return 'Monitor Arms for Dual Monitors';\n  }\n\n  if (categoryName === 'Footrests & Mats') {\n    if (/\\badjustable|height|under\\s+desk|foot\\s*rest|footrest\\b/.test(cleaned)) return 'Adjustable Height Under-Desk Footrests';\n    if (/\\banti\\s+fatigue|standing\\s+mat|desk\\s+mat\\b/.test(cleaned)) return 'Anti-Fatigue Mats for Standing Desks';\n    return 'Footrests and Mats for Home Office Comfort';\n  }\n\n  if (categoryName === 'Ergonomic Chairs' && /\\bback pain\\b/.test(cleaned)) {\n    return 'Ergonomic Chairs for Back Pain';\n  }\n\n  return titleCase(cleanResearchIntent(value));\n}\n\nfunction budgetTopic(value, categoryName) {\n  let cleaned = cleanResearchIntent(value)\n    .replace(/^(best|top|cheap|budget|affordable)\\s+/i, '')\n    .replace(/\\bunder\\s+\\$?\\s*(\\d{2,5})\\b/i, 'under $$$1')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  if (categoryName === 'Standing Desks') cleaned = cleaned.replace(/\\bstanding desk\\b/i, 'standing desks');\n  if (categoryName === 'Ergonomic Chairs') cleaned = cleaned.replace(/\\bergonomic chair\\b/i, 'ergonomic chairs');\n  if (categoryName === 'Monitor Arms') cleaned = cleaned.replace(/\\bmonitor arm\\b/i, 'monitor arms');\n\n  return titleCase(cleaned || reorderHomeOfficeTopic(value, categoryName));\n}\n\nfunction hasSpecificModifier(value) {\n  const text = cleanResearchIntent(value).toLowerCase();\n  return (\n    /\\b(vs|versus|without|small|dual|standing desk|home office|back pain|gaming|programming|reading|zoom|video calls?|under desk|office chair)\\b/.test(text) ||\n    /\\bunder\\s+\\$?\\d{2,5}\\b/.test(text) ||\n    /\\bfor\\s+(back pain|dual monitors?|small spaces?|home office|standing desks?|reading|zoom|video calls?|gaming|programming)\\b/.test(text) ||\n    /\\bwith\\s+(drawers?|storage|keyboard tray|power outlets?|lights?|monitor stand|wheels?|arms?|headrest|lumbar support)\\b/.test(text)\n  );\n}\n\nfunction makeArticleTitle(value, categoryName) {\n  const raw = String(value || '').trim();\n  const lower = raw.toLowerCase();\n  if (!raw) return 'Best Home Office Products Worth Shortlisting';\n  const intent = searchIntent(raw);\n  const topic = reorderHomeOfficeTopic(raw, categoryName);\n\n  if (categoryName === 'Cable Management' && /\\bunder\\s+desk\\b/.test(lower) && /\\btray|trays|organizer|organizers|cord|cable\\b/.test(lower)) {\n    return 'Best Under-Desk Cable Management Trays and Cord Organizers';\n  }\n\n  if (intent === 'validation') {\n    if (categoryName === 'Cable Management') {\n      return `Best ${topic}: Trays, Clips, Sleeves, and Raceways Compared`;\n    }\n    return `Best ${topic}: What to Check Before You Buy`;\n  }\n\n  if (intent === 'comparison') {\n    return `${topic}: Key Differences, Trade-Offs, and Better Picks`;\n  }\n\n  if (intent === 'budget') {\n    return `Best ${budgetTopic(raw, categoryName)}: Affordable Picks That Still Make Sense`;\n  }\n\n  if (hasSpecificModifier(raw)) {\n    if (/^best\\s+/i.test(raw)) return titleCase(raw);\n    return 'Best ' + topic + ' for Home Offices';\n  }\n\n  const broadTitleMap = {\n    'Cable Management': 'Best Cord Management for Home Office Desks',\n    'Desk Lighting': 'Best Desk Lighting for Home Offices',\n    'Monitor Arms': 'Best Monitor Arms for Home Office Desks',\n    'Desk Storage': 'Best Desk Storage Ideas and Organizers for Home Offices',\n    'Desk Accessories': 'Best Desk Accessories for a Cleaner Home Office',\n    'Footrests & Mats': 'Best Footrests and Mats for Home Office Comfort',\n    'Desk Converters': 'Best Desk Converters for Home Office Workstations',\n    'Standing Desks': 'Best Standing Desks for Home Offices',\n    'Ergonomic Chairs': 'Best Ergonomic Chairs for Home Office Back Support',\n    'Keyboards & Mice': 'Best Keyboards and Mice for Home Office Work',\n    'Ergonomics & Health': 'Best Ergonomics Tips for a Healthier Home Office',\n    'Workspace Ideas': 'Best Home Office Setup Ideas for Small and Shared Spaces',\n    'Productivity': 'Best Work From Home Productivity Tips That Are Practical'\n  };\n\n  if (/^best\\s+cord management$/i.test(raw)) return 'Best Cord Management for Home Office Desks';\n  if (/^best\\s+cable management$/i.test(raw)) return 'Best Cable Management for Home Office Desks';\n  if (/^best\\s+/.test(lower) && broadTitleMap[categoryName]) return broadTitleMap[categoryName];\n  if (/^best\\s+/.test(lower)) return titleCase(raw + ' for Home Offices');\n  if (broadTitleMap[categoryName]) return broadTitleMap[categoryName];\n  return titleCase(raw);\n}\n\nfunction categoryTopic(categoryName, title) {\n  const stripped = topicWithoutBest(title)\n    .replace(/:.+$/, '')\n    .replace(/\\s+for Home Offices?$/i, '')\n    .trim();\n  return stripped || categoryName || 'home office products';\n}\n\nconst articleTitle = makeArticleTitle(keyword, category);\nconst topicLabel = categoryTopic(category, articleTitle);\nconst naturalKeyword = keyword.toLowerCase();\nconst intent = searchIntent(keyword);\nconst primaryFocusKeyword = cleanResearchIntent(keyword).toLowerCase();\nconst secondaryKeywords = Array.from(new Set([\n  keyword,\n  topicLabel,\n  category,\n  topicWithoutBest(cleanResearchIntent(keyword)),\n  category === 'Cable Management' ? 'under desk cable management' : '',\n  category === 'Cable Management' ? 'standing desk cable management' : '',\n  category === 'Cable Management' ? 'cable trays vs clips' : '',\n  category === 'Cable Management' ? 'renter friendly cable management' : ''\n].map(v => String(v || '').trim()).filter(Boolean)));\n\nconst wpPostPayloads = $input.all().flatMap(item => {\n  const value = item.json;\n  if (Array.isArray(value)) return value;\n  if (Array.isArray(value?.data)) return value.data;\n  if (value && typeof value === 'object' && value.slug) return [value];\n  return [];\n});\nconst currentSlug = String(keyword || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');\nconst seenRelatedSlugs = new Set();\nconst relatedPosts = wpPostPayloads\n  .filter(post => post && post.slug && post.slug !== currentSlug)\n  .filter(post => {\n    if (seenRelatedSlugs.has(post.slug)) return false;\n    seenRelatedSlugs.add(post.slug);\n    return true;\n  })\n  .slice(0, 12);\nfunction normalizePublicUrl(value) {\n  return String(value || '')\n    .replace('https://cms.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('http://cms.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('https://www.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('http://www.aurahomeoffice.com', 'https://aurahomeoffice.com');\n}\n\nfunction slugFromValue(value) {\n  return String(value || '')\n    .toLowerCase()\n    .normalize('NFKD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/&/g, ' and ')\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n}\n\nfunction categorySlugFromPost(post) {\n  const candidates = [\n    post.category_slug,\n    post.primary_category_slug,\n    post.category?.slug,\n    post.primary_category?.slug,\n    post.category_name,\n    post.category,\n    Array.isArray(post.categories) && post.categories[0]?.slug,\n    Array.isArray(post.categories) && typeof post.categories[0] === 'string' ? post.categories[0] : ''\n  ];\n\n  return candidates.map(slugFromValue).find(Boolean) || '';\n}\n\nfunction publicPostUrl(post) {\n  const postSlug = slugFromValue(post.slug || post.post_name || post.path);\n  const categorySlug = categorySlugFromPost(post);\n\n  if (postSlug && categorySlug) {\n    return `https://aurahomeoffice.com/${categorySlug}/${postSlug}`;\n  }\n\n  return normalizePublicUrl(post.link || (postSlug ? `https://aurahomeoffice.com/${postSlug}` : ''));\n}\n\nconst relatedLinks = relatedPosts.map(post => {\n  const rawTitle = post.title?.rendered || post.title || 'Untitled';\n  const cleanTitle = String(rawTitle)\n    .replace(/&#[0-9]+;/g, '-')\n    .replace(/&amp;/g, '&')\n    .replace(/<[^>]+>/g, '')\n    .replace(/s+/g, ' ')\n    .trim();\n  const url = publicPostUrl(post);\n  return `- Title: \"${cleanTitle}\" | URL: ${url}`;\n}).join('\\n');\nconst relatedLinksSection = relatedLinks\n  ? `INTERNAL LINKS\nUse 6 to 10 internal links when enough relevant URLs are available. Use fewer only if the available links are genuinely off-topic.\nPlace links inside useful explanatory sentences, not as a list of related posts.\nUse descriptive anchors that match the destination article and the paragraph context. Prefer natural noun phrases already discussed in the paragraph.\nDo not force irrelevant links, and do not repeat the same destination more than once.\nAvailable Internal Links:\n${relatedLinks}`\n  : '';\n\nconst asinList = items.map(i => i.asin).join(',');\nconst shortcode = `\\n\\n\\x3C!-- wp:shortcode --\\x3E\\n[acms_list asin=\"${asinList}\"]\\n\\x3C!-- /wp:shortcode --\\x3E\\n\\n`;\n\nconst productBriefs = items.map((item, idx) => {\n  const summary = item.comparison_summary || {};\n  return {\n    index: idx + 1,\n    asin: item.asin,\n    title: item.short_product_name || item.ai_review?.short_product_name || item.title,\n    brand: item.brand || '',\n    rating: item.rating || '',\n    reviews_count: ((Array.isArray(item.top_reviews_array) && item.top_reviews_array.length) || (Array.isArray(item.asin_top_reviews) && item.asin_top_reviews.length)) ? (item.reviews_count || 0) : '',\n    product_label: item.product_label || item.ai_review?.product_label || summary.comparison_angle || '',\n    comparison_angle: summary.comparison_angle || '',\n    best_for: summary.best_for || '',\n    skip_if: summary.skip_if || '',\n    main_strength: summary.main_strength || '',\n    main_weakness: summary.main_weakness || '',\n    key_specs: Array.isArray(summary.key_specs) ? summary.key_specs.slice(0, 5) : [],\n    evidence_points: Array.isArray(summary.evidence_points) ? summary.evidence_points.slice(0, 3) : [],\n    decision_note: summary.decision_note || '',\n    setup_context: summary.setup_context || '',\n    short_review: item.ai_short_review || '',\n    pros: Array.isArray(item.ai_pros) ? item.ai_pros.slice(0, 6) : [],\n    cons: Array.isArray(item.ai_cons) ? item.ai_cons.slice(0, 3) : [],\n    selling_points: Array.isArray(item.selling_points) ? item.selling_points.slice(0, 5) : [],\n    source_basis: item.source_basis || item.ai_review?.source_basis || '',\n    claim_confidence: item.claim_confidence || item.ai_review?.claim_confidence || '',\n    missing_specs: Array.isArray(item.missing_specs) ? item.missing_specs.slice(0, 8) : []\n  };\n});\n\nconst categoryFocus = {\n  'Cable Management': 'under-desk cable trays, raceways, sleeves, reusable ties, adhesive clips, cable boxes, power-strip placement, standing-desk movement, renter-friendly installs, cable capacity, adhesive failure risk',\n  'Desk Lighting': 'brightness, color temperature, glare, monitor reflections, clamp vs base designs, video calls, reading, USB power, adjustability',\n  'Monitor Arms': 'VESA fit, monitor weight, desk thickness, clamp vs grommet mount, height range, dual-monitor alignment, wobble, cable routing',\n  'Standing Desks': 'height range, motor stability, desktop size, lifting capacity, presets, cable clearance, small-room fit',\n  'Ergonomic Chairs': 'lumbar support, seat depth, armrest adjustability, recline, long-sitting comfort, back pain constraints, body size fit',\n  'Desk Storage': 'drawer capacity, desktop footprint, file storage, under-desk clearance, visual clutter, assembly, material durability',\n  'Footrests & Mats': 'standing comfort, anti-fatigue support, under-desk fit, surface grip, rocking/adjustment, shoe/no-shoe comfort',\n  'Desk Converters': 'keyboard tray fit, monitor height, lifting mechanism, footprint, stability, laptop vs monitor setup',\n  'Keyboards & Mice': 'switch feel, wrist angle, noise, wireless reliability, battery, ergonomic shape, Mac/PC compatibility',\n  'Desk Accessories': 'daily utility, desk footprint, build quality, clutter reduction, fit with monitors and laptops',\n  'Ergonomics & Health': 'posture, monitor height, wrist angle, movement breaks, back and neck comfort, practical home-office constraints',\n  'Workspace Ideas': 'layout, room size, cable clutter, lighting, storage, camera background, budget, renter-friendly setup',\n  'Productivity': 'focus, routines, friction reduction, task batching, distraction control, work-from-home habits'\n};\n\nconst prompt = `You are ${author_name}, ${author_persona} at Aura Home Office, an independent home-office buying guide for US shoppers.\n\nWrite a polished buying guide in WordPress Gutenberg HTML blocks.\n\nOUTPUT RULES\n- Return ONLY raw Gutenberg HTML blocks.\n- Do not include markdown fences.\n- Do not use markdown bold syntax like **keyword**. Use normal HTML only.\n- Do not include an H1. WordPress will use this post title: \"${articleTitle}\".\n- Do not mention AI, prompts, tokens, automation, or limitations.\n- Do not use em dashes. Never output the character \"—\". Use commas, colons, semicolons, or short sentences instead.\n\nPOST TITLE / SEARCH TARGET\nPost title: ${articleTitle}\nTarget keyword from research: ${keyword}\nNatural keyword variant: ${naturalKeyword}\nSearch intent: ${intent}\nCategory: ${category}\nTopic label for natural headings: ${topicLabel}\nProducts compared: ${productCount}\nPrimary SEO focus keyword: ${primaryFocusKeyword}\nSecondary semantic keywords to cover naturally:\n${secondaryKeywords.map(k => `- ${k}`).join('\\n')}\n\nIMPORTANT TITLE AND HEADING RULES\n- Never write awkward headings like \"How to Choose the Right Best...\".\n- Do not mechanically repeat \"${keyword}\" in every heading.\n- Use the exact target keyword once in the first 100 words, but use natural variants after that.\n- If the exact target keyword is syntactically awkward, use it once as a quoted search phrase in a parenthetical or short clause, then switch to natural language. Do not make an awkward raw keyword the grammatical subject of a sentence.\n- If the target keyword is broad, make the article useful by narrowing it to home-office desk use.\n- If the target keyword includes Reddit, Wirecutter, forum, or another validation source, treat it as real-user validation intent: answer the doubts people have, but do not fabricate quotes, votes, threads, consensus, or direct claims from those platforms.\n- The title and headings must read like an editorial buying guide, not like a raw keyword dump.\n- Include the primary SEO focus keyword naturally in one H2 or H3.\n- Use secondary semantic keywords where they fit, but never repeat a phrase just to hit density.\n- Prefer headings like:\n  - \"Quick Picks for ${topicLabel}\"\n  - \"How to Choose ${topicLabel}\"\n  - \"What Matters Most for a Home Office Setup\"\n\nEVERGREEN SEO RULES\n- Use exact raw placeholders for dates:\n  1. Current year: %year%\n  2. Current month: %month_text%\n- Never write a real year or month name.\n\nEDITORIAL QUALITY BAR\n- Write for a US reader comparing what to buy, not for a search engine.\n- Be specific about workspace fit, installation, trade-offs, and who should skip each option.\n- Every product mention needs a concrete use case and a concrete drawback.\n- Avoid generic lines like \"game-changer\", \"transform your workspace\", \"chaotic mess\", \"tidy workspace is productive\", \"in today's world\", \"when it comes to\", \"whether you're\", \"moreover\", \"furthermore\", \"ultimate\", \"premium\".\n- Do not use em dashes in prose, headings, tables, FAQs, or product summaries.\n- Do not call products top-rated, best-selling, editor-approved, or highest-rated unless the provided data explicitly proves it.\n- Do not claim hands-on testing, lab testing, personal ownership, or long-term use.\n- Use evidence language: \"Based on listing specs...\" and \"The main limitation is...\" Only mention owner feedback when actual Top Reviews text is provided.\n- When summarizing buyer feedback, prefer the exact framing \"Based on buyer feedback reviewed during research, several users reported...\". Avoid vague repeated claims like \"multiple buyers report\" or \"buyers report stable performance\".\n\nGOOGLE/BING SEO QUALITY BAR\n- Prioritize people-first usefulness over keyword density.\n- Follow this production SEO format: keyword first in Title, Title Case headings, SEO title format \"Best X of %year% - Reviews by Aura Home Office\", meta description under 160 characters with the exact keyword.\n- Use the slug target from the keyword only. Do not create clever slug wording.\n- Use short product names from product data, not full Amazon titles.\n- Product details must include a concise alternative/comparison sentence for each item.\n- Final section heading must be \"Final Thoughts\", not \"Final Verdict\".\n- Never use test, tested, hands-on, lab-tested, or personally tested unless first-party test data is provided.\n- Make each section answer a real buyer decision: fit, setup, durability risk, skip condition, or value trade-off.\n- Keep paragraphs short, with clear H2/H3 structure and descriptive anchor text for any internal link.\n- Include a short \"who should buy / who should skip\" framing where useful.\n- Do not create thin roundup filler. The reader should understand why one product type is better than another before clicking Amazon.\n- Use fresh wording around %month_text% and %year% without making time-sensitive claims that will age badly.\n\nBING/GOOGLE RANKING STRATEGY\n- Win the SERP by satisfying intent faster than competitors: direct answer first, comparison table early, then proof, trade-offs, objections, and final buying direction.\n- Cover the buyer journey in one page: shortlist, compare, understand fit, avoid mistakes, evaluate trust, decide what to buy, then resolve FAQs.\n- Use entity-rich natural language around product type, workspace constraint, mounting/setup type, compatibility, dimensions, capacity, materials, durability risk, and buyer objections.\n- Make headings scannable and answer-oriented. A reader should know what to buy after reading only the summary, Quick Picks, table, and Which Should You Actually Buy section.\n- Do not over-optimize: no repeated exact-match keyword stuffing, no fake authority, no invented testing, and no generic paragraph that could fit any product category.\n\nAFFILIATE CONVERSION STRATEGY\n- The article's job is to help a cautious shopper choose confidently, not to praise every product.\n- Every product needs a differentiated role: why this one, why not another one, who should skip it, and what to verify before clicking.\n- Put click intent near decision points: comparison table verdicts, product caveats, buying guide trade-offs, Which Should You Actually Buy, FAQs, and Final Thoughts.\n- Use buyer-safe CTA language such as \"start with\", \"compare\", \"choose\", \"check current price\", or \"look at this pick\". Avoid pressure, scarcity, discounts, or unsupported value claims.\n- Treat objections as conversion assets: address fit, installation, capacity, comfort, durability, compatibility, return risk, and missing specs where relevant.\n\nCATEGORY-SPECIFIC ANGLES\n${categoryFocus[category] || 'fit, dimensions, setup constraints, stability, comfort, material quality, cable clutter, room size, daily use, buyer trade-offs'}\n\nCATEGORY RULES FROM AURA CATEGORY SHEET\nApply these rules to the entire article, not only product cards. They override generic advice when relevant.\nSpecific Claims:\n${specific_claims || 'No extra category claim rules provided.'}\n\nSpecific Rules:\n${specific_rules || 'No extra category rules provided.'}\n\nSpecific Specs To Discuss Or Verify:\n${specific_specs || 'No extra category specs provided.'}\n\n${relatedLinksSection}\n\nCOMPACT PRODUCT COMPARISON DATA\n${JSON.stringify(productBriefs)}\n\nREQUIRED STRUCTURE\n\nSECTION 1: Summary and Introduction, 120-170 words\n- Start with a 1-3 sentence summary that contains \"${keyword}\" and gives the direct recommendation.\n- Use \"${keyword}\" once in the first 100 words.\n- Include %month_text% and %year%.\n- Say this guide compares ${productCount} options using listing specs and setup constraints. Mention owner-feedback patterns only when actual review text is present in the product data.\n- Give a direct answer in the first two paragraphs: what kind of buyer should start with which type of product and what trade-off they should check before clicking.\n- Include one concise buying-path sentence, e.g. start with X if you need Y, compare Z if you need W. Use product roles from COMPACT PRODUCT COMPARISON DATA.\n- Do not open with \"Choosing the right...\", \"Finding the best...\", \"Whether you're...\", or a broad productivity/aesthetic claim.\n- Start with a concrete buyer decision: adhesive vs clamp vs screw mount, capacity, standing-desk movement, or renter-friendly fit.\n- No fluff and no markdown bold.\n\nSECTION 2: Quick Picks\n\\x3C!-- wp:heading --\\x3E<h2>Quick Picks for ${topicLabel}</h2>\\x3C!-- /wp:heading --\\x3E\n- Use a Gutenberg list.\n- Label each pick by real use case, not generic hype. Avoid repeating the same label across products.\n- Each item must include one reason, one caveat, and a buying cue such as \"start here if...\" or \"compare this if...\".\n\nSECTION 3: Comparison Table\n\\x3C!-- wp:heading --\\x3E<h2>${topicLabel} Compared</h2>\\x3C!-- /wp:heading --\\x3E\n- Put this table immediately after Quick Picks so scan-first readers can compare and decide fast.\n- Include exactly one Gutenberg table.\n- Columns: Product | Best For | Setup Type | Main Limitation | Verdict.\n- In the Product column, hyperlink every product title using this exact HTML format:\n  <a href=\"https://www.amazon.com/dp/[ASIN]\" target=\"_blank\" rel=\"nofollow sponsored\">[Product Title]</a>\n- Replace [ASIN] with that product's asin value from COMPACT PRODUCT COMPARISON DATA.\n- Replace [Product Title] with the product's actual title. Do not use generic labels like \"Product 1\".\n- Only the Product title should be linked. Do not link Best For, Setup Type, Main Limitation, or Verdict cells.\n- Use product-specific verdicts and vary the sentence structure. Do not start every verdict with the same phrase such as \"Consider if...\".\n- Verdict cells should help a shopper click or reject quickly: name the strongest fit plus the main reason to compare another option.\n- Keep each cell short enough to scan on mobile.\n\nSECTION 4: Why These Picks Made the List\n- Write one H2 section named \"Why These Picks Made the List\".\n- Do not create a long Product Details section. The ACMS product shortcode already shows each product card with full specs, pros, cons, \"Why It Stands Out\", \"Before You Buy\", and setup trade-offs.\n- For each product, add an H3 using its short product name.\n- Each product summary must have exactly two short paragraphs, 80-130 words total:\n  1. Explain why the product made the list, using practical buying judgment instead of repeating every spec.\n  2. Give one caveat, one comparison note, and one buying direction, such as who should click this pick now and who should compare another product first.\n- Do not add product-level Pros lists, Cons lists, Key Specifications lists, or \"Before You Buy\" lists in the article body.\n- Do not duplicate the full product card content that appears in the shortcode.\n- Do not paste full Amazon titles.\n\nSECTION 5: Product Shortcode\nInject this exact shortcode:\n${shortcode}\n\nSECTION 6: Buying Guide\n\\x3C!-- wp:heading --\\x3E<h2>How to Choose ${topicLabel}</h2>\\x3C!-- /wp:heading --\\x3E\n- Write 4-6 H3 subsections around category-specific criteria.\n- For Cable Management specifically, cover: cable trays vs clips vs sleeves vs raceways, standing desk movement, cable capacity, adhesive vs screw mounting, and renter-friendly installs.\n- Keep paragraphs short and practical.\n- Each subsection should reduce purchase uncertainty by explaining what to check, why it matters, and what kind of product to choose if that factor is the priority.\n\nSECTION 7: Common Mistakes\n\\x3C!-- wp:heading --\\x3E<h2>Common Mistakes to Avoid</h2>\\x3C!-- /wp:heading --\\x3E\n- Include 3-5 concrete mistakes that cause buyer regret.\n- For each mistake, explain the practical consequence and how to avoid it.\n\nSECTION 8: How We Evaluated\n\\x3C!-- wp:heading --\\x3E<h2>How We Evaluated These Picks</h2>\\x3C!-- /wp:heading --\\x3E\n- Explain the method without pretending hands-on testing.\n- Mention specs, mounting style, workspace constraints, and category-specific fit. Mention owner-feedback patterns only when actual review text is present in the product data.\n- Mention what would disqualify a product for this buyer intent.\n- State clearly that recommendations are based on listing data, specifications, and comparison criteria. Add owner-feedback patterns only when actual review text is present in the product data.\n\nSECTION 9: Conversion Decision Section\n\\x3C!-- wp:heading --\\x3E<h2>Which Should You Actually Buy?</h2>\\x3C!-- /wp:heading --\\x3E\n- Add this section immediately before FAQs.\n- Use 4 to 6 concise buyer-fit recommendations based only on COMPACT PRODUCT COMPARISON DATA.\n- This is the main conversion section: make every line decisive, specific, and useful for choosing one product.\n- Format as a Gutenberg list. Each item should follow this pattern: <strong>[Buyer situation]:</strong> choose [short product name] because [specific reason].\n- Buyer situations must be category-specific, such as renters, standing desks, heavy cable bundles, lowest-cost setup, permanent wood desks, small desks, dual-monitor setups, back-pain users, video calls, or compact workstations.\n- Do not invent price, discounts, availability, or unsupported claims. Use lowest-cost/value only when price or product evidence supports it.\n- Keep each item under 35 words and make it click-oriented without hype.\n\nSECTION 10: FAQs\n\\x3C!-- wp:heading --\\x3E<h2>FAQs</h2>\\x3C!-- /wp:heading --\\x3E\n- 5-7 H3 questions.\n- Number each question, e.g. \"1. Are Under-Desk Cable Trays Worth It?\"\n- Questions should match buyer search intent.\n- The first sentence of every answer must directly answer the question in 2-3 short sentences total.\n- Bold the direct answer word or phrase at the start, e.g. <strong>Yes.</strong> or <strong>No.</strong>.\n- Use natural variants; do not keyword-stuff.\n- Use FAQs to resolve final objections before the closing recommendation. Answers should remove hesitation around fit, setup, durability, compatibility, and buyer risk.\n- At least 3 FAQ questions must address practical buying objections, such as adhesive failure, clamp fit, power-strip weight, standing-desk movement, renter safety, or cable capacity.\n\nSECTION 11: Final Thoughts\n\\x3C!-- wp:heading --\\x3E<h2>Final Thoughts</h2>\\x3C!-- /wp:heading --\\x3E\n- This must be the final substantive section before any schema/hidden technical markup.\n- Write exactly two short paragraphs.\n- Paragraph 1 summarizes the buyer decision and includes the natural target topic.\n- Paragraph 2 names 2-3 strongest products using short product names and links them to Amazon with the same sponsored nofollow format.\n- End with a clear buying direction, not a vague summary. The last sentence should tell the reader which type of buyer should click the strongest pick first.\n- Do not just repeat the quick picks.\n\nFINAL QA BEFORE OUTPUT\n- Raw Gutenberg HTML only.\n- Exactly one product shortcode.\n- Exactly one table.\n- No H1.\n- No markdown syntax.\n- No fake testing.\n- No unsupported claims.\n- If product review text is absent, do not mention reviews, owner feedback, missing reviews, or unavailable feedback.\n- Must include Summary, Why These Picks Made the List, How to Choose, Which Should You Actually Buy?, FAQs, and Final Thoughts.\n- Must not include a long Product Details section that repeats shortcode product cards.\n- Must not include product-level Pros, Cons, or Key Specifications lists outside the ACMS shortcode.\n- Must not include full-length Amazon product titles as headings.\n- Must not contain the em dash character \"—\".\n- No awkward phrase \"right best\".\n- No forced irrelevant internal links.\n- The article must make the buying decision easier than a generic roundup: clear winner by use case, honest objections, comparison logic, and final click direction.\n`;\n\nreturn [{\n  json: {\n    keyword,\n    article_title: articleTitle,\n    topic_label: topicLabel,\n    primary_focus_keyword: primaryFocusKeyword,\n    secondary_keywords: secondaryKeywords,\n    search_intent: intent,\n    category,\n    job_group_id,\n    run_id,\n    keyword_queue_id,\n    request_id,\n    job_type: 'macro_article',\n    target_type: 'keyword',\n    target_id: keyword,\n    asinList,\n    items,\n    productBriefs,\n    related_links: relatedLinks || '',\n    specific_claims,\n    specific_rules,\n    specific_specs,\n    macro_prompt: prompt,\n    author_id,\n    author_name\n  }\n}];\n"
+      },
+      "name": "Build Macro Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29728,
+        7264
+      ],
+      "id": "c0d30834-fcc0-46e5-9157-7d20c8f29212"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cms.aurahomeoffice.com/wp-json/aura/v1/sync-product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.wp_payload || $json) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "name": "WP: Sync ASIN Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        28816,
+        7264
+      ],
+      "id": "9d3eba98-d4f3-44dd-a008-24df188e84d0",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NSXhQ1LEssXzgbhN",
+          "name": "WP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cms.aurahomeoffice.com/wp-json/aura/v1/create-post",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($input.first().json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "name": "WP: Publish Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        31072,
+        7264
+      ],
+      "id": "64d32d43-42ea-4144-9daa-1bbb47f42fba",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NSXhQ1LEssXzgbhN",
+          "name": "WP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Keywords",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "completed",
+            "keyword": "={{ $('Build Macro Prompt').first().json.keyword }}",
+            "completed_at": "={{ new Date().toISOString() }}",
+            "wp_post_id": "={{ $('Build WP Category Update').first().json.wp_post_id || $('WP: Publish Article').first().json.post_id || $('WP: Publish Article').first().json.id }}",
+            "asins": "={{ $('Parse ASINs').first().json.asins.join(', ') }}",
+            "category": "={{ $('Build Macro Prompt').first().json.category }}",
+            "asin_count": "={{ $('Parse ASINs').first().json.asin_count || $('Normalize Input').first().json.asin_count }}",
+            "notes": "={{ ['Completed ' + new Date().toISOString(), 'job_group_id=' + ($('Build Article Payload').first().json.job_group_id || $('Normalize Input').first().json.job_group_id || ''), 'macro_model=' + ($('Build Article Payload').first().json.ai_model || ''), 'macro_tokens=' + (($('Build Article Payload').first().json.ai_input_tokens || 0) + '/' + ($('Build Article Payload').first().json.ai_output_tokens || 0)), 'macro_cost_est=$' + ($('Build Article Payload').first().json.ai_cost_estimate || 0), $('Normalize Input').first().json.category_inferred ? 'auto_category=' + $('Build Macro Prompt').first().json.category : '', 'asin_source=' + ($('Parse ASINs').first().json.asins_source || 'unknown'), 'category_set_in_create_post', $('Build Article Payload').first().json.meta?._aura_article_warnings || ''].filter(Boolean).join(' | ') }}"
+          },
+          "matchingColumns": [
+            "keyword"
+          ],
+          "schema": [
+            {
+              "id": "keyword",
+              "displayName": "keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "asins",
+              "displayName": "asins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "asin_count",
+              "displayName": "asin_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "wp_post_id",
+              "displayName": "wp_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "Sheet: Mark Completed",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        31968,
+        7264
+      ],
+      "id": "134f91df-1dbb-40b9-ae6b-ecb73c4e1432",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "VkP8v18fXnTFj85g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const wp_result = $('WP: Publish Article').first().json;\nconst wp_update = $('Build WP Category Update').first().json || {};\nconst macro_data = $('Build Macro Prompt').first().json;\nconst article = $('Build Article Payload').first().json || {};\n\nfunction publicUrl(value, categorySlug, slug) {\n  const cleanCategory = String(categorySlug || '').replace(/^\\/+|\\/+$/g, '');\n  const cleanSlug = String(slug || '').replace(/^\\/+|\\/+$/g, '');\n\n  if (cleanCategory && cleanSlug) {\n    return 'https://aurahomeoffice.com/' + cleanCategory + '/' + cleanSlug;\n  }\n\n  return String(value || '')\n    .replace('https://cms.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('http://cms.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('https://www.aurahomeoffice.com', 'https://aurahomeoffice.com')\n    .replace('http://www.aurahomeoffice.com', 'https://aurahomeoffice.com');\n}\n\nreturn [{\n  json: {\n    status: 'completed',\n    keyword: macro_data.keyword,\n    category: macro_data.category,\n    job_group_id: article.job_group_id || macro_data.job_group_id || '',\n    run_id: article.run_id || macro_data.run_id || '',\n    keyword_queue_id: article.keyword_queue_id || macro_data.keyword_queue_id || '',\n    asins: macro_data.asinList,\n    asins_count: macro_data.items.length,\n    macro_model: article.ai_model || '',\n    macro_input_tokens: article.ai_input_tokens || 0,\n    macro_output_tokens: article.ai_output_tokens || 0,\n    macro_cost_estimate: article.ai_cost_estimate || 0,\n    wp_post_id: wp_update.wp_post_id || wp_result.post_id || wp_result.id || null,\n    wp_post_url: publicUrl(wp_result.link, article.category_slug, article.slug || article.post_name) || null,\n    category_update_ok: wp_update.category_update_ok !== false,\n    category_update_error: wp_update.category_update_error || '',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Done: Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32192,
+        7264
+      ],
+      "id": "3a94bd1e-340f-4bad-b265-4d2c50926130"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sonnet = $('Parse LLM Response: Macro').first().json;\nconst macro = $('Build Macro Prompt').first().json;\n\nlet article_html = sonnet.content?.[0]?.text || '';\narticle_html = article_html.replace(/^```[a-z]*\\s*/i, '').replace(/```\\s*$/i, '').trim();\narticle_html = article_html.replace(/\\*\\*/g, '');\narticle_html = article_html\n  .replace(/https?:\\/\\/cms\\.aurahomeoffice\\.com/gi, 'https://aurahomeoffice.com')\n  .replace(/https?:\\/\\/www\\.aurahomeoffice\\.com/gi, 'https://aurahomeoffice.com')\n  .replace(/—/g, ', ')\n  .replace(/\\s+,\\s+/g, ', ')\n  .replace(/\\s{2,}/g, ' ');\n\nfunction slugify(value) {\n  return String(value || '')\n    .toLowerCase()\n    .normalize('NFKD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/&/g, ' and ')\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n}\n\nconst wpCategoryMap = {\n  'standing-desks': 196,\n  'ergonomic-chairs': 197,\n  'desk-converters': 198,\n  'desk-storage': 199,\n  'footrests-mats': 200,\n  'footrests-and-mats': 200,\n  'monitor-arms': 202,\n  'desk-lighting': 203,\n  'cable-management': 204,\n  'keyboards-mice': 205,\n  'keyboards-and-mice': 205,\n  'desk-accessories': 206,\n  'ergonomics-health': 208,\n  'ergonomics-and-health': 208,\n  'workspace-ideas': 209,\n  'productivity': 210\n};\n\nconst categoryName = macro.category || '';\nconst categorySlug = slugify(categoryName);\nconst categoryCandidates = $input.all()\n  .flatMap(item => {\n    const value = item.json;\n    if (Array.isArray(value)) return value;\n    if (Array.isArray(value?.data)) return value.data;\n    if (value && typeof value === 'object') return [value];\n    return [];\n  })\n  .filter(item => item && !item.error && (item.id || item.name || item.slug));\n\nconst exactCategory = categoryCandidates.find(item => slugify(item.slug || item.name) === categorySlug)\n  || categoryCandidates.find(item => String(item.name || '').toLowerCase() === String(categoryName).toLowerCase())\n  || null;\n\nconst wpCategoryId = Number(macro.wp_category_id || exactCategory?.id || wpCategoryMap[categorySlug] || 0);\nconst postTitle = macro.article_title || macro.keyword || '';\nconst primaryFocusKeyword = macro.primary_focus_keyword || macro.topic_label || macro.keyword || postTitle;\nconst secondaryKeywords = Array.isArray(macro.secondary_keywords)\n  ? macro.secondary_keywords.filter(Boolean)\n  : [];\n\nfunction estimateAiCost(modelName, tokenUsage) {\n  const lower = String(modelName || '').toLowerCase();\n  let inputPerMillion = 1;\n  let outputPerMillion = 5;\n  if (lower.includes('sonnet')) {\n    inputPerMillion = 3;\n    outputPerMillion = 15;\n  } else if (lower.includes('haiku')) {\n    inputPerMillion = 1;\n    outputPerMillion = 5;\n  } else if (lower.includes('gpt-4o-mini')) {\n    inputPerMillion = 0.15;\n    outputPerMillion = 0.6;\n  } else if (lower.includes('gpt-4o')) {\n    inputPerMillion = 2.5;\n    outputPerMillion = 10;\n  } else if (lower.includes('gemini')) {\n    inputPerMillion = 0.35;\n    outputPerMillion = 1.05;\n  }\n  const inputTokens = Number(tokenUsage.input_tokens || tokenUsage.prompt_tokens || 0);\n  const outputTokens = Number(tokenUsage.output_tokens || tokenUsage.completion_tokens || 0);\n  return Number(((inputTokens * inputPerMillion + outputTokens * outputPerMillion) / 1000000).toFixed(6));\n}\n\nfunction plainText(value) {\n  return String(value || '')\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<!--[\\s\\S]*?-->/g, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&#8217;|&rsquo;/g, \"'\")\n    .replace(/&#8220;|&#8221;|&ldquo;|&rdquo;/g, '\"')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction truncateAtWord(value, max) {\n  const text = String(value || '').replace(/\\s+/g, ' ').trim();\n  if (text.length <= max) return text;\n  const cut = text.slice(0, max - 1);\n  const lastSpace = cut.lastIndexOf(' ');\n  return (lastSpace > 45 ? cut.slice(0, lastSpace) : cut).replace(/[,:;-]+$/g, '').trim();\n}\n\nfunction makeSeoTitle(title, focus) {\n  const formatted = `${title || focus} of %year% - Reviews by Aura Home Office`.replace(/\\s+/g, ' ').trim();\n  if (formatted.length <= 70) return formatted;\n  const shorter = `${title || focus} of %year% - Aura Home Office`.replace(/\\s+/g, ' ').trim();\n  return truncateAtWord(shorter, 70);\n}\n\nfunction makeMetaDescription(title, focus, category) {\n  const topic = String(focus || title || category || 'home office picks').trim();\n  return truncateAtWord(\n    `Compare ${topic} in %month_text% %year% with practical picks, setup trade-offs, buyer warnings, and clear home office recommendations.`,\n    158\n  );\n}\n\nfunction makeSlug(title, focus) {\n  const preferred = slugify(title || focus).split('-').slice(0, 9).join('-');\n  return preferred || slugify(focus || 'aura-home-office-guide');\n}\n\nfunction extractFaqSchema(html) {\n  const faqStart = html.search(/<h2[^>]*>\\s*FAQs?\\s*<\\/h2>/i);\n  if (faqStart < 0) return null;\n  const faqHtml = html.slice(faqStart);\n  const pattern = /<h3[^>]*>([\\s\\S]*?)<\\/h3>([\\s\\S]*?)(?=<h3[^>]*>|<h2[^>]*>|$)/gi;\n  const entities = [];\n  let match;\n  while ((match = pattern.exec(faqHtml)) && entities.length < 5) {\n    const question = plainText(match[1]);\n    const answer = truncateAtWord(plainText(match[2]), 450);\n    if (question && answer) {\n      entities.push({\n        '@type': 'Question',\n        name: question,\n        acceptedAnswer: {\n          '@type': 'Answer',\n          text: answer\n        }\n      });\n    }\n  }\n  if (entities.length < 3) return null;\n  return {\n    '@context': 'https://schema.org',\n    '@type': 'FAQPage',\n    mainEntity: entities\n  };\n}\n\nfunction countInternalLinks(html) {\n  const links = Array.from(String(html || '').matchAll(/<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>/gi))\n    .map(match => String(match[1] || '').trim())\n    .filter(Boolean);\n  const internal = links.filter(href => {\n    if (/amazon\\.com|amzn\\.to/i.test(href)) return false;\n    return href.startsWith('/') || /^https?:\\/\\/(www\\.)?aurahomeoffice\\.com\\b/i.test(href);\n  });\n  return new Set(internal.map(href => href.replace(/^https?:\\/\\/(www\\.)?aurahomeoffice\\.com/i, '').replace(/[#?].*$/, '').replace(/\\/$/, ''))).size;\n}\n\nfunction makeArticleSchema(title, description, category, asins) {\n  return {\n    '@context': 'https://schema.org',\n    '@type': 'Article',\n    headline: title,\n    description,\n    author: {\n      '@type': 'Person',\n      name: macro.author_name || 'Aura Home Office Editorial Team'\n    },\n    publisher: {\n      '@type': 'Organization',\n      name: 'Aura Home Office'\n    },\n    articleSection: category || undefined,\n    about: secondaryKeywords.slice(0, 8).map(name => ({ '@type': 'Thing', name })),\n    mentions: String(asins || '')\n      .split(',')\n      .map(v => v.trim())\n      .filter(Boolean)\n      .slice(0, 10)\n      .map(asin => ({ '@type': 'Product', productID: asin }))\n  };\n}\n\nconst seoTitle = makeSeoTitle(postTitle, primaryFocusKeyword);\nconst metaDescription = makeMetaDescription(postTitle, primaryFocusKeyword, categoryName);\nconst slug = slugify(macro.keyword || primaryFocusKeyword || postTitle);\nconst excerpt = metaDescription;\nconst faqSchema = extractFaqSchema(article_html);\nconst articleSchema = makeArticleSchema(postTitle, metaDescription, categoryName, macro.asinList || '');\nconst schemaPayload = faqSchema\n  ? [articleSchema, faqSchema]\n  : [articleSchema];\nconst schemaJsonLd = JSON.stringify(schemaPayload.length === 1 ? schemaPayload[0] : schemaPayload).replace(/</g, '\\\\u003c');\nconst macroUsage = sonnet.usage || {};\nconst macroModel = sonnet.model || 'unknown';\nconst macroInputTokens = Number(macroUsage.input_tokens || macroUsage.prompt_tokens || 0);\nconst macroOutputTokens = Number(macroUsage.output_tokens || macroUsage.completion_tokens || 0);\nconst macroCost = estimateAiCost(macroModel, macroUsage);\n\nconst warnings = [];\nif (!article_html.includes('[acms_list asin=')) warnings.push('B36 Missing product shortcode');\nif ((article_html.match(/<!-- wp:table/g) || []).length !== 1) warnings.push('B36 Expected exactly one Gutenberg table');\nif (!article_html.includes('%year%')) warnings.push('B9 Missing %year% placeholder');\nif (!article_html.includes('%month_text%')) warnings.push('B16 Missing %month_text% placeholder');\nif (/right\\s+best/i.test(article_html)) warnings.push('B8 Awkward phrase detected: right best');\nif (/\\b(test|tested|hands-on|lab-tested|personally tested)\\b/i.test(plainText(article_html))) warnings.push('B29 Forbidden testing language without first-party test data');\nif (/<h2[^>]*>\\s*Product Details\\s*<\\/h2>/i.test(article_html)) warnings.push('B42 Product Details section should not duplicate ACMS product cards');\nif (!/<h2[^>]*>\\s*How to (Choose|Pick)/i.test(article_html)) warnings.push('B44 Missing How to Choose/Pick Buying Guide section');\nif (!/<h2[^>]*>\\s*Which Should You Actually Buy\\?\\s*<\\/h2>/i.test(article_html)) warnings.push('B47 Missing conversion decision section');\nif (!/<h2[^>]*>\\s*Final Thoughts\\s*<\\/h2>/i.test(article_html)) warnings.push('B51 Missing Final Thoughts section');\nif ((article_html.match(/<h3[^>]*>\\s*\\d+\\./gi) || []).length < 5) warnings.push('B53 FAQ questions should be numbered H3 items');\nif (!String(primaryFocusKeyword || '').trim() || !plainText(article_html).toLowerCase().includes(String(primaryFocusKeyword).toLowerCase())) warnings.push('B14 Primary keyword missing from content');\nif (slug !== slugify(macro.keyword || '')) warnings.push('B68 Slug should match keyword only');\nif (/amazon\\.com\\/(?!dp\\/B[0-9A-Z]{9})/i.test(article_html)) warnings.push('B59 Amazon links should use /dp/ASIN format');\nconst internalLinkCount = countInternalLinks(article_html);\nif (internalLinkCount < 6) warnings.push('B60 Internal link count is low: ' + internalLinkCount + ' found, target 6-10 when relevant');\nif (article_html.includes('**')) warnings.push('Markdown bold syntax detected and stripped');\nif (categoryName && !wpCategoryId) warnings.push('WP category not resolved: ' + categoryName);\nif (!faqSchema) warnings.push('FAQ schema not generated because fewer than 3 FAQ answers were detected');\nif (!plainText(article_html).toLowerCase().includes(String(primaryFocusKeyword).toLowerCase())) warnings.push('Primary focus keyword not found in content: ' + primaryFocusKeyword);\n\nconst categoryFields = wpCategoryId\n  ? {\n      categories: [wpCategoryId],\n      post_category: [wpCategoryId],\n      category_id: wpCategoryId,\n      categoryId: wpCategoryId,\n      category_ids: [wpCategoryId],\n      category_name: categoryName,\n      category_slug: categorySlug\n    }\n  : {\n      category_name: categoryName,\n      category_slug: categorySlug\n    };\n\nconst normalize = $('Normalize Input').first().json || {};\nconst sourceArticlePayload = normalize.source_article_payload || {};\nconst productItems = Array.isArray(macro.items) ? macro.items : [];\n\nfunction parsePrice(value) {\n  const match = String(value || '').replace(/,/g, '').match(/\\$?\\s*([0-9]+(?:\\.[0-9]{1,2})?)/);\n  return match ? Number(match[1]) : null;\n}\n\nfunction money(value) {\n  return Number.isFinite(value) ? '$' + value.toFixed(2) : '';\n}\n\nfunction markdownProducts(items) {\n  return items.map((item, index) => {\n    const rating = item.rating ? String(item.rating) + '/5' : '';\n    const reviews = item.reviews_count ? ' (' + item.reviews_count + ' reviews)' : '';\n    const features = Array.isArray(item.selling_points) && item.selling_points.length\n      ? item.selling_points.map(point => '- ' + point).join('\\n')\n      : (item.features || '');\n    return [\n      '### Product ' + (index + 1) + ': ' + (item.title || item.asin || 'Untitled product'),\n      '- ASIN: ' + (item.asin || ''),\n      '- Brand: ' + (item.brand || ''),\n      '- Price: ' + (item.price || ''),\n      '- Rating: ' + rating + reviews,\n      '- Description: ' + (item.description || item.ai_short_review || ''),\n      '- Key Features: ' + features\n    ].join('\\n');\n  }).join('\\n\\n');\n}\n\nconst prices = productItems.map(item => parsePrice(item.price)).filter(value => Number.isFinite(value));\nconst minPrice = prices.length ? Math.min(...prices) : null;\nconst maxPrice = prices.length ? Math.max(...prices) : null;\nconst brands = Array.from(new Set(productItems.map(item => String(item.brand || '').trim()).filter(Boolean)));\nconst reviewCountTotal = productItems.reduce((sum, item) => sum + (Number(item.reviews_count) || 0), 0);\nconst articleQueuePayload = {\n  post_id: sourceArticlePayload.post_id || normalize.post_id || '',\n  keyword: macro.keyword || '',\n  category_name: categoryName,\n  products_count: productItems.length,\n  products: sourceArticlePayload.products || markdownProducts(productItems),\n  related_posts: sourceArticlePayload.related_posts || macro.related_links || '',\n  existing_title: sourceArticlePayload.existing_title || '',\n  existing_content: sourceArticlePayload.existing_content || '',\n  price_range: sourceArticlePayload.price_range || (prices.length ? money(minPrice) + ' - ' + money(maxPrice) : ''),\n  price_min: sourceArticlePayload.price_min || money(minPrice),\n  price_max: sourceArticlePayload.price_max || money(maxPrice),\n  brand_list: sourceArticlePayload.brand_list || brands.join(', '),\n  review_count: sourceArticlePayload.review_count || String(reviewCountTotal || ''),\n  review_count_formatted: sourceArticlePayload.review_count_formatted || (reviewCountTotal ? Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(reviewCountTotal) : ''),\n  shortcode_list: sourceArticlePayload.shortcode_list || ('[acms_list asin=\"' + (macro.asinList || '') + '\" numbered=\"true\"]'),\n  shortcode_grid: sourceArticlePayload.shortcode_grid || ('[acms_grid asin=\"' + (macro.asinList || '') + '\" columns=\"3\"]'),\n  shortcode_card: sourceArticlePayload.shortcode_card || ('[acms_card asin=\"' + String(macro.asinList || '').split(',').filter(Boolean)[0] + '\"]')\n};\n\nconst articleTrace = {\n  payload_version: 'rich-ai-queue-v2',\n  queued_payload_type: normalize.queue_payload_type || 'article',\n  job_type: 'macro_article',\n  target_type: 'keyword',\n  target_id: macro.keyword || postTitle,\n  keyword: macro.keyword || '',\n  category: categoryName,\n  job_group_id: macro.job_group_id || '',\n  run_id: macro.run_id || macro.job_group_id || '',\n  keyword_queue_id: macro.keyword_queue_id || '',\n  request_id: macro.request_id || macro.job_group_id || '',\n  asins: macro.asinList || '',\n  asin_count: String(macro.asinList || '').split(',').filter(Boolean).length,\n  model: macroModel,\n  tokens_input: macroInputTokens,\n  tokens_output: macroOutputTokens,\n  cost: macroCost,\n  warnings\n};\n\nreturn [{\n  json: {\n    title: postTitle,\n    seo_title: seoTitle,\n    slug,\n    post_name: slug,\n    excerpt,\n    meta_description: metaDescription,\n    schema_jsonld: schemaJsonLd,\n    keyword: macro.keyword || '',\n    parent_keyword: macro.keyword || '',\n    article_keyword: macro.keyword || '',\n    job_group_id: macro.job_group_id || '',\n    run_id: macro.run_id || macro.job_group_id || '',\n    keyword_queue_id: macro.keyword_queue_id || '',\n    request_id: macro.request_id || macro.job_group_id || '',\n    job_type: 'macro_article',\n    target_type: 'keyword',\n    target_id: macro.keyword || postTitle,\n    focus_keyword: primaryFocusKeyword,\n    primary_focus_keyword: primaryFocusKeyword,\n    secondary_keywords: secondaryKeywords,\n    category: categoryName,\n    ...categoryFields,\n    asins: macro.asinList || '',\n    asin_count: String(macro.asinList || '').split(',').filter(Boolean).length,\n    post_id: articleQueuePayload.post_id,\n    products_count: articleQueuePayload.products_count,\n    products: articleQueuePayload.products,\n    related_posts: articleQueuePayload.related_posts,\n    existing_title: articleQueuePayload.existing_title,\n    existing_content: articleQueuePayload.existing_content,\n    price_range: articleQueuePayload.price_range,\n    price_min: articleQueuePayload.price_min,\n    price_max: articleQueuePayload.price_max,\n    brand_list: articleQueuePayload.brand_list,\n    review_count: articleQueuePayload.review_count,\n    review_count_formatted: articleQueuePayload.review_count_formatted,\n    shortcode_list: articleQueuePayload.shortcode_list,\n    shortcode_grid: articleQueuePayload.shortcode_grid,\n    shortcode_card: articleQueuePayload.shortcode_card,\n    article_payload: articleQueuePayload,\n    queue_payload: articleQueuePayload,\n    trace: articleTrace,\n    source_payload: normalize.source_payload || {},\n    ai_generated_content: article_html,\n    content: article_html,\n    status: 'draft',\n    type: 'post',\n    author: macro.author_id,\n    meta: {\n      _aura_category: categoryName,\n      _aura_category_slug: categorySlug,\n      _aura_category_id: wpCategoryId ? String(wpCategoryId) : '',\n      _aura_job_group_id: macro.job_group_id || '',\n      _aura_run_id: macro.run_id || macro.job_group_id || '',\n      _aura_keyword_queue_id: macro.keyword_queue_id || '',\n      _aura_request_id: macro.request_id || '',\n      _rank_math_title: seoTitle,\n      _rank_math_description: metaDescription,\n      _rank_math_focus_keyword: primaryFocusKeyword,\n      _rank_math_primary_category: wpCategoryId ? String(wpCategoryId) : '',\n      _rank_math_breadcrumb_title: truncateAtWord(postTitle, 60),\n      _aura_asins: macro.asinList || '',\n      _aura_raw_keyword: macro.keyword || '',\n      _aura_primary_focus_keyword: primaryFocusKeyword,\n      _aura_secondary_keywords: secondaryKeywords.join(', '),\n      _aura_seo_title: seoTitle,\n      _aura_meta_description: metaDescription,\n      _aura_schema_generated: faqSchema ? 'article+faq' : 'article',\n      _aura_schema_jsonld: schemaJsonLd,\n      _aura_ai_model: macroModel,\n      _aura_ai_input_tokens: String(macroInputTokens),\n      _aura_ai_output_tokens: String(macroOutputTokens),\n      _aura_ai_cost_estimate: String(macroCost),\n      _aura_article_warnings: warnings.join(' | '),\n      _aura_article_payload: JSON.stringify(articleQueuePayload).substring(0, 15000),\n      _aura_trace_payload: JSON.stringify(articleTrace).substring(0, 8000)\n    },\n    ai_usage: macroUsage,\n    ai_model: macroModel,\n    ai_cost: macroCost,\n    ai_cost_estimate: macroCost,\n    ai_input_tokens: macroInputTokens,\n    ai_output_tokens: macroOutputTokens,\n    ai_job: {\n      type: 'post',\n      job_type: 'macro_article',\n      target_type: 'keyword',\n      target_id: macro.keyword || postTitle,\n      keyword: macro.keyword || '',\n      parent_keyword: macro.keyword || '',\n      article_keyword: macro.keyword || '',\n      category: categoryName,\n      job_group_id: macro.job_group_id || '',\n      run_id: macro.run_id || macro.job_group_id || '',\n      keyword_queue_id: macro.keyword_queue_id || '',\n      asins: macro.asinList || '',\n      asin_count: String(macro.asinList || '').split(',').filter(Boolean).length,\n      model: macroModel,\n      tokens_input: macroInputTokens,\n      tokens_output: macroOutputTokens,\n      cost: macroCost\n    },\n    ai_output: {\n      title: postTitle,\n      seo_title: seoTitle,\n      focus_keyword: primaryFocusKeyword,\n      meta_description: metaDescription,\n      content: article_html,\n      warnings\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        30848,
+        7264
+      ],
+      "id": "abab8fd5-5128-4ff8-ad64-d337c6f98efe",
+      "name": "Build Article Payload"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $input.item.json;\nconst config = $('Setup Global Config').first().json;\n\nconst model = config.micro_model;\nconst providerUrl = config.provider_url || 'https://openrouter.ai/api/v1/chat/completions';\nconst maxTokens = Math.min(parseInt(config.micro_max_tokens, 10) || 4000, 4000);\nconst temperature = parseFloat(config.micro_temperature ?? 0.2);\n\nif (!model) {\n  throw new Error('Pipeline Config Error: micro_model is missing in Aura_Config.');\n}\n\nfunction parseModelList(primary, rawFallbacks) {\n  const fallbackText = rawFallbacks || 'openai/gpt-4o-mini,anthropic/claude-3.5-haiku';\n  const models = [primary]\n    .concat(String(fallbackText).split(/[,\\n]/))\n    .map(m => String(m || '').trim())\n    .filter(Boolean);\n  return [...new Set(models)].slice(0, 3);\n}\n\nconst models = parseModelList(\n  model,\n  config.micro_fallback_models || config.micro_fallback_model || config.fallback_models\n);\n\nconst body = {\n  max_tokens: maxTokens,\n  temperature,\n  messages: [{ role: 'user', content: d.micro_prompt }]\n};\n\nif (models.length > 1) {\n  body.models = models;\n} else {\n  body.model = models[0];\n}\n\nreturn {\n  json: {\n    ...d,\n    __llm_url: providerUrl,\n    __llm_body: body,\n    __llm_models: models\n  }\n};"
+      },
+      "name": "Build LLM Request: Micro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27360,
+        7264
+      ],
+      "id": "6707ae8a-0349-42dc-9b51-17c3dc4e8096"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.__llm_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://aurahomeoffice.com"
+            },
+            {
+              "name": "X-Title",
+              "value": "Aura Pipeline"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.__llm_body) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 2
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "name": "Call LLM: Micro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        27568,
+        7264
+      ],
+      "id": "60ef1189-ad6d-429a-9372-8c39ffecbad4",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0VzBWpuU4sYJdXQE",
+          "name": "OpenRouter API Key"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const res = $input.item.json;\nlet text = '';\nlet llm_error = '';\n\nif (res.choices?.[0]?.message?.content) {\n  text = res.choices[0].message.content;\n} else if (res.content?.[0]?.text) {\n  text = res.content[0].text;\n} else if (res.error) {\n  llm_error = typeof res.error === 'string' ? res.error : JSON.stringify(res.error).substring(0, 500);\n  text = JSON.stringify({\n    custom_title: 'Review data unavailable',\n    short_review: 'This product review is temporarily unavailable because the model provider returned an error.',\n    evidence_basis: 'Unavailable due to model provider error.',\n    selling_points: ['N/A', 'N/A', 'N/A', 'N/A', 'N/A'],\n    pros: ['N/A', 'N/A', 'N/A'],\n    cons: ['N/A', 'N/A'],\n    comparison_summary: {\n      comparison_angle: 'Review unavailable',\n      best_for: 'N/A',\n      skip_if: 'N/A',\n      main_strength: 'N/A',\n      main_weakness: 'Model provider error',\n      key_specs: [],\n      evidence_points: [],\n      decision_note: 'Skip until the product review is regenerated.',\n      setup_context: 'N/A'\n    },\n    custom_tabs: []\n  });\n} else {\n  llm_error = 'Unknown LLM response format: ' + JSON.stringify(res).substring(0, 500);\n  text = JSON.stringify({\n    custom_title: 'Review data unavailable',\n    short_review: 'This product review is temporarily unavailable because the model response could not be parsed.',\n    evidence_basis: 'Unavailable due to processing error.',\n    selling_points: ['N/A', 'N/A', 'N/A', 'N/A', 'N/A'],\n    pros: ['N/A', 'N/A', 'N/A'],\n    cons: ['N/A', 'N/A'],\n    comparison_summary: {\n      comparison_angle: 'Review unavailable',\n      best_for: 'N/A',\n      skip_if: 'N/A',\n      main_strength: 'N/A',\n      main_weakness: 'N/A',\n      key_specs: [],\n      evidence_points: [],\n      decision_note: 'Skip until the product review is regenerated.',\n      setup_context: 'N/A'\n    },\n    custom_tabs: []\n  });\n}\n\nconst usage = {\n  input_tokens:  res.usage?.input_tokens  || res.usage?.prompt_tokens     || 0,\n  output_tokens: res.usage?.output_tokens || res.usage?.completion_tokens || 0\n};\n\nreturn {\n  json: {\n    content: [{ type: 'text', text }],\n    usage,\n    model: res.model || '',\n    _llm_error: llm_error,\n    _raw_status: res.status || null\n  }\n};"
+      },
+      "name": "Parse LLM Response: Micro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27776,
+        7264
+      ],
+      "id": "0bfdc512-b6f2-460e-b822-26f3fbb146ab"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $input.item.json;\nconst config = $('Setup Global Config').first().json;\n\nif (!d.macro_prompt) {\n  throw new Error('Pipeline Routing Error: macro_prompt is missing.');\n}\n\nconst model = config.macro_model;\nconst providerUrl = config.provider_url || 'https://openrouter.ai/api/v1/chat/completions';\nconst maxTokens = parseInt(config.macro_max_tokens, 10) || 8000;\nconst temperature = parseFloat(config.macro_temperature ?? 0.3);\n\nif (!model) {\n  throw new Error('Pipeline Config Error: macro_model is missing in Aura_Config.');\n}\n\nfunction parseModelList(primary, rawFallbacks) {\n  const fallbackText = rawFallbacks || 'anthropic/claude-3.5-sonnet,openai/gpt-4o';\n  const models = [primary]\n    .concat(String(fallbackText).split(/[,\\n]/))\n    .map(m => String(m || '').trim())\n    .filter(Boolean);\n  return [...new Set(models)].slice(0, 3);\n}\n\nconst models = parseModelList(\n  model,\n  config.macro_fallback_models || config.macro_fallback_model || config.fallback_models\n);\n\nconst body = {\n  max_tokens: maxTokens,\n  temperature,\n  messages: [{ role: 'user', content: d.macro_prompt }]\n};\n\nif (models.length > 1) {\n  body.models = models;\n} else {\n  body.model = models[0];\n}\n\nreturn {\n  json: {\n    ...d,\n    __llm_url: providerUrl,\n    __llm_body: body,\n    __llm_models: models\n  }\n};"
+      },
+      "name": "Build LLM Request: Macro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29952,
+        7264
+      ],
+      "id": "eb06054e-d56c-4662-82f7-429b9780f959"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.__llm_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "https://aurahomeoffice.com"
+            },
+            {
+              "name": "X-Title",
+              "value": "Aura Pipeline"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.__llm_body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 180000
+        }
+      },
+      "name": "Call LLM: Macro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        30176,
+        7264
+      ],
+      "id": "db1016a9-0c2a-452e-b715-e132f3172d30",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0VzBWpuU4sYJdXQE",
+          "name": "OpenRouter API Key"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const res = $input.item.json;\nlet text = '';\n\nif (res.choices?.[0]?.message?.content) text = res.choices[0].message.content;\nelse if (res.content?.[0]?.text) text = res.content[0].text;\nelse throw new Error('Unknown response format: ' + JSON.stringify(res).substring(0, 200));\n\ntext = text.replace(/^```[a-z]*\\s*/i, '').replace(/```\\s*$/, '').trim();\n\nconst usage = {\n  input_tokens:  res.usage?.['input_tokens']  || res.usage?.prompt_tokens     || 0,\n  output_tokens: res.usage?.['output_tokens'] || res.usage?.completion_tokens || 0\n};\n\nreturn { json: { content: [{ type: 'text', text }], usage, model: res.model || '' } };"
+      },
+      "name": "Parse LLM Response: Macro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        30400,
+        7264
+      ],
+      "id": "4a5ce5e0-2865-40c0-9aef-415def65c7d6"
+    },
+    {
+      "parameters": {
+        "url": "https://cms.aurahomeoffice.com/wp-json/aura/v1/related-posts?per_page=30&status=publish,draft",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        29504,
+        7264
+      ],
+      "id": "49c95596-ead3-4fea-842c-578d381dd531",
+      "name": "WP: Get Related Posts",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NSXhQ1LEssXzgbhN",
+          "name": "WP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2068145243,
+          "mode": "list",
+          "cachedResultName": "Aura_Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ/edit#gid=2068145243"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        25280,
+        7296
+      ],
+      "id": "53925cdf-847a-4252-b682-eb13faaa4d53",
+      "name": "Lookup Config rules",
+      "executeOnce": true,
+      "credentials": {
+        "googleApi": {
+          "id": "VkP8v18fXnTFj85g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('Normalize Input').first().json;\nconst allRows = $input.all();\n\nconst config = allRows.reduce((acc, row) => {\n  const key = row.json.key;\n  if (key) {\n    acc[key.trim()] = row.json.value;\n  }\n  return acc;\n}, {});\n\nconst keyword = inputData.keyword || '';\nlet search_query = keyword\n  .replace(/\\b(best|top|cheap|review)\\b\\s*/gi, '')\n  .replace(/\\s+/g, ' ')\n  .trim() || keyword;\n\nconst category = inputData.category || '';\nconst lowerSearch = search_query.toLowerCase();\n\nif (category === 'Cable Management' && /^(cord management|cable management)$/.test(lowerSearch)) {\n  search_query = lowerSearch.includes('cord') ? 'cord management desk' : 'cable management desk';\n} else if (category === 'Desk Lighting' && /^(desk lighting|lighting)$/.test(lowerSearch)) {\n  search_query = 'desk lamp home office';\n} else if (category === 'Monitor Arms' && /^(monitor arms?|monitor stands?)$/.test(lowerSearch)) {\n  search_query = 'monitor arm desk';\n} else if (category === 'Desk Storage' && /^(desk storage|storage)$/.test(lowerSearch)) {\n  search_query = 'desk organizer storage';\n} else if (category === 'Desk Accessories' && /^(desk accessories|accessories)$/.test(lowerSearch)) {\n  search_query = 'desk accessories organizer';\n}\n\nreturn [{ json: { ...config, ...inputData, search_query } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25488,
+        7296
+      ],
+      "id": "bd593f9d-991c-400a-aa96-3db6fadab597",
+      "name": "Setup Global Config"
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Setup Global Config').first().json || {};\nlet rules = {};\n\ntry {\n  rules = $('Lookup Category Rules').first().json || {};\n} catch (e) {\n  rules = {};\n}\n\nreturn [{ json: { ...config, category_rules: rules } }];"
+      },
+      "name": "Attach Category Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25904,
+        7296
+      ],
+      "id": "b012fa12-fec4-41fe-add7-918e4c83da80"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nif (item._fatal_error) {\n  return [];\n}\n\nreturn [{ json: item }];"
+      },
+      "name": "Filter ASIN Search Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26528,
+        7184
+      ],
+      "id": "440e2007-6e76-430f-8d5b-faaa09a24d41"
+    },
+    {
+      "parameters": {
+        "jsCode": "const outputs = [];\n\nfor (const source of $input.all()) {\n  const item = source.json || {};\n  if (!item._fatal_error) continue;\n\n  const chatId = item.telegram_chat_id || item.chat_id || '';\n\n  const extra = item._fatal_extra || {};\n  const extraLines = [\n    extra.search_query ? 'Search query: ' + extra.search_query : '',\n    extra.crawbase_keys ? 'Crawbase keys: ' + extra.crawbase_keys : '',\n    extra.http_code ? 'HTTP code: ' + extra.http_code : '',\n    extra.post_id ? 'Post ID: ' + extra.post_id : '',\n    extra.diagnostics ? 'Diagnostics: ' + extra.diagnostics : ''\n  ].filter(Boolean);\n\n  const lines = [\n    'Aura workflow failed.',\n    '',\n    'Keyword: ' + (item.keyword || ''),\n    'Category: ' + (item.category || ''),\n    item._fatal_stage ? 'Stage: ' + item._fatal_stage : '',\n    'Node: ' + (item._fatal_node || 'Unknown'),\n    '',\n    'Error:',\n    item._fatal_message || 'Unknown error',\n    extraLines.length ? '' : '',\n    ...extraLines,\n    '',\n    'Action: ' + (item._fatal_action || 'Open the failed execution in n8n and check this node.')\n  ].filter(line => line !== undefined && line !== null && line !== '');\n\n  outputs.push({\n    json: {\n      chat_id: chatId ? String(chatId) : '',\n      text: lines.join('\\n').slice(0, 3900)\n    }\n  });\n}\n\nreturn outputs;"
+      },
+      "name": "Build Telegram Pipeline Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26528,
+        7504
+      ],
+      "id": "f241e679-d80c-4c1e-9fa6-fa91b840bbd3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const all = $input.all();\nconst normalize = $('Normalize Input').first().json || {};\nconst requestedProductCount = Math.max(1, Math.min(parseInt(normalize.asin_count, 10) || 8, 15));\nconst asinOrder = new Map((normalize.asins || []).map((asin, index) => [String(asin || '').toUpperCase(), index]));\n\nconst items = all.filter(item => {\n  const j = item.json || {};\n  return ['success', 'partial'].includes(j._pipeline_status) && !!j.asin && !!j.title && !!j.review?.custom_title;\n}).sort((a, b) => {\n  const aIndex = asinOrder.has(String(a.json.asin || '').toUpperCase()) ? asinOrder.get(String(a.json.asin || '').toUpperCase()) : 9999;\n  const bIndex = asinOrder.has(String(b.json.asin || '').toUpperCase()) ? asinOrder.get(String(b.json.asin || '').toUpperCase()) : 9999;\n  return aIndex - bIndex;\n});\n\nfunction buildDiagnostics() {\n  return all.map((item, index) => {\n    const j = item.json || {};\n    const reasons = [];\n    if (!['success', 'partial'].includes(j._pipeline_status)) reasons.push('pipeline_status=' + (j._pipeline_status || 'missing'));\n    if (!j.asin) reasons.push('missing_asin');\n    if (!j.title) reasons.push('missing_title');\n    if (!j.review?.custom_title) reasons.push('missing_review_custom_title');\n    if (j.error) reasons.push('error=' + String(j.error).slice(0, 160));\n    if (j._error_log) reasons.push('error_log=' + String(j._error_log).slice(0, 220));\n\n    return {\n      index,\n      asin: j.asin || 'UNKNOWN',\n      title: j.title || '',\n      status: j._pipeline_status || j.status || 'missing',\n      reasons: reasons.length ? reasons : ['usable']\n    };\n  });\n}\n\nfunction fatal(message, action) {\n  let normalize = {};\n  try {\n    normalize = $('Normalize Input').first().json || {};\n  } catch (e) {\n    normalize = {};\n  }\n\n  return [{\n    json: {\n      ...normalize,\n      _fatal_error: true,\n      _fatal_node: 'Filter Successful ASIN Reviews',\n      _fatal_stage: 'micro_reviews',\n      _fatal_message: message,\n      _fatal_extra: {\n        requested_count: requestedProductCount,\n        input_count: all.length,\n        usable_count: items.length,\n        diagnostics: JSON.stringify(buildDiagnostics()).substring(0, 1800)\n      },\n      _fatal_action: action || 'Retry with fewer ASINs, wait for the LLM provider rate limit to clear, or provide known-good ASINs manually.'\n    }\n  }];\n}\n\nif (!items.length) {\n  return fatal('No usable ASIN reviews available for article generation.');\n}\n\nif (items.length < requestedProductCount) {\n  return fatal(\n    'Only ' + items.length + ' usable ASIN reviews available, but asin_count requested ' + requestedProductCount + '.',\n    'Open this node diagnostics to see which ASINs failed scrape/LLM validation. Retry, lower asin_count, or provide known-good ASINs manually.'\n  );\n}\n\nreturn items.slice(0, requestedProductCount);"
+      },
+      "name": "Filter Successful ASIN Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28192,
+        7264
+      ],
+      "id": "1a71ea8b-6a17-48cc-b488-25b047fa56dd"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().filter(item => !(item.json || {})._fatal_error);"
+      },
+      "name": "Filter Review Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28400,
+        7264
+      ],
+      "id": "8cca373b-5f5e-4778-bbe3-8cb3f0e85953"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst review = item.review || {};\nconst comparisonSummary = item.comparison_summary || review.comparison_summary || {};\nconst inputTokens = Number(item.ai_usage?.input_tokens || item.ai_usage?.prompt_tokens || 0);\nconst outputTokens = Number(item.ai_usage?.output_tokens || item.ai_usage?.completion_tokens || 0);\nconst aiCost = Number(item.ai_cost_estimate || item.ai_cost || 0);\n\nfunction clean(value) {\n  return String(value ?? '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction list(value) {\n  return Array.isArray(value) ? value.filter(Boolean) : [];\n}\n\nfunction normalizeAuraScore(...values) {\n  for (const value of values) {\n    if (value === undefined || value === null || value === '') continue;\n    let score = Number(value);\n    if (!Number.isFinite(score)) continue;\n    if (score > 10 && score <= 100) score = score / 10;\n    if (score > 0 && score <= 1) score = score * 10;\n    return Math.max(0, Math.min(10, Math.round(score * 10) / 10));\n  }\n  return null;\n}\n\nfunction scoreLabel(score) {\n  if (!Number.isFinite(score)) return '';\n  if (score >= 9) return 'Gold Standard';\n  if (score >= 7.5) return 'Recommended';\n  if (score >= 6) return 'Functional';\n  if (score >= 4) return 'Average';\n  return 'Poor';\n}\n\nfunction specsFromString(value) {\n  return String(value || '')\n    .split(/\\n+/)\n    .map(line => {\n      const idx = line.indexOf(':');\n      if (idx < 0) return null;\n      return {\n        name: clean(line.slice(0, idx)),\n        value: clean(line.slice(idx + 1))\n      };\n    })\n    .filter(entry => entry && entry.name && entry.value);\n}\n\nfunction normalizeSpecs(value, fallbackText) {\n  if (Array.isArray(value) && value.length) {\n    return value\n      .map(entry => ({\n        name: clean(entry?.name || entry?.label || entry?.key),\n        value: clean(entry?.value)\n      }))\n      .filter(entry => entry.name && entry.value);\n  }\n  return specsFromString(fallbackText);\n}\n\nconst asinSpecifications = normalizeSpecs(\n  item.asin_specifications || item.specifications_array,\n  item.specifications\n);\nconst asinTopReviews = list(item.asin_top_reviews || item.top_reviews_array);\nconst featureBullets = list(item.features_array);\nconst asinCode = item.asin_code || item.asin || '';\nconst asinTitle = item.asin_title || item.title || '';\nconst asinBrand = item.asin_brand || item.brand || '';\nconst asinCategory = item.product_category || item.category_name || item.category || '';\nconst asinDescription = item.asin_description || item.description || '';\nconst asinFeatures = item.asin_features || item.features || featureBullets.join('\\n');\nconst auraScore = normalizeAuraScore(\n  review.score,\n  item.ai_review?.score,\n  item.ai_output?.score,\n  item.score\n);\nconst auraScoreLabel = review.score_label || item.ai_review?.score_label || item.ai_output?.score_label || item.score_label || scoreLabel(auraScore);\nconst auraScoreRationale = review.score_rationale || item.ai_review?.score_rationale || item.ai_output?.score_rationale || item.score_rationale || '';\n\nconst aiReview = {\n  short_product_name: review.short_product_name || item.short_product_name || '',\n  product_label: review.product_label || item.product_label || '',\n  custom_title: review.custom_title || '',\n  short_review: review.short_review || '',\n  evidence_basis: review.evidence_basis || '',\n  source_basis: review.source_basis || item.source_basis || '',\n  claim_confidence: review.claim_confidence || item.claim_confidence || '',\n  score: auraScore,\n  score_label: auraScoreLabel,\n  score_rationale: auraScoreRationale,\n  missing_specs: list(review.missing_specs || item.missing_specs),\n  selling_points: list(review.selling_points),\n  pros: list(review.pros),\n  cons: list(review.cons),\n  custom_tabs: list(review.custom_tabs),\n  comparison_summary: comparisonSummary\n};\n\nconst trace = {\n  payload_version: 'rich-ai-queue-v2',\n  queued_payload_type: item.queue_payload_type || 'asin_product',\n  job_type: 'asin_enhancement',\n  target_type: 'asin',\n  target_id: asinCode,\n  keyword: item.keyword || '',\n  parent_keyword: item.parent_keyword || item.keyword || '',\n  article_keyword: item.article_keyword || item.keyword || '',\n  category: item.category || '',\n  job_group_id: item.job_group_id || '',\n  run_id: item.run_id || item.job_group_id || '',\n  keyword_queue_id: item.keyword_queue_id || '',\n  request_id: item.request_id || '',\n  asin_index: item.asin_index || null,\n  asin_total: item.asin_total || null,\n  asin_list: item.asin_list || '',\n  article_asins: item.article_asins || item.asin_list || '',\n  pipeline_status: item._pipeline_status || 'success',\n  error_log: item._error_log || '',\n  model: item.ai_model || '',\n  tokens_input: inputTokens,\n  tokens_output: outputTokens,\n  cost: aiCost\n};\n\nconst wp_payload = {\n  ...trace,\n  asin: asinCode,\n  title: asinTitle,\n  brand: asinBrand,\n  price: item.price || '',\n  rating: item.rating || '',\n  reviews_count: item.reviews_count || 0,\n  score: auraScore,\n  score_label: auraScoreLabel,\n  score_rationale: auraScoreRationale,\n  image_url: item.image_url || '',\n  description: asinDescription,\n  features: asinFeatures,\n  feature_bullets: featureBullets,\n  specifications: item.specifications || asinSpecifications.map(entry => entry.name + ': ' + entry.value).join('\\n'),\n  raw_reviews: item.top_reviews || '',\n\n  asin_code: asinCode,\n  asin_title: asinTitle,\n  asin_brand: asinBrand,\n  asin_category: asinCategory,\n  asin_price: item.price || '',\n  asin_rating: item.rating || '',\n  asin_reviews_count: item.reviews_count || 0,\n  asin_description: asinDescription,\n  asin_features: asinFeatures,\n  asin_feature_bullets: featureBullets,\n  asin_specifications: asinSpecifications,\n  asin_top_reviews: asinTopReviews,\n  asin_image_url: item.image_url || '',\n\n  short_product_name: review.short_product_name || item.short_product_name || asinTitle,\n  product_label: review.product_label || item.product_label || '',\n  source_basis: review.source_basis || item.source_basis || '',\n  claim_confidence: review.claim_confidence || item.claim_confidence || '',\n  score: auraScore,\n  score_label: auraScoreLabel,\n  score_rationale: auraScoreRationale,\n  missing_specs: list(review.missing_specs || item.missing_specs),\n  ai_title: review.custom_title || '',\n  ai_short_review: review.short_review || '',\n  ai_pros: list(review.pros),\n  ai_cons: list(review.cons),\n  ai_tabs: list(review.custom_tabs),\n  selling_points: list(review.selling_points),\n  evidence_basis: review.evidence_basis || '',\n  comparison_summary: comparisonSummary,\n  ai_review: aiReview,\n  ai_output: aiReview,\n  ai_usage: item.ai_usage || {},\n  ai_model: item.ai_model || '',\n  ai_cost: aiCost,\n  ai_cost_estimate: aiCost,\n  ai_input_tokens: inputTokens,\n  ai_output_tokens: outputTokens,\n  ai_job: {\n    type: 'asin',\n    ...trace\n  },\n  trace,\n  source_product_payload: item.source_product_payload || {},\n  source_article_payload: item.source_article_payload || {},\n  source_payload: item.source_payload || {}\n};\n\nreturn {\n  json: {\n    ...wp_payload,\n    wp_payload,\n    _pipeline_status: item._pipeline_status || 'success',\n    _error_log: item._error_log || ''\n  }\n};"
+      },
+      "name": "Build ASIN WP Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28608,
+        7264
+      ],
+      "id": "7e08a112-6644-45c7-8999-217635189526"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Build ASIN WP Payload').all()[$itemIndex]?.json || {};\nconst syncResult = $input.item.json || {};\nconst hasError = !!(syncResult.error || syncResult.message?.includes?.('error'));\n\nreturn {\n  json: {\n    ...original,\n    wp_sync_result: syncResult,\n    wp_sync_status: hasError ? 'failed' : 'success',\n    _pipeline_status: hasError ? 'wp_failed' : (original._pipeline_status || 'success'),\n    _error_log: [original._error_log, hasError ? JSON.stringify(syncResult).substring(0, 500) : '']\n      .filter(Boolean)\n      .join('; ')\n  }\n};"
+      },
+      "name": "Attach WP Sync Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29056,
+        7264
+      ],
+      "id": "e2e4296b-445c-4533-84ed-824c7fdd95f1"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1E_w3bxP1fPfS04YOjRjjv0O6rh7FscBCxfhxQCHA9jQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Keywords",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "keyword": "={{ $('Normalize Input').first().json.keyword }}",
+            "category": "={{ $('Normalize Input').first().json.category }}",
+            "asins": "={{ $('Normalize Input').first().json.asins.join(', ') }}",
+            "asin_count": "={{ $('Normalize Input').first().json.asin_count }}",
+            "status": "processing",
+            "notes": "={{ ['Started ' + new Date().toISOString(), 'job_group_id=' + ($('Normalize Input').first().json.job_group_id || ''), $('Normalize Input').first().json.category_inferred ? 'auto_category=' + $('Normalize Input').first().json.category : '', $('Normalize Input').first().json.notes || ''].filter(Boolean).join(' | ') }}"
+          },
+          "matchingColumns": [
+            "keyword"
+          ],
+          "schema": [
+            {
+              "id": "keyword",
+              "displayName": "keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "asins",
+              "displayName": "asins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "asin_count",
+              "displayName": "asin_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "wp_post_id",
+              "displayName": "wp_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "Sheet: Mark Processing",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        25072,
+        7296
+      ],
+      "id": "333b00a4-186a-40d6-a74e-3d478843a1da",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "VkP8v18fXnTFj85g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://cms.aurahomeoffice.com/wp-json/wp/v2/categories?search={{ encodeURIComponent($('Build Macro Prompt').first().json.category || '') }}&per_page=10&_fields=id,name,slug",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        30624,
+        7264
+      ],
+      "id": "8066d960-3b9d-40db-99b0-4ce80062c0c3",
+      "name": "WP: Resolve Category",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const publish = $input.first().json || {};\nconst postId = publish.post_id || publish.id || publish.post?.id || publish.data?.id || null;\nconst statusCode = Number(publish.statusCode || publish.status_code || publish.data?.status || publish.response?.statusCode || 0);\nconst hasError = Boolean(\n  publish.error ||\n  publish.code ||\n  statusCode >= 400 ||\n  (!postId && publish.status !== 'success')\n);\n\nif (hasError) {\n  return [];\n}\n\nreturn [{ json: publish }];"
+      },
+      "name": "Filter WP Publish Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        31296,
+        7264
+      ],
+      "id": "c11e01e5-6fcf-4365-a012-663ce6192d0d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const publish = $input.first().json || {};\nconst article = $('Build Article Payload').first().json || {};\nconst normalize = $('Normalize Input').first().json || {};\n\nconst postId = publish.post_id || publish.id || publish.post?.id || publish.data?.id || null;\nconst statusCode = Number(publish.statusCode || publish.status_code || publish.data?.status || publish.response?.statusCode || 0);\nconst hasError = Boolean(\n  publish.error ||\n  publish.code ||\n  statusCode >= 400 ||\n  (!postId && publish.status !== 'success')\n);\n\nif (!hasError) {\n  return [];\n}\n\nconst message =\n  publish.message ||\n  publish.error?.message ||\n  publish.data?.message ||\n  publish.code ||\n  JSON.stringify(publish).substring(0, 700);\n\nreturn [{\n  json: {\n    ...normalize,\n    keyword: normalize.keyword || article.keyword || article.title || '',\n    category: normalize.category || article.category_name || article.category || '',\n    _fatal_error: true,\n    _fatal_node: 'WP: Publish Article',\n    _fatal_stage: 'wordpress_publish',\n    _fatal_message: String(message || 'WordPress publish failed'),\n    _fatal_extra: {\n      http_code: statusCode || '',\n      post_id: postId || '',\n      response: JSON.stringify(publish).substring(0, 900)\n    },\n    _fatal_action: 'Check the Aura create-post REST endpoint, WordPress permissions, payload size, and PHP error log.'\n  }\n}];"
+      },
+      "name": "Build WP Publish Fatal Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        31296,
+        7472
+      ],
+      "id": "7d2ca0dc-ff17-41a3-9acd-63d1136fe0f4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const publish = $('WP: Publish Article').first().json || {};\nconst article = $('Build Article Payload').first().json || {};\n\nconst postId = publish.post_id\n  || publish.postId\n  || publish.id\n  || publish.post?.id\n  || publish.post?.ID\n  || publish.data?.id\n  || publish.data?.post_id\n  || null;\n\nconst categories = Array.isArray(article.categories)\n  ? article.categories.map(Number).filter(Boolean)\n  : [];\n\nconst categoryUpdateError = !postId\n  ? 'Publish response did not include post_id/id.'\n  : (!categories.length\n      ? 'Article payload has no resolved category id for ' + (article.category_name || article.category || 'unknown category') + '.'\n      : '');\n\nreturn [{\n  json: {\n    ...publish,\n    wp_post_id: postId,\n    post_id: postId,\n    categories,\n    category_id: article.category_id || categories[0] || null,\n    category_name: article.category_name || article.category || '',\n    category_slug: article.category_slug || '',\n    should_update_category: !!(postId && categories.length),\n    category_update_ok: !!(postId && categories.length),\n    category_update_error: categoryUpdateError\n  }\n}];\n"
+      },
+      "name": "Build WP Category Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        31520,
+        7264
+      ],
+      "id": "41ee1496-6ce2-4a16-a326-36532aa12f09"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://cms.aurahomeoffice.com/wp-json/wp/v2/posts/' + ($json.wp_post_id || 0) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ categories: $json.categories || [], meta: { _rank_math_primary_category: String($json.category_id || \"\") } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        31744,
+        7264
+      ],
+      "id": "b32253f2-f5f3-4506-978b-f839d61964ca",
+      "name": "WP: Set Article Category",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NSXhQ1LEssXzgbhN",
+          "name": "WP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalize = $('Normalize Input').first().json || {};\nconst result = $('Done: Log Result').first().json || {};\n\nconst chatId = normalize.telegram_chat_id || normalize.chat_id;\nconst shouldNotify = normalize.notify_channel === 'telegram' && !!chatId;\n\nif (!shouldNotify) {\n  return [];\n}\n\nconst url = result.wp_post_url || '';\nconst postLine = url\n  ? 'Draft URL: ' + url\n  : 'Draft created. Open WordPress drafts to review it.';\n\nconst categoryWarning = result.category_update_ok === false\n  ? [\n      '',\n      'Warning: WordPress category update failed.',\n      result.category_update_error ? 'Reason: ' + result.category_update_error : 'Reason: WP core REST rejected the category update.',\n      'The draft exists, but category may still be Blog until WP Core REST auth is fixed.'\n    ].join('\\n')\n  : '';\n\nconst text = [\n  'Aura draft is ready.',\n  '',\n  'Keyword: ' + (result.keyword || normalize.keyword || ''),\n  'Category: ' + (result.category || normalize.category || ''),\n  'ASINs: ' + (result.asins || ''),\n  result.job_group_id ? 'Job Group: ' + result.job_group_id : '',\n  result.macro_cost_estimate ? 'Macro cost est: $' + result.macro_cost_estimate + ' (' + (result.macro_input_tokens || 0) + '/' + (result.macro_output_tokens || 0) + ' tokens)' : '',\n  'Post ID: ' + (result.wp_post_id || 'N/A'),\n  postLine,\n  categoryWarning\n].join('\\n');\n\nreturn [{\n  json: {\n    chat_id: String(chatId),\n    text\n  }\n}];"
+      },
+      "name": "Build Telegram Done Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32416,
+        7264
+      ],
+      "id": "0dccd52b-e247-4c20-ac3d-4940e279c551"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32640,
+        7264
+      ],
+      "id": "632f80cf-f6d4-4b4e-ad3e-d38f91006e64",
+      "name": "Telegram: Send Done",
+      "webhookId": "97d0319b-e63b-4705-bd3d-8b2412928569",
+      "credentials": {
+        "telegramApi": {
+          "id": "TZRBUkSH3VGqVll8",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id || $env.AURA_TELEGRAM_ADMIN_CHAT_ID || \"PASTE_TELEGRAM_CHAT_ID_HERE\" }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        26768,
+        7504
+      ],
+      "id": "3a7d1619-b823-4d2e-a45c-beeea3518b57",
+      "name": "Telegram: Send Pipeline Error",
+      "webhookId": "c1d68441-9df5-4e74-971f-148126a4a6fb",
+      "credentials": {
+        "telegramApi": {
+          "id": "TZRBUkSH3VGqVll8",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst requestedLimit = Math.max(1, Math.min(parseInt(input.asin_count, 10) || 8, 15));\nconst providedAsins = Array.isArray(input.asins) && input.asins.length > 0;\nconst pagesNeeded = providedAsins ? 1 : (requestedLimit >= 10 ? 3 : 2);\n\nreturn Array.from({ length: pagesNeeded }, (_, index) => ({\n  json: {\n    ...input,\n    search_page: index + 1,\n    search_pages_requested: pagesNeeded\n  }\n}));"
+      },
+      "name": "Build ASIN Search Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26000,
+        7296
+      ],
+      "id": "c4ef63f2-2db1-4a2c-9c9a-7d2b7379e041"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://cms.aurahomeoffice.com/wp-json/aura/v1/product?asin=' + encodeURIComponent($json.asins || $json.asin || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "WP: Check Existing ASIN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        26736,
+        7136
+      ],
+      "id": "2905ccdb-90be-4bd6-82b5-d9f3c3be79ea",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NSXhQ1LEssXzgbhN",
+          "name": "WP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const checks = $input.all();\nconst splitItems = $('Split ASINs').all();\n\nfunction clean(value) {\n  return String(value ?? '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction list(value) {\n  return Array.isArray(value) ? value.filter(Boolean) : [];\n}\n\nfunction lines(value) {\n  if (Array.isArray(value)) {\n    return value.map(entry => {\n      if (entry && typeof entry === 'object') {\n        const name = clean(entry.name || entry.label || entry.key);\n        const val = clean(entry.value || entry.text || entry.content);\n        return [name, val].filter(Boolean).join(': ');\n      }\n      return clean(entry);\n    }).filter(Boolean).join('\\n');\n  }\n  return clean(value);\n}\n\nconst cachedItems = checks.flatMap((item, index) => {\n  const result = item.json || {};\n  if (!result.exists || !result.has_custom_content || !result.product) return [];\n\n  const split = splitItems[index]?.json || {};\n  const product = result.product || {};\n  const asin = clean(product.asin || result.asin || split.asins || split.asin);\n  const featuresArray = list(product.features);\n  const topReviewsArray = list(product.top_reviews);\n  const specificationsText = lines(product.specifications);\n  const featureText = lines(featuresArray);\n  const topReviewsText = topReviewsArray.map(review => {\n    if (review && typeof review === 'object') {\n      return [review.title, review.rating, review.review || review.text || review.content].filter(Boolean).join('\\n');\n    }\n    return clean(review);\n  }).filter(Boolean).join('\\n---\\n');\n\n  const review = {\n    short_product_name: product.short_product_name || '',\n    product_label: product.product_label || '',\n    custom_title: clean(product.custom_title),\n    short_review: clean(product.custom_description),\n    evidence_basis: product.evidence_basis || 'Existing Aura product review content.',\n    source_basis: 'existing product cache',\n    claim_confidence: 'medium',\n    score: product.score || null,\n    score_label: product.score_label || '',\n    score_rationale: product.score_rationale || '',\n    missing_specs: [],\n    selling_points: list(product.custom_features),\n    pros: list(product.custom_pros),\n    cons: list(product.custom_cons),\n    custom_tabs: list(product.custom_tabs),\n    comparison_summary: product.comparison_summary || {}\n  };\n\n  return [{\n    json: {\n      ...split,\n      asin,\n      asin_code: asin,\n      status: 'success',\n      _pipeline_status: 'success',\n      _cache_hit: true,\n      _skip_reason: 'existing_product_has_custom_content',\n      title: clean(product.title),\n      asin_title: clean(product.title),\n      brand: clean(product.brand),\n      asin_brand: clean(product.brand),\n      rating: product.rating || '',\n      reviews_count: product.reviews_count || 0,\n      price: product.price || '',\n      image_url: product.image_url || '',\n      description: product.description || '',\n      asin_description: product.description || '',\n      features: featureText,\n      asin_features: featureText,\n      features_array: featuresArray,\n      specifications: specificationsText,\n      asin_specifications: product.specifications || [],\n      specifications_array: product.specifications || [],\n      top_reviews: topReviewsText,\n      asin_top_reviews: topReviewsArray,\n      top_reviews_array: topReviewsArray,\n      review,\n      ai_review: review,\n      ai_output: review,\n      ai_title: review.custom_title,\n      ai_short_review: review.short_review,\n      ai_pros: review.pros,\n      ai_cons: review.cons,\n      ai_tabs: review.custom_tabs,\n      selling_points: review.selling_points,\n      score: review.score,\n      score_label: review.score_label,\n      score_rationale: review.score_rationale,\n      ai_usage: {},\n      ai_model: 'existing-product-cache',\n      ai_cost: 0,\n      ai_cost_estimate: 0,\n      ai_input_tokens: 0,\n      ai_output_tokens: 0\n    }\n  }];\n});\n\nreturn cachedItems.length ? cachedItems : [{ json: { _merge_placeholder: true, _pipeline_status: 'placeholder', _cache_hit: false } }];"
+      },
+      "name": "Use Existing ASIN Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26960,
+        7040
+      ],
+      "id": "22c77cf5-ee9b-419a-be47-3a28ca223044"
+    },
+    {
+      "parameters": {
+        "jsCode": "const checks = $input.all();\nconst splitItems = $('Split ASINs').all();\n\nconst refreshItems = checks.flatMap((item, index) => {\n  const result = item.json || {};\n  if (result.exists && result.has_custom_content && result.product) return [];\n\n  const split = splitItems[index]?.json || {};\n  return [{\n    json: {\n      ...split,\n      existing_product_status: {\n        exists: !!result.exists,\n        has_custom_content: !!result.has_custom_content,\n        asin: result.asin || split.asins || split.asin || ''\n      }\n    }\n  }];\n});\n\nreturn refreshItems.length ? refreshItems : [{ json: { _no_refresh_needed: true, _merge_placeholder: true, _pipeline_status: 'placeholder' } }];"
+      },
+      "name": "Refresh Missing ASIN Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26960,
+        7248
+      ],
+      "id": "a55fa733-ba64-4de5-91f0-1975d9ecf518"
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "name": "Merge Cached And Fresh Reviews",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        28192,
+        7040
+      ],
+      "id": "5611ef10-59ca-47fc-9883-55eee77fee21"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "aa4e4ac6-4803-4625-9a39-0d21f6274ed7",
+              "leftValue": "={{ $json._no_refresh_needed === true }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has ASINs To Refresh",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        27168,
+        7248
+      ],
+      "id": "f9f23255-1150-4cd7-80ef-2f48547cfdee"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger: Schedule": {
+      "main": [
+        [
+          {
+            "node": "Sheet: Get Pending Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: Get Pending Keyword": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Sheet: Mark Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: Mark Processing": {
+      "main": [
+        [
+          {
+            "node": "Lookup Config rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Config rules": {
+      "main": [
+        [
+          {
+            "node": "Setup Global Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup Global Config": {
+      "main": [
+        [
+          {
+            "node": "Lookup Category Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Category Rules": {
+      "main": [
+        [
+          {
+            "node": "Attach Category Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Category Rules": {
+      "main": [
+        [
+          {
+            "node": "Build ASIN Search Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse ASINs": {
+      "main": [
+        [
+          {
+            "node": "Filter ASIN Search Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Telegram Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter ASIN Search Success": {
+      "main": [
+        [
+          {
+            "node": "Split ASINs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Pipeline Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Send Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split ASINs": {
+      "main": [
+        [
+          {
+            "node": "WP: Check Existing ASIN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Product Page": {
+      "main": [
+        [
+          {
+            "node": "Build Micro Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Micro Prompt": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Request: Micro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Request: Micro": {
+      "main": [
+        [
+          {
+            "node": "Call LLM: Micro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM: Micro": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response: Micro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response: Micro": {
+      "main": [
+        [
+          {
+            "node": "Validate ASIN Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate ASIN Review": {
+      "main": [
+        [
+          {
+            "node": "Merge Cached And Fresh Reviews",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Filter Successful ASIN Reviews": {
+      "main": [
+        [
+          {
+            "node": "Filter Review Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Telegram Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Review Success": {
+      "main": [
+        [
+          {
+            "node": "Build ASIN WP Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build ASIN WP Payload": {
+      "main": [
+        [
+          {
+            "node": "WP: Sync ASIN Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WP: Sync ASIN Products": {
+      "main": [
+        [
+          {
+            "node": "Attach WP Sync Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach WP Sync Result": {
+      "main": [
+        [
+          {
+            "node": "Collect All Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect All Reviews": {
+      "main": [
+        [
+          {
+            "node": "WP: Get Related Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WP: Get Related Posts": {
+      "main": [
+        [
+          {
+            "node": "Build Macro Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Macro Prompt": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Request: Macro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Request: Macro": {
+      "main": [
+        [
+          {
+            "node": "Call LLM: Macro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM: Macro": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response: Macro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response: Macro": {
+      "main": [
+        [
+          {
+            "node": "WP: Resolve Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WP: Resolve Category": {
+      "main": [
+        [
+          {
+            "node": "Build Article Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Article Payload": {
+      "main": [
+        [
+          {
+            "node": "WP: Publish Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WP: Publish Article": {
+      "main": [
+        [
+          {
+            "node": "Filter WP Publish Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build WP Publish Fatal Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter WP Publish Success": {
+      "main": [
+        [
+          {
+            "node": "Build WP Category Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WP Publish Fatal Error": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Pipeline Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WP Category Update": {
+      "main": [
+        [
+          {
+            "node": "Sheet: Mark Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: Mark Completed": {
+      "main": [
+        [
+          {
+            "node": "Done: Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Done: Log Result": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Done Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Done Message": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Send Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build ASIN Search Pages": {
+      "main": [
+        [
+          {
+            "node": "Crawbase: Search ASINs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawbase: Scrape ASIN": {
+      "main": [
+        [
+          {
+            "node": "Parse Product Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawbase: Search ASINs": {
+      "main": [
+        [
+          {
+            "node": "Parse ASINs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WP: Check Existing ASIN": {
+      "main": [
+        [
+          {
+            "node": "Use Existing ASIN Reviews",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Refresh Missing ASIN Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Existing ASIN Reviews": {
+      "main": [
+        [
+          {
+            "node": "Merge Cached And Fresh Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Missing ASIN Reviews": {
+      "main": [
+        [
+          {
+            "node": "Has ASINs To Refresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Cached And Fresh Reviews": {
+      "main": [
+        [
+          {
+            "node": "Filter Successful ASIN Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has ASINs To Refresh": {
+      "main": [
+        [
+          {
+            "node": "Crawbase: Scrape ASIN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Cached And Fresh Reviews",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e77b8046-fceb-4a60-a43d-4ce86659828b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6e5a0231c1adf4f7fa17aa8c442c9bdeefb16f92975a34464a10ee31b7f671c1"
+  },
+  "id": "Hg3nMeCwb3MaCBsh",
+  "tags": [
+    {
+      "updatedAt": "2026-04-29T07:11:34.968Z",
+      "createdAt": "2026-04-29T07:11:34.968Z",
+      "id": "gtA1tERhMmBAB13f",
+      "name": "FINAL"
+    }
+  ]
+}
