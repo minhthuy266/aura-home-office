@@ -84,16 +84,10 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   };
   const evidenceInfo = evidenceTag ? evidenceLabelMap[evidenceTag.slug] : evidenceLabelMap['research-based'];
 
-  // Smart Article type detection for Rich Results
-  const isReview = tags.some((t: { slug: string }) =>
-    ['buying-guide', 'review', 'best-picks', 'hands-on-tested', 'showroom-checked'].includes(t.slug)
-  ) || /\b(best|review|vs\.|comparison|buying guide)\b/i.test(plainTitle);
-  const articleType = isReview ? ['Article', 'Review'] : 'Article';
-
   // Article JSON-LD schema — Linked to Organization entity in RootLayout
   const articleSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': articleType,
+    '@type': 'Article',
     '@id': `${postUrl}#article`,
     headline: plainTitle,
     description: cleanExcerpt,
@@ -157,7 +151,8 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
     ],
   };
   
-  // ItemList & Product JSON-LD schema (for Affiliate SEO)
+  // ItemList JSON-LD schema (for affiliate roundups).
+  // Do not emit Product/Offer without live prices; Google treats missing offer price as a rich result error.
   const itemListSchema = products && products.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -165,24 +160,10 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
       '@type': 'ListItem',
       position: i + 1,
       item: {
-        '@type': 'Product',
+        '@type': 'Thing',
         name: p.name,
         ...(p.image ? { image: p.image } : {}),
         ...(p.url ? { url: p.url } : {}),
-        brand: {
-          '@type': 'Brand',
-          name: p.name.split(' ')[0]
-        },
-        ...(p.url
-          ? {
-              offers: {
-                '@type': 'Offer',
-                url: p.url,
-                priceCurrency: 'USD',
-                availability: 'https://schema.org/InStock'
-              },
-            }
-          : {}),
       }
     }))
   } : null;
