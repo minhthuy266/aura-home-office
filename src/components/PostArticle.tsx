@@ -22,6 +22,13 @@ interface PostArticleProps {
   products?: ProductData[];
 }
 
+function toSchemaDate(value?: string): string {
+  const date = new Date(value || '');
+  if (Number.isNaN(date.getTime())) return value || '';
+
+  return date.toISOString();
+}
+
 /**
  * PostArticle — Server Component
  * DESIGN.md §5 Article Layout + §8 Component Patterns
@@ -70,7 +77,9 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
   const plainTitle = decodeHTMLEntities(cleanTitleForDisplay.replace(/<[^>]*>/g, ''));
   const postUrl = `https://aurahomeoffice.com/${categories[0]?.slug || 'uncategorized'}/${post.slug}`;
   const imageUrl = featuredMedia?.source_url || defaultPostImage;
-  const lastUpdatedAt = post.modified || post.date;
+  const publishedAt = toSchemaDate(post.date);
+  const modifiedAt = toSchemaDate(post.modified || post.date);
+  const lastUpdatedAt = modifiedAt || publishedAt;
 
   // Evidence label from tags (tag slugs: research-based, hands-on-tested, showroom-checked, owner-feedback-based)
   const evidenceTag = tags.find((t: { slug: string }) =>
@@ -93,8 +102,8 @@ export default function PostArticle({ post, latestPosts, processedHtml, toc, pro
     description: cleanExcerpt,
     image: imageUrl,
     url: postUrl,
-    datePublished: post.date,
-    dateModified: post.modified && post.modified !== post.date ? post.modified : post.date,
+    datePublished: publishedAt,
+    dateModified: modifiedAt,
     author: {
       '@type': 'Person',
       '@id': `https://aurahomeoffice.com/author/${author.id}/#person`,

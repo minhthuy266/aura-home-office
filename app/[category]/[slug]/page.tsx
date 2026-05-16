@@ -18,6 +18,13 @@ function stripTitle(value: string): string {
 
 const currentYear = new Date().getUTCFullYear();
 
+function toSchemaDate(value?: string): string {
+  const date = new Date(value || '');
+  if (Number.isNaN(date.getTime())) return value || '';
+
+  return date.toISOString();
+}
+
 function normalizeMetadataTitle(title: string): string {
   let normalized = stripTitle(title)
     .replace(/\s*\|\s*Aura(?:\s+Home\s+Office)?\s*$/i, '')
@@ -100,7 +107,8 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       url: postUrl,
       images: [featuredImage],
       type: 'article',
-      publishedTime: post.date,
+      publishedTime: toSchemaDate(post.date),
+      modifiedTime: toSchemaDate(post.modified || post.date),
       authors: [author.name],
     },
     twitter: {

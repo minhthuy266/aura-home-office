@@ -12,6 +12,13 @@ interface AuthorPageProps {
 
 export const revalidate = 300;
 
+function toSchemaDate(value?: string): string {
+  const date = new Date(value || '');
+  if (Number.isNaN(date.getTime())) return value || '';
+
+  return date.toISOString();
+}
+
 export async function generateStaticParams() {
   return AUTHORS.map((author) => ({ slug: author.id }));
 }
@@ -75,8 +82,8 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
       '@id': `${articleUrl}#article`,
       headline: post.title.rendered.replace(/<[^>]*>/g, ''),
       url: articleUrl,
-      datePublished: post.date,
-      dateModified: post.modified || post.date,
+      datePublished: toSchemaDate(post.date),
+      dateModified: toSchemaDate(post.modified || post.date),
       author: {
         '@id': `https://aurahomeoffice.com/author/${author.id}/#person`,
       },
@@ -92,7 +99,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
     name: `${author.name} Profile — Aura Home Office`,
     mainEntity: { '@id': `https://aurahomeoffice.com/author/${author.id}/#person` },
     description: author.shortBio,
-    ...(latestActivity ? { dateModified: latestActivity } : {}),
+    ...(latestActivity ? { dateModified: toSchemaDate(latestActivity) } : {}),
     publisher: {
       '@type': 'Organization',
       name: 'Aura Home Office',
