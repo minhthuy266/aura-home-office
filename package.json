@@ -11,7 +11,8 @@
     "validate:trust": "node scripts/validate-trust-layer.mjs",
     "fetch:post": "node scripts/fetch-post-raw.mjs",
     "audit:post": "node scripts/audit-post-file.mjs",
-    "publish:post": "node scripts/publish-post-file.mjs"
+    "publish:post": "node scripts/publish-post-file.mjs",
+    "seo:dashboard": "node scripts/seo-audit-dashboard.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
