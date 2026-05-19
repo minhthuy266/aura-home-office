@@ -7,6 +7,7 @@ import * as cheerio from 'cheerio';
 const CONFIG = {
   domain: process.env.SEO_AUDIT_DOMAIN || 'https://aurahomeoffice.com',
   sitemapUrl: process.env.SEO_AUDIT_SITEMAP || 'https://aurahomeoffice.com/sitemap.xml',
+  wpApiUrl: process.env.SEO_AUDIT_WP_API_URL || process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://cms.aurahomeoffice.com',
   port: Number(process.env.SEO_AUDIT_PORT || process.env.PORT || 3001),
   outputDir: process.env.SEO_AUDIT_OUTPUT_DIR || 'outputs/seo-audit',
   userAgent: 'AuraSEOAudit/1.0 (+https://aurahomeoffice.com)',
@@ -48,12 +49,14 @@ mkdirSync(HISTORY_DIR, { recursive: true });
 
 let job = {
   status: 'idle',
+  mode: 'manual',
   startedAt: null,
   finishedAt: null,
   progress: 0,
   total: 0,
   current: '',
   error: '',
+  indexNowSubmit: null,
 };
 
 function json(res, status, value) {
@@ -79,6 +82,9 @@ function loadReport() {
       config: CONFIG,
       sitemap: null,
       bing: null,
+      wordpress: null,
+      actions: [],
+      autopilot: null,
       summary: emptySummary(),
       results: [],
       issueTypes: [],
@@ -247,6 +253,40 @@ async function auditIndexNowKey() {
   } catch (error) {
     result.error = error.message;
   }
+  return result;
+}
+
+async function auditWordPress() {
+  const result = {
+    apiUrl: CONFIG.wpApiUrl,
+    ok: false,
+    posts: { published: null, pages: null },
+    categories: { total: null, nonEmpty: null },
+  };
+
+  try {
+    const postsUrl = new URL('/wp-json/wp/v2/posts?per_page=1&status=publish', CONFIG.wpApiUrl).toString();
+    const postsResponse = await fetchText(postsUrl, { method: 'HEAD' });
+    result.posts.status = postsResponse.status;
+    result.posts.published = Number(postsResponse.headers.get('x-wp-total') || 0);
+
+    const pagesUrl = new URL('/wp-json/wp/v2/pages?per_page=1&status=publish', CONFIG.wpApiUrl).toString();
+    const pagesResponse = await fetchText(pagesUrl, { method: 'HEAD' });
+    result.posts.pages = Number(pagesResponse.headers.get('x-wp-total') || 0);
+
+    const categoriesUrl = new URL('/wp-json/wp/v2/categories?per_page=100', CONFIG.wpApiUrl).toString();
+    const categoriesResponse = await fetchText(categoriesUrl);
+    if (categoriesResponse.ok) {
+      const categories = await categoriesResponse.json();
+      result.categories.total = categories.length;
+      result.categories.nonEmpty = categories.filter((category) => Number(category.count || 0) > 0).length;
+    }
+
+    result.ok = postsResponse.ok;
+  } catch (error) {
+    result.error = error.message;
+  }
+
   return result;
 }
 
@@ -532,10 +572,93 @@ function issueTypes(results) {
   return Array.from(new Set(results.flatMap((r) => r.issues.map((i) => i.code)))).sort();
 }
 
-async function runAudit() {
-  job = { status: 'running', startedAt: new Date().toISOString(), finishedAt: null, progress: 0, total: 0, current: '', error: '' };
+function buildActionPlan(report) {
+  const actions = [];
+  const results = report.results || [];
+  const add = (severity, code, title, urls, fix) => {
+    if (!urls.length) return;
+    actions.push({
+      severity,
+      code,
+      title,
+      count: urls.length,
+      fix,
+      urls: urls.slice(0, 25),
+    });
+  };
+
+  const byCode = (code) => results.filter((r) => r.issues.some((i) => i.code === code)).map((r) => r.url);
+  const postSitemap = (report.sitemap?.sitemaps || []).find((s) => /post-sitemap\.xml$/i.test(s.url));
+  const categorySitemap = (report.sitemap?.sitemaps || []).find((s) => /category-sitemap\.xml$/i.test(s.url));
+  const wpPublished = report.wordpress?.posts?.published;
+  const wpNonEmptyCategories = report.wordpress?.categories?.nonEmpty;
+
+  if (Number.isFinite(wpPublished) && postSitemap && postSitemap.count !== wpPublished) {
+    actions.push({
+      severity: 'fatal',
+      code: 'POST_SITEMAP_COUNT_MISMATCH',
+      title: `Post sitemap has ${postSitemap.count} URLs but WordPress reports ${wpPublished} published posts.`,
+      count: Math.abs(postSitemap.count - wpPublished),
+      fix: 'Deploy sitemap cache fix, revalidate post-sitemap.xml, then resubmit sitemap in Bing Webmaster Tools.',
+      urls: [postSitemap.url],
+    });
+  }
+
+  if (Number.isFinite(wpNonEmptyCategories) && categorySitemap && categorySitemap.count > wpNonEmptyCategories) {
+    actions.push({
+      severity: 'warning',
+      code: 'CATEGORY_SITEMAP_HAS_EMPTY_CATEGORIES',
+      title: `Category sitemap has ${categorySitemap.count} URLs; WordPress reports ${wpNonEmptyCategories} non-empty categories.`,
+      count: categorySitemap.count - wpNonEmptyCategories,
+      fix: 'Filter empty categories out of category-sitemap.xml before pushing to Bing.',
+      urls: [categorySitemap.url],
+    });
+  }
+
+  if (!report.bing?.indexNow?.live) {
+    actions.push({
+      severity: 'warning',
+      code: 'INDEXNOW_KEY_NOT_LIVE',
+      title: 'IndexNow key is not live or not reachable.',
+      count: 1,
+      fix: 'Set INDEXNOW_KEY in production and verify /indexnow-key.txt returns the key.',
+      urls: [new URL('/indexnow-key.txt', CONFIG.domain).toString()],
+    });
+  }
+
+  add('fatal', 'NOINDEX', 'Remove accidental noindex from URLs that should rank.', byCode('NOINDEX'), 'Remove meta robots/X-Robots-Tag noindex or remove URL from sitemap.');
+  add('fatal', 'ROBOTS_BLOCKED', 'Fix URLs blocked by robots.txt.', byCode('ROBOTS_BLOCKED'), 'Allow the URL path or remove it from sitemap.');
+  add('fatal', 'HTTP_NOT_OK', 'Fix non-200 sitemap URLs.', byCode('HTTP_NOT_OK'), 'Restore the page, redirect intentionally, or remove it from sitemap.');
+  add('fatal', 'MISSING_CANONICAL', 'Add missing canonical tags.', byCode('MISSING_CANONICAL'), 'Add self-referencing canonical tags.');
+  add('fatal', 'MISSING_AFFILIATE_DISCLOSURE', 'Add affiliate disclosures to monetized/article URLs.', byCode('MISSING_AFFILIATE_DISCLOSURE'), 'Show disclosure near top of articles.');
+  add('fatal', 'AMAZON_REL_MISSING', 'Fix Amazon links missing sponsored/nofollow rel.', byCode('AMAZON_REL_MISSING'), 'Add rel="nofollow sponsored noopener noreferrer".');
+  add('fatal', 'AMAZON_IMAGE_HOTLINK', 'Remove Amazon image hotlinks.', byCode('AMAZON_IMAGE_HOTLINK'), 'Use approved API/image handling only.');
+  add('warning', 'CANONICAL_NOT_SELF', 'Review non-self canonicals.', byCode('CANONICAL_NOT_SELF'), 'Use self canonical unless consolidation is intentional.');
+  add('warning', 'DUPLICATE_TITLE', 'Make duplicate titles unique.', byCode('DUPLICATE_TITLE'), 'Rewrite titles with page-specific angle.');
+  add('warning', 'DUPLICATE_META_DESCRIPTION', 'Make duplicate meta descriptions unique.', byCode('DUPLICATE_META_DESCRIPTION'), 'Rewrite meta descriptions.');
+  add('warning', 'LOW_INTERNAL_LINKS', 'Add internal links to thinly connected posts.', byCode('LOW_INTERNAL_LINKS'), 'Link to related articles and category hubs.');
+  add('warning', 'THIN_CONTENT', 'Improve or remove thin content.', byCode('THIN_CONTENT'), 'Add useful content or noindex/remove weak URLs.');
+
+  return actions.sort((a, b) => {
+    const weight = { fatal: 0, warning: 1, info: 2 };
+    return (weight[a.severity] ?? 9) - (weight[b.severity] ?? 9) || b.count - a.count;
+  });
+}
+
+async function runAudit(options = {}) {
+  job = {
+    status: 'running',
+    mode: options.autopilot ? 'autopilot' : 'manual',
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    progress: 0,
+    total: 0,
+    current: '',
+    error: '',
+    indexNowSubmit: null,
+  };
   try {
-    const [discovery, robots, indexNow] = await Promise.all([discoverUrls(), auditRobots(), auditIndexNowKey()]);
+    const [discovery, robots, indexNow, wordpress] = await Promise.all([discoverUrls(), auditRobots(), auditIndexNowKey(), auditWordPress()]);
     job.total = discovery.urls.length;
 
     const results = await runPool(discovery.urls, CONFIG.concurrency, async (url, index) => {
@@ -565,10 +688,25 @@ async function runAudit() {
         indexNow,
         ready: Boolean(robots.ok && robots.sitemapLines.length && indexNow.live),
       },
+      wordpress,
       summary: summarize(results),
       issueTypes: issueTypes(results),
       results,
     };
+
+    report.actions = buildActionPlan(report);
+
+    if (options.submitIndexable) {
+      job.status = 'submitting-indexnow';
+      const indexableUrls = results.filter((r) => r.indexable).map((r) => r.url);
+      report.autopilot = {
+        ranAt: new Date().toISOString(),
+        indexableUrls: indexableUrls.length,
+        indexNow: await submitIndexNow(indexableUrls),
+      };
+      job.indexNowSubmit = report.autopilot.indexNow;
+    }
+
     saveReport(report);
     job.status = 'completed';
     job.finishedAt = new Date().toISOString();
@@ -670,13 +808,17 @@ function dashboardHtml() {
   <div class="wrap">
     <div class="top">
       <div class="title"><h1>Aura SEO Ops</h1><p>Indexability, Bing, affiliate, schema, links, and content QA for aurahomeoffice.com</p></div>
-      <div class="row"><button class="btn" id="start">Start Full Audit</button><button class="btn ghost" id="refresh">Refresh</button><button class="btn secondary" id="csv">Export CSV</button><button class="btn secondary" id="json">Export JSON</button></div>
+      <div class="row"><button class="btn" id="autopilot">Autopilot</button><button class="btn ghost" id="start">Audit Only</button><button class="btn ghost" id="refresh">Refresh</button><button class="btn secondary" id="csv">Export CSV</button><button class="btn secondary" id="json">Export JSON</button></div>
     </div>
     <div class="grid" id="stats"></div>
     <div class="panel">
       <div class="row"><b>Status:</b><span id="status">idle</span><span id="progressText" class="muted"></span></div>
       <div class="progress"><div class="bar" id="bar"></div></div>
       <div id="bing" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0;font-size:18px">Priority Actions</h2><span class="muted">Fix these top-down before pushing Bing harder.</span></div>
+      <div id="actions" style="margin-top:12px"></div>
     </div>
     <div class="panel">
       <div class="row">
@@ -695,14 +837,15 @@ function dashboardHtml() {
     async function api(path, opts){const r=await fetch(path,opts); if(!r.ok) throw new Error(await r.text()); return r.json()}
     async function load(){
       report=await api('/api/report');
-      renderStats(); renderBing(); renderIssues(); renderTabs(); renderRows();
+      renderStats(); renderBing(); renderActions(); renderIssues(); renderTabs(); renderRows();
     }
     async function poll(){
       const j=await api('/api/status'); document.getElementById('status').textContent=j.status;
       document.getElementById('progressText').textContent=(j.total?j.progress+'/'+j.total:'')+' '+(j.current||'');
       document.getElementById('bar').style.width=j.total?Math.round(j.progress/j.total*100)+'%':'0%';
-      document.getElementById('start').disabled=j.status==='running';
-      if(j.status==='running') setTimeout(poll,1500); else load();
+      document.getElementById('start').disabled=j.status==='running'||j.status==='submitting-indexnow';
+      document.getElementById('autopilot').disabled=j.status==='running'||j.status==='submitting-indexnow';
+      if(j.status==='running'||j.status==='submitting-indexnow') setTimeout(poll,1500); else load();
     }
     function renderStats(){
       const s=report.summary||{}; const items=[['URLs',s.urls],['Indexable',s.indexable],['Fatal URLs',s.fatalUrls],['Warning URLs',s.warningUrls],['Passed',s.passedUrls],['Fatal Issues',s.totalFatal],['Affiliate',s.affiliateIssues],['Avg Score',(s.avgScore||0)+'%']];
@@ -711,6 +854,13 @@ function dashboardHtml() {
     function renderBing(){
       const b=report.bing||{}; const sm=(report.sitemap?.sitemaps||[]).map(s=>esc(s.url.split('/').pop())+': '+s.count).join(' · ');
       document.getElementById('bing').innerHTML='<div class="row">'+pill(b.ready?'Bing Ready':'Bing Check',''+(b.ready?'ok':'warning'))+pill('Robots '+(b.robots?.ok?'OK':'Issue'),b.robots?.ok?'ok':'fatal')+pill('IndexNow '+(b.indexNow?.live?'OK':'Missing'),b.indexNow?.live?'ok':'warning')+'<span class="muted">'+sm+'</span></div>';
+    }
+    function renderActions(){
+      const actions=report.actions||[];
+      const autopilot=report.autopilot;
+      const submit=autopilot?'<div style="margin-bottom:10px">'+pill('Autopilot '+(autopilot.indexNow?.ok?'submitted':'checked'),autopilot.indexNow?.ok?'ok':'warning')+' <span class="muted">Indexable URLs: '+esc(autopilot.indexableUrls||0)+' · IndexNow: '+esc(autopilot.indexNow?.status||autopilot.indexNow?.error||'not submitted')+'</span></div>':'';
+      if(!actions.length){document.getElementById('actions').innerHTML=submit+'<div>'+pill('No priority actions','ok')+'</div>';return}
+      document.getElementById('actions').innerHTML=submit+actions.slice(0,12).map(a=>'<div style="border-top:1px solid var(--line);padding:12px 0"><div class="row">'+pill(a.severity,a.severity)+'<b>'+esc(a.title)+'</b><span class="muted">'+esc(a.count)+' affected</span></div><div class="muted" style="margin:6px 0">'+esc(a.fix)+'</div><div style="font-size:12px">'+a.urls.slice(0,6).map(u=>'<a href="'+esc(u)+'" target="_blank" style="color:var(--accent);margin-right:10px">'+esc(u.replace(report.config?.domain||'', '')||'/')+'</a>').join('')+'</div></div>').join('');
     }
     function renderIssues(){
       const sel=document.getElementById('issue'); const old=sel.value;
@@ -728,6 +878,7 @@ function dashboardHtml() {
     }
     function toggle(i){document.getElementById('d'+i)?.classList.toggle('open')}
     document.getElementById('start').onclick=async()=>{await api('/api/start',{method:'POST'}); poll()};
+    document.getElementById('autopilot').onclick=async()=>{await api('/api/autopilot',{method:'POST'}); poll()};
     document.getElementById('refresh').onclick=load; document.getElementById('csv').onclick=()=>location.href='/api/export.csv'; document.getElementById('json').onclick=()=>location.href='/api/export.json';
     document.getElementById('q').oninput=()=>renderRows(); document.getElementById('issue').onchange=()=>renderRows();
     document.getElementById('tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;renderTabs();renderRows()}};
@@ -748,6 +899,11 @@ createServer(async (req, res) => {
     if (url.pathname === '/api/start' && req.method === 'POST') {
       if (job.status === 'running') return json(res, 409, { ok: false, error: 'Audit already running' });
       runAudit();
+      return json(res, 200, { ok: true });
+    }
+    if (url.pathname === '/api/autopilot' && req.method === 'POST') {
+      if (job.status === 'running' || job.status === 'submitting-indexnow') return json(res, 409, { ok: false, error: 'Audit already running' });
+      runAudit({ autopilot: true, submitIndexable: true });
       return json(res, 200, { ok: true });
     }
     if (url.pathname === '/api/results') {
