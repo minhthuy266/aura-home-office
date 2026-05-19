@@ -11,7 +11,7 @@ export default function SetupPrompt() {
         <h1 className="text-2xl font-semibold mb-3 tracking-tight">Backend Configuration Required</h1>
         <p className="text-gray-600 mb-8 leading-relaxed">
           Your headless frontend is ready, but it needs a WordPress CMS to pull content from. 
-          Please configure your <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">VITE_WP_API_URL</code> environment variable.
+          Please configure your <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">NEXT_PUBLIC_WORDPRESS_URL</code> environment variable.
         </p>
 
         <div className="space-y-4">

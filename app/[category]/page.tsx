@@ -54,14 +54,14 @@ export async function generateMetadata({ params, searchParams }: {
     const descMap: Record<string, string> = {
       'furniture': 'Elevate your workspace with our deep-dive reviews into premium office furniture, from designer desks to minimalist storage solutions.',
       'standing-desks': 'The ultimate guide to the best standing desks for home offices. We analyze stability, motor noise, and long-term durability signals.',
-      'ergonomic-chairs': 'Meticulously tested ergonomic chairs designed to protect your posture and enhance comfort during long-form coding and creative work.',
+      'ergonomic-chairs': 'Research-backed ergonomic chair guides focused on adjustability, support features, fit, and recurring owner feedback patterns.',
       'gaming-pcs': 'Power meets aesthetics. We rank the top pre-built gaming rigs that balance raw performance with home office design.',
       'setup': 'Inspirational home office setup guides and cinematic reveals of high-performance workspaces from around the world.',
       'guides': 'Expert-led instructional guides to help you optimize your ergonomics, organization, and technical infrastructure.',
       'desk-accessories': 'Small artifacts, big impact. We review the best desk accessories to refine your workflow and keep your space organized.',
     };
 
-    const description = descMap[categorySlug] || `Expert analysis and deep-dive reviews for ${displayName.toLowerCase()}. We test everything to ensure your home office is functional.`;
+    const description = descMap[categorySlug] || `Expert analysis and research-backed buying guides for ${displayName.toLowerCase()}, focused on specs, fit, trade-offs, and owner feedback.`;
     const titleSuffix = page > 1 ? ` (Page ${page})` : '';
 
     // Calculate prev/next URLs for all bots
@@ -113,8 +113,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   // Logic for Parent Hubs: Aggregate child posts
   const parentChildMap: Record<string, string[]> = {
     'furniture': ['standing-desks', 'ergonomic-chairs', 'desk-converters', 'desk-storage', 'footrests-mats'],
-    'setup': ['workspace-ideas', 'coffee-corner', 'desk-lighting', 'ambient-comfort'],
-    'guides': ['productivity', 'ergonomics-health', 'cable-management']
+    'setup': ['monitor-arms', 'desk-lighting', 'cable-management', 'keyboards-mice', 'desk-accessories'],
+    'guides': ['ergonomics-health', 'workspace-ideas', 'productivity'],
+    'lifestyle': ['active-working', 'coffee-corner', 'ambient-comfort']
   };
 
   if (parentChildMap[categorySlug]) {
@@ -232,8 +233,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 lineHeight: 'var(--leading-relaxed)',
                 maxWidth: '600px',
               }}>
-                Expert analysis and deep-dive reviews for {displayName.toLowerCase()}. 
-                We test everything to ensure your home office is both functional and inspiring.
+                Expert analysis and research-backed buying guides for {displayName.toLowerCase()}, focused on specs, fit, trade-offs, and owner feedback.
               </p>
             </div>
             
@@ -253,7 +253,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         </header>
 
         {/* ─── NEW: Visual Topic Bar (Best Practice Hub Nav) ─── */}
-        {['furniture', 'setup', 'guides'].includes(categorySlug) && (
+        {['furniture', 'setup', 'guides', 'lifestyle'].includes(categorySlug) && (
           <div style={{ 
             marginBottom: '48px', 
             paddingBottom: '24px', 
@@ -305,10 +305,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                   </Link>
                 ))}
                 {categorySlug === 'setup' && [
-                  { name: 'Workspace Ideas', slug: 'workspace-ideas', icon: <i className="bi bi-lightbulb"></i> },
-                  { name: 'Coffee Corner', slug: 'coffee-corner', icon: <i className="bi bi-cup-hot"></i> },
-                  { name: 'Lighting', slug: 'desk-lighting', icon: <i className="bi bi-lamp"></i> },
-                  { name: 'Ambient Comfort', slug: 'ambient-comfort', icon: <i className="bi bi-wind"></i> }
+                  { name: 'Monitor Arms', slug: 'monitor-arms', icon: <i className="bi bi-display"></i> },
+                  { name: 'Desk Lighting', slug: 'desk-lighting', icon: <i className="bi bi-lamp"></i> },
+                  { name: 'Cable Mgmt', slug: 'cable-management', icon: <i className="bi bi-usb-symbol"></i> },
+                  { name: 'Keyboards/Mice', slug: 'keyboards-mice', icon: <i className="bi bi-keyboard"></i> },
+                  { name: 'Accessories', slug: 'desk-accessories', icon: <i className="bi bi-mouse"></i> }
                 ].map(sub => (
                   <Link 
                     key={sub.slug} 
@@ -336,9 +337,39 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                   </Link>
                 ))}
                 {categorySlug === 'guides' && [
-                  { name: 'Productivity', slug: 'productivity', icon: <i className="bi bi-lightning-charge"></i> },
-                  { name: 'Health', slug: 'ergonomics-health', icon: <i className="bi bi-heart-pulse"></i> },
-                  { name: 'Cable Management', slug: 'cable-management', icon: <i className="bi bi-usb-symbol"></i> }
+                  { name: 'Ergonomics & Health', slug: 'ergonomics-health', icon: <i className="bi bi-heart-pulse"></i> },
+                  { name: 'Workspace Ideas', slug: 'workspace-ideas', icon: <i className="bi bi-lightbulb"></i> },
+                  { name: 'Productivity', slug: 'productivity', icon: <i className="bi bi-lightning-charge"></i> }
+                ].map(sub => (
+                  <Link 
+                    key={sub.slug} 
+                    href={`/${sub.slug}`} 
+                    className="topic-pill"
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 18px', 
+                      background: 'white', 
+                      border: '1px solid var(--color-border)', 
+                      borderRadius: '100px',
+                      fontFamily: 'var(--font-ui)', 
+                      fontSize: '13px', 
+                      fontWeight: 500,
+                      color: 'var(--color-text-primary)', 
+                      textDecoration: 'none', 
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span style={{ opacity: 0.6, fontSize: '14px' }}>{sub.icon}</span>
+                    {sub.name}
+                  </Link>
+                ))}
+                {categorySlug === 'lifestyle' && [
+                  { name: 'Active Working', slug: 'active-working', icon: <i className="bi bi-activity"></i> },
+                  { name: 'Coffee Corner', slug: 'coffee-corner', icon: <i className="bi bi-cup-hot"></i> },
+                  { name: 'Ambient Comfort', slug: 'ambient-comfort', icon: <i className="bi bi-wind"></i> }
                 ].map(sub => (
                   <Link 
                     key={sub.slug} 
@@ -527,10 +558,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 color: 'white',
                 borderRadius: 0,
               }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-accent-light)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Independent Testing</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-accent-light)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Independent Research</span>
                 <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '12px' }}>How we rank {displayName.toLowerCase()}</h4>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: '16px' }}>
-                  Our research involves 50+ hours of data analysis and real-world ergonomic testing for every product mentioned.
+                  Our research compares product specs, fit constraints, warranty details, and recurring owner-feedback patterns before a recommendation is published.
                 </p>
                 <Link href="/about" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'white', textTransform: 'uppercase', textDecoration: 'underline' }}>See our process →</Link>
               </div>

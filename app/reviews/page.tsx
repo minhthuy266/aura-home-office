@@ -175,11 +175,11 @@ export default async function ReviewsHubPage() {
             <div className="sticky top-32 space-y-10">
               <div style={{ padding: '32px', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <Star size={24} style={{ color: 'var(--color-accent)', marginBottom: '16px' }} />
-                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Independent Testing</h4>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Independent Research</h4>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-                  We spend hundreds of hours researching and ergonomic testing so you can buy with confidence. Zero sponsored content.
+                  We compare product specs, fit details, warranty terms, and owner-feedback patterns so you can buy with more confidence. Zero paid rankings.
                 </p>
-                <Link href="/about" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', textDecoration: 'underline' }}>How We Test Gear</Link>
+                <Link href="/about" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', textDecoration: 'underline' }}>How We Research Gear</Link>
               </div>
 
               <div>

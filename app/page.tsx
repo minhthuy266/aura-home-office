@@ -441,7 +441,7 @@ export default async function HomePage() {
                 lineHeight: 'var(--leading-relaxed)',
                 maxWidth: '360px',
               }}>
-                Join 12,000+ professionals who get our best gear picks every Thursday.
+                Get practical home office gear picks, buying notes, and setup trade-offs in your inbox.
               </p>
             </div>
 

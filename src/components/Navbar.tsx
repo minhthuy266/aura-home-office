@@ -44,7 +44,16 @@ const navItems = [
       { label: 'Workspace Ideas', href: '/workspace-ideas', desc: 'Inspiration & aesthetics' },
       { label: 'Productivity', href: '/productivity', desc: 'Work smarter & faster' },
     ]
-  }
+  },
+  // {
+  //   label: 'Lifestyle',
+  //   href: '/lifestyle',
+  //   children: [
+  //     { label: 'Active Working', href: '/active-working', desc: 'Stay active while working' },
+  //     { label: 'Coffee Corner', href: '/coffee-corner', desc: 'Brew the perfect cup' },
+  //     { label: 'Ambient Comfort', href: '/ambient-comfort', desc: 'Temperature & air quality' },
+  //   ]
+  // }
 ];
 
 export default function Navbar() {

@@ -47,6 +47,22 @@ const CATEGORIES = [
     span: 'md:col-span-1 md:row-span-1',
     desc: 'Lumbar & Comfort'
   },
+  // { 
+  //   name: 'Guides & Health', 
+  //   slug: 'guides', 
+  //   // Person at desk with good ergonomic posture, home office
+  //   image: 'https://images.unsplash.com/photo-1587614382346-4ec70e388b28?q=80&w=1200', 
+  //   span: 'md:col-span-2 md:row-span-1',
+  //   desc: 'Wellness & Focus'
+  // },
+  // { 
+  //   name: 'Lifestyle', 
+  //   slug: 'lifestyle', 
+  //   // Work and life balance
+  //   image: 'https://images.unsplash.com/photo-1499914485622-a88fac536970?q=80&w=1200', 
+  //   span: 'md:col-span-2 md:row-span-1',
+  //   desc: 'Work & Life Balance'
+  // },
   { 
     name: 'Monitor Arms', 
     slug: 'monitor-arms', 
@@ -54,6 +70,14 @@ const CATEGORIES = [
     image: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?q=80&w=800', 
     span: 'md:col-span-1 md:row-span-1',
     desc: 'Display Ergonomics'
+  },
+  { 
+    name: 'Cable Management', 
+    slug: 'cable-management', 
+    // Clean and hidden wires
+    image: 'https://images.unsplash.com/photo-1616423640778-28d1b53229bd?q=80&w=800', 
+    span: 'md:col-span-1 md:row-span-1',
+    desc: 'Clean & Hidden'
   },
   { 
     name: 'Desk Accessories', 
@@ -64,12 +88,12 @@ const CATEGORIES = [
     desc: 'Essential Add-ons'
   },
   { 
-    name: 'Guides & Health', 
-    slug: 'guides', 
-    // Person at desk with good ergonomic posture, home office
-    image: 'https://images.unsplash.com/photo-1587614382346-4ec70e388b28?q=80&w=1200', 
-    span: 'md:col-span-2 md:row-span-1',
-    desc: 'Wellness & Focus'
+    name: 'Keyboards & Mice', 
+    slug: 'keyboards-mice', 
+    // Keyboard and mouse
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?q=80&w=800', 
+    span: 'md:col-span-1 md:row-span-1',
+    desc: 'Input Devices'
   },
 ];
 

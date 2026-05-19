@@ -3,6 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Playfair_Display, Source_Serif_4, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
+// import ConsentBanner from '../src/components/ConsentBanner';
 import NavigationProgressBar from '../src/components/NavigationProgressBar';
 import { Suspense } from 'react';
 import Script from 'next/script';
@@ -93,6 +94,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${playfair.variable} ${sourceSerif.variable} ${dmSans.variable} ${mono.variable}`}>
       <head>
+        {/*
+          Consent Mode is temporarily disabled while prioritizing Bing indexing.
+          Restore this block together with <ConsentBanner /> when privacy controls are re-enabled.
+        */}
         {/* Google Analytics 4 */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=G-SV50DG3HTR`}
@@ -101,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
+            window.gtag = window.gtag || function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'G-SV50DG3HTR');
           `}
@@ -196,6 +201,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           {children}
         </div>
         <Footer />
+        {/* ConsentBanner is temporarily disabled while prioritizing Bing indexing. */}
+        {/* <ConsentBanner /> */}
       </body>
     </html>
   );
