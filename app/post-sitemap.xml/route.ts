@@ -1,12 +1,15 @@
 import { getSitemapPosts } from '@/src/services/wpService';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function escapeXml(value: string) {
   return value.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c] || c));
 }
 
 export async function GET() {
   const baseUrl = 'https://aurahomeoffice.com';
-  const posts = await getSitemapPosts();
+  const posts = await getSitemapPosts({ noStore: true });
 
   const postUrls = posts.map((post) => ({
     url: escapeXml(`${baseUrl}/${post._embedded?.['wp:term']?.[0]?.[0]?.slug || 'uncategorized'}/${post.slug}`),
@@ -39,6 +42,7 @@ export async function GET() {
   return new Response(sitemap, {
     headers: {
       'Content-Type': 'application/xml',
+      'Cache-Control': 'no-store, max-age=0',
     },
   });
 }

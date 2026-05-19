@@ -282,7 +282,7 @@ export async function getLatestPosts(perPage = 10): Promise<WPPost[]> {
  * Keeps each WP response below Next.js data-cache limits while still including
  * category and featured-image data needed for canonical URLs and image sitemaps.
  */
-export async function getSitemapPosts(): Promise<WPPost[]> {
+export async function getSitemapPosts(options: { noStore?: boolean } = {}): Promise<WPPost[]> {
   const allPosts: WPPost[] = [];
   let page = 1;
   const perPage = 20;
@@ -295,12 +295,17 @@ export async function getSitemapPosts(): Promise<WPPost[]> {
       url.searchParams.set('per_page', perPage.toString());
       url.searchParams.set('status', 'publish');
 
-      const res = await fetch(url.toString(), {
-        next: {
-          revalidate: REVALIDATE_TIME,
-          tags: [POSTS_CACHE_TAG],
-        },
-      });
+      const res = await fetch(
+        url.toString(),
+        options.noStore
+          ? { cache: 'no-store' }
+          : {
+              next: {
+                revalidate: REVALIDATE_TIME,
+                tags: [POSTS_CACHE_TAG],
+              },
+            },
+      );
 
       if (!res.ok) break;
 
