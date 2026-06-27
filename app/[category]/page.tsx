@@ -41,8 +41,11 @@ export async function generateMetadata({ params, searchParams }: {
   const pageVal = Array.isArray(sParams.page) ? sParams.page[0] : sParams.page;
   const page = parseInt(pageVal || '1', 10);
 
+  // Hub categories that aggregate child posts — always indexable
+  const HUB_CATEGORIES = ['furniture', 'setup', 'guides', 'lifestyle'];
+
   try {
-    const { category, totalPages } = await getPostsByCategorySlug(categorySlug, page, 6);
+    const { category, totalPages, totalPosts } = await getPostsByCategorySlug(categorySlug, page, 6);
     const rawName = category?.name || categorySlug.replace(/-/g, ' ');
     const displayName = decodeHTMLEntities(rawName);
     
@@ -68,9 +71,18 @@ export async function generateMetadata({ params, searchParams }: {
     const prevUrl = page > 1 ? `${baseUrl}/${categorySlug}${page - 1 === 1 ? '' : `?page=${page - 1}`}` : undefined;
     const nextUrl = page < totalPages ? `${baseUrl}/${categorySlug}?page=${page + 1}` : undefined;
 
+    // ─── NOINDEX empty leaf categories ───
+    // Hub pages (furniture/setup/guides/lifestyle) are exempt because they aggregate child posts.
+    // All other categories with 0 posts get noindex to avoid thin-content penalty.
+    const isHub = HUB_CATEGORIES.includes(categorySlug);
+    const isEmpty = totalPosts === 0 && !isHub;
+
     return {
       title: `Best ${displayName} Reviews & Buying Guides ${currentYear}${titleSuffix}`,
       description: description,
+      robots: isEmpty
+        ? { index: false, follow: true }
+        : { index: true, follow: true },
       alternates: {
         canonical: categoryUrl,
         // rel="prev" / rel="next" — tells Bing & Google this is a paginated series, not duplicate content
@@ -79,7 +91,7 @@ export async function generateMetadata({ params, searchParams }: {
       },
     };
   } catch (e) {
-    return { title: 'Category Archive' };
+    return { title: 'Category Archive', robots: { index: false, follow: true } };
   }
 }
 
@@ -104,6 +116,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     
     notFound();
   }
+
+  // Hub categories that aggregate child posts — always indexable
+  const HUB_CATEGORIES = ['furniture', 'setup', 'guides', 'lifestyle'];
+  const isHubCategory = HUB_CATEGORIES.includes(categorySlug);
 
   // Fetch data
   let posts: WPPost[] = [];
@@ -139,6 +155,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     posts = result.posts;
     totalPages = result.totalPages;
     totalPosts = result.totalPosts;
+  }
+
+  // ─── Return 404 for empty leaf categories ───
+  // Prevents Bingbot from crawling thin/empty pages and penalizing site quality score.
+  // Hub categories (furniture/setup/guides/lifestyle) are exempt — they aggregate child posts.
+  if (totalPosts === 0 && !isHubCategory) {
+    notFound();
   }
   
   const displayName = decodeHTMLEntities(category.name);
