@@ -168,6 +168,10 @@ function prepareHtml(html: string, options: ProcessContentOptions = {}): { html:
     if (/^https?:\/\//i.test(href) && !/^https?:\/\/(www\.)?aurahomeoffice\.com\b/i.test(href)) {
       link.attr('target', '_blank');
       link.attr('rel', 'nofollow sponsored noopener noreferrer');
+
+      if (/^https?:\/\/(www\.)?amazon\.com/i.test(href)) {
+        link.attr('href', `/out?url=${encodeURIComponent(href)}`);
+      }
     }
   });
 
